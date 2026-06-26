@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import com.example.aitoui.navigation.AppNavHost
 import com.example.aitoui.ui.theme.AitouiTheme
 
 class MainActivity : ComponentActivity() {
@@ -12,7 +13,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             AitouiTheme {
-                MainScreen()
+                AppNavHost()
             }
         }
     }
