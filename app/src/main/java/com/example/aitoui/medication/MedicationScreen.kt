@@ -27,7 +27,7 @@ import com.example.aitoui.ui.theme.AitouiTheme
 @Composable
 fun MedicationRoot(
     onBack: () -> Unit,
-    viewModel: MedicationViewModel = viewModel(),
+    viewModel: MedicationViewModel = viewModel(factory = MedicationViewModel.Factory),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     MedicationScreen(
