@@ -20,6 +20,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -40,7 +44,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.aitoui.data.MedicationFormat
+import com.example.aitoui.data.MedicationFormatDetails
 import com.example.aitoui.ui.theme.AitouiTheme
 
 @Composable
@@ -63,9 +67,9 @@ fun InventoryScreen(
     onAction: (InventoryAction) -> Unit,
     onBack: () -> Unit,
 ) {
-    // Keep the last shown medication so the panel still renders its details while sliding out.
-    var lastShown by remember { mutableStateOf<MedicationFormat?>(null) }
-    state.selectedMedication?.let { lastShown = it }
+    // Keep the last shown format so the panel still renders its details while sliding out.
+    var lastShown by remember { mutableStateOf<MedicationFormatDetails?>(null) }
+    state.selectedFormat?.let { lastShown = it }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -73,8 +77,11 @@ fun InventoryScreen(
             TopAppBar(
                 title = { Text("Inventory") },
                 navigationIcon = {
-                    TextButton(onClick = onBack) {
-                        Text("←", style = MaterialTheme.typography.titleLarge)
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                        )
                     }
                 },
             )
@@ -86,17 +93,19 @@ fun InventoryScreen(
                 .padding(innerPadding),
         ) {
             Text(
-                text = "Medications in hand:",
-                style = MaterialTheme.typography.titleMedium,
+                text = "The Inventory is the list of all medications you have had dispensed " +
+                    "but have not yet taken.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
             )
 
             LazyColumn(modifier = Modifier.weight(1f)) {
-                items(state.medications, key = { it.id }) { medication ->
+                items(state.formats, key = { it.formatId }) { format ->
                     MedicationRow(
-                        medication = medication,
-                        selected = medication.id == state.selectedId,
-                        onClick = { onAction(InventoryAction.MedicationSelected(medication.id)) },
+                        format = format,
+                        selected = format.formatId == state.selectedId,
+                        onClick = { onAction(InventoryAction.FormatSelected(format.formatId)) },
                     )
                     HorizontalDivider()
                 }
@@ -104,13 +113,13 @@ fun InventoryScreen(
 
             // The panel sits below the weighted list, so the list shrinks above it when shown.
             AnimatedVisibility(
-                visible = state.selectedMedication != null,
+                visible = state.selectedFormat != null,
                 enter = slideInVertically { it } + expandVertically() + fadeIn(),
                 exit = slideOutVertically { it } + shrinkVertically() + fadeOut(),
             ) {
-                lastShown?.let { medication ->
+                lastShown?.let { format ->
                     MedicationDetailSheet(
-                        medication = medication,
+                        format = format,
                         onClose = { onAction(InventoryAction.SheetDismissed) },
                     )
                 }
@@ -121,7 +130,7 @@ fun InventoryScreen(
 
 @Composable
 private fun MedicationRow(
-    medication: MedicationFormat,
+    format: MedicationFormatDetails,
     selected: Boolean,
     onClick: () -> Unit,
 ) {
@@ -135,11 +144,11 @@ private fun MedicationRow(
             .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
         Text(
-            text = medication.brandName,
+            text = format.brandName,
             style = MaterialTheme.typography.bodyLarge,
         )
         Text(
-            text = medication.activeIngredient,
+            text = format.activeIngredient,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -148,7 +157,7 @@ private fun MedicationRow(
 
 @Composable
 private fun MedicationDetailSheet(
-    medication: MedicationFormat,
+    format: MedicationFormatDetails,
     onClose: () -> Unit,
 ) {
     Surface(
@@ -179,15 +188,15 @@ private fun MedicationDetailSheet(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = medication.brandName,
+                    text = format.brandName,
                     style = MaterialTheme.typography.titleLarge,
                 )
                 TextButton(onClick = onClose) { Text("Close") }
             }
 
-            DetailRow("Active ingredient", medication.activeIngredient)
-            DetailRow("Dose per tablet", medication.dosePerTablet)
-            DetailRow("Tablets per box", medication.tabletsPerBox)
+            DetailRow("Active ingredient", format.activeIngredient)
+            DetailRow("Dose per tablet", format.dosePerTablet)
+            DetailRow("Tablets per box", format.tabletsPerBox)
         }
     }
 }
@@ -215,9 +224,9 @@ private fun InventoryScreenPreview() {
     AitouiTheme {
         InventoryScreen(
             state = InventoryState(
-                medications = listOf(
-                    MedicationFormat(1, "Panadol", "Paracetamol", "500", "24"),
-                    MedicationFormat(2, "Nurofen", "Ibuprofen", "200", "16"),
+                formats = listOf(
+                    MedicationFormatDetails(1, 1, "Panadol", "Paracetamol", "500", "24"),
+                    MedicationFormatDetails(2, 2, "Nurofen", "Ibuprofen", "200", "16"),
                 ),
                 selectedId = 1,
             ),

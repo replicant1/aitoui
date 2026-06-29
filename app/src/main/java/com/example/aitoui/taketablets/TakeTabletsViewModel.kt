@@ -1,9 +1,18 @@
 package com.example.aitoui.taketablets
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import com.example.aitoui.AitouiApp
+import com.example.aitoui.data.Medication
+import com.example.aitoui.data.MedicationRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 
 /** A single row in the "Tablets Taken" list. */
@@ -18,18 +27,22 @@ data class TabletEntry(
 
 /** Screen state for "Take Tablets". */
 data class TakeTabletsState(
-    val brandName: String = "",
+    val medications: List<Medication> = emptyList(),
+    val selectedMedicationId: Long? = null,
     val numberOfTablets: String = "",
     val tabletsTaken: List<TabletEntry> = emptyList(),
     val selectedId: Long? = null,
 ) {
-    val canAdd: Boolean get() = brandName.isNotBlank() && numberOfTablets.isNotBlank()
+    val selectedMedicationName: String
+        get() = medications.firstOrNull { it.id == selectedMedicationId }?.brandName ?: ""
+
+    val canAdd: Boolean get() = selectedMedicationId != null && numberOfTablets.isNotBlank()
     val canDelete: Boolean get() = selectedId != null
 }
 
 /** User intents emitted by the "Take Tablets" screen. */
 sealed interface TakeTabletsAction {
-    data class BrandNameChanged(val value: String) : TakeTabletsAction
+    data class MedicationSelected(val id: Long) : TakeTabletsAction
     data class NumberOfTabletsChanged(val value: String) : TakeTabletsAction
     data object Add : TakeTabletsAction
     data class RowSelected(val id: Long) : TakeTabletsAction
@@ -37,31 +50,45 @@ sealed interface TakeTabletsAction {
     data object Save : TakeTabletsAction
 }
 
-class TakeTabletsViewModel : ViewModel() {
+class TakeTabletsViewModel(
+    medicationRepository: MedicationRepository,
+) : ViewModel() {
 
     private val _state = MutableStateFlow(TakeTabletsState())
     val state: StateFlow<TakeTabletsState> = _state.asStateFlow()
 
     private var nextId = 0L
 
+    init {
+        medicationRepository.medications
+            .onEach { meds ->
+                _state.update { current ->
+                    val stillExists = meds.any { it.id == current.selectedMedicationId }
+                    current.copy(
+                        medications = meds,
+                        selectedMedicationId = current.selectedMedicationId.takeIf { stillExists },
+                    )
+                }
+            }
+            .launchIn(viewModelScope)
+    }
+
     fun onAction(action: TakeTabletsAction) {
         when (action) {
-            is TakeTabletsAction.BrandNameChanged ->
-                _state.update { it.copy(brandName = action.value) }
+            is TakeTabletsAction.MedicationSelected ->
+                _state.update { it.copy(selectedMedicationId = action.id) }
 
             is TakeTabletsAction.NumberOfTabletsChanged ->
                 _state.update { it.copy(numberOfTablets = action.value.digitsOnly()) }
 
             TakeTabletsAction.Add -> _state.update { current ->
                 if (!current.canAdd) return@update current
-                val entry = TabletEntry(
-                    id = nextId++,
-                    brand = current.brandName.trim(),
-                    number = current.numberOfTablets,
-                )
-                // Append the new row and clear the input fields.
+                val brand = current.medications.firstOrNull { it.id == current.selectedMedicationId }
+                    ?.brandName ?: return@update current
+                val entry = TabletEntry(id = nextId++, brand = brand, number = current.numberOfTablets)
+                // Append the new row and clear the inputs.
                 current.copy(
-                    brandName = "",
+                    selectedMedicationId = null,
                     numberOfTablets = "",
                     tabletsTaken = current.tabletsTaken + entry,
                 )
@@ -85,4 +112,13 @@ class TakeTabletsViewModel : ViewModel() {
     }
 
     private fun String.digitsOnly(): String = filter { it.isDigit() }
+
+    companion object {
+        val Factory = viewModelFactory {
+            initializer {
+                val app = this[APPLICATION_KEY] as AitouiApp
+                TakeTabletsViewModel(app.medicationRepository)
+            }
+        }
+    }
 }

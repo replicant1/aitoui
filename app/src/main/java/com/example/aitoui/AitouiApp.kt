@@ -5,6 +5,7 @@ import androidx.room.Room
 import com.example.aitoui.data.AppDatabase
 import com.example.aitoui.data.DatabaseSeeder
 import com.example.aitoui.data.MedicationFormatRepository
+import com.example.aitoui.data.MedicationRepository
 import com.example.aitoui.data.ScriptRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -26,6 +27,10 @@ class AitouiApp : Application() {
             .build()
     }
 
+    val medicationRepository: MedicationRepository by lazy {
+        MedicationRepository(database.medicationDao())
+    }
+
     val medicationFormatRepository: MedicationFormatRepository by lazy {
         MedicationFormatRepository(database.medicationFormatDao())
     }
@@ -41,6 +46,7 @@ class AitouiApp : Application() {
         if (BuildConfig.DEBUG) {
             applicationScope.launch {
                 DatabaseSeeder.seedIfEmpty(
+                    medicationRepository = medicationRepository,
                     formatRepository = medicationFormatRepository,
                     scriptRepository = scriptRepository,
                     nowMillis = System.currentTimeMillis(),

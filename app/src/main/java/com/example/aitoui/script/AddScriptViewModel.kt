@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.aitoui.AitouiApp
-import com.example.aitoui.data.MedicationFormat
+import com.example.aitoui.data.MedicationFormatDetails
 import com.example.aitoui.data.MedicationFormatRepository
 import com.example.aitoui.data.Script
 import com.example.aitoui.data.ScriptRepository
@@ -20,7 +20,7 @@ import kotlinx.coroutines.launch
 
 /** Form state for adding a Script. Numeric inputs are held as raw (digit-filtered) text. */
 data class AddScriptState(
-    val medicationFormats: List<MedicationFormat> = emptyList(),
+    val medicationFormats: List<MedicationFormatDetails> = emptyList(),
     val selectedMedicationFormatId: Long? = null,
     val directions: String = "",
     val quantity: String = "",
@@ -28,7 +28,7 @@ data class AddScriptState(
     val validToMillis: Long? = null,
 ) {
     val selectedMedicationFormatName: String
-        get() = medicationFormats.firstOrNull { it.id == selectedMedicationFormatId }?.brandName ?: ""
+        get() = medicationFormats.firstOrNull { it.formatId == selectedMedicationFormatId }?.label ?: ""
 
     // Basic field validation.
     val medicationFormatValid: Boolean get() = selectedMedicationFormatId != null
@@ -60,12 +60,12 @@ class AddScriptViewModel(
 
     init {
         // Keep the dropdown's options in sync with the Medication Format table.
-        medicationFormatRepository.medicationFormats
-            .onEach { types ->
+        medicationFormatRepository.formatsWithMedication
+            .onEach { formats ->
                 _state.update { current ->
-                    val stillExists = types.any { it.id == current.selectedMedicationFormatId }
+                    val stillExists = formats.any { it.formatId == current.selectedMedicationFormatId }
                     current.copy(
-                        medicationFormats = types,
+                        medicationFormats = formats,
                         selectedMedicationFormatId = current.selectedMedicationFormatId.takeIf { stillExists },
                     )
                 }

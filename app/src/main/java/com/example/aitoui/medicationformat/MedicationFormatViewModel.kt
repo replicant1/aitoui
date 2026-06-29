@@ -6,45 +6,66 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.aitoui.AitouiApp
+import com.example.aitoui.data.Medication
 import com.example.aitoui.data.MedicationFormat
 import com.example.aitoui.data.MedicationFormatRepository
+import com.example.aitoui.data.MedicationRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** Form state for the medication template entry screen. All fields are raw text input. */
+/** Form state for the Medication Format entry screen. */
 data class MedicationFormatState(
-    val brandName: String = "",
-    val activeIngredient: String = "",
+    val medications: List<Medication> = emptyList(),
+    val selectedMedicationId: Long? = null,
     val dosePerTablet: String = "",
     val tabletsPerBox: String = "",
-)
+) {
+    val selectedMedicationName: String
+        get() = medications.firstOrNull { it.id == selectedMedicationId }?.brandName ?: ""
 
-/** User intents emitted by the medication template entry screen. */
+    val canSave: Boolean
+        get() = selectedMedicationId != null && dosePerTablet.isNotBlank() && tabletsPerBox.isNotBlank()
+}
+
 sealed interface MedicationFormatAction {
-    data class BrandNameChanged(val value: String) : MedicationFormatAction
-    data class ActiveIngredientChanged(val value: String) : MedicationFormatAction
+    data class MedicationSelected(val id: Long) : MedicationFormatAction
     data class DosePerTabletChanged(val value: String) : MedicationFormatAction
     data class TabletsPerBoxChanged(val value: String) : MedicationFormatAction
     data object Save : MedicationFormatAction
 }
 
 class MedicationFormatViewModel(
-    private val repository: MedicationFormatRepository,
+    private val formatRepository: MedicationFormatRepository,
+    medicationRepository: MedicationRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(MedicationFormatState())
     val state: StateFlow<MedicationFormatState> = _state.asStateFlow()
 
+    init {
+        // Keep the Medication dropdown's options in sync with the medications table.
+        medicationRepository.medications
+            .onEach { meds ->
+                _state.update { current ->
+                    val stillExists = meds.any { it.id == current.selectedMedicationId }
+                    current.copy(
+                        medications = meds,
+                        selectedMedicationId = current.selectedMedicationId.takeIf { stillExists },
+                    )
+                }
+            }
+            .launchIn(viewModelScope)
+    }
+
     fun onAction(action: MedicationFormatAction) {
         when (action) {
-            is MedicationFormatAction.BrandNameChanged ->
-                _state.update { it.copy(brandName = action.value) }
-
-            is MedicationFormatAction.ActiveIngredientChanged ->
-                _state.update { it.copy(activeIngredient = action.value) }
+            is MedicationFormatAction.MedicationSelected ->
+                _state.update { it.copy(selectedMedicationId = action.id) }
 
             is MedicationFormatAction.DosePerTabletChanged ->
                 _state.update { it.copy(dosePerTablet = action.value.digitsOnly()) }
@@ -58,19 +79,18 @@ class MedicationFormatViewModel(
 
     private fun save() {
         val current = _state.value
-        if (current.brandName.isBlank()) return
+        if (!current.canSave) return
         viewModelScope.launch {
-            repository.add(
+            formatRepository.add(
                 MedicationFormat(
-                    brandName = current.brandName.trim(),
-                    activeIngredient = current.activeIngredient.trim(),
+                    medicationId = current.selectedMedicationId!!,
                     dosePerTablet = current.dosePerTablet,
                     tabletsPerBox = current.tabletsPerBox,
                 )
             )
         }
-        // Clear the form for the next entry.
-        _state.value = MedicationFormatState()
+        // Clear the form for the next entry (keep the loaded medications).
+        _state.update { MedicationFormatState(medications = it.medications) }
     }
 
     private fun String.digitsOnly(): String = filter { it.isDigit() }
@@ -79,7 +99,7 @@ class MedicationFormatViewModel(
         val Factory = viewModelFactory {
             initializer {
                 val app = this[APPLICATION_KEY] as AitouiApp
-                MedicationFormatViewModel(app.medicationFormatRepository)
+                MedicationFormatViewModel(app.medicationFormatRepository, app.medicationRepository)
             }
         }
     }

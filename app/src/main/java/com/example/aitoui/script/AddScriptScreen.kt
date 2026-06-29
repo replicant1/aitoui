@@ -14,8 +14,13 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -34,7 +39,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.aitoui.data.MedicationFormat
+import com.example.aitoui.data.MedicationFormatDetails
 import com.example.aitoui.ui.theme.AitouiTheme
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -49,6 +54,7 @@ fun AddScriptRoot(
     AddScriptScreen(
         state = state,
         onAction = viewModel::onAction,
+        onBack = onBack,
     )
 }
 
@@ -57,6 +63,7 @@ fun AddScriptRoot(
 fun AddScriptScreen(
     state: AddScriptState,
     onAction: (AddScriptAction) -> Unit,
+    onBack: () -> Unit,
 ) {
     var typeExpanded by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
@@ -66,6 +73,14 @@ fun AddScriptScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Script") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                        )
+                    }
+                },
                 actions = {
                     TextButton(
                         onClick = { onAction(AddScriptAction.Save) },
@@ -85,6 +100,12 @@ fun AddScriptScreen(
                 .padding(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            Text(
+                text = "A Script is an authorization from your doctor for the chemist to " +
+                    "dispense to you a particular medication in a particular format.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             // Medication Format — dropdown of existing Medication Format records.
             ExposedDropdownMenuBox(
                 expanded = typeExpanded,
@@ -108,11 +129,11 @@ fun AddScriptScreen(
                     expanded = typeExpanded,
                     onDismissRequest = { typeExpanded = false },
                 ) {
-                    state.medicationFormats.forEach { type ->
+                    state.medicationFormats.forEach { format ->
                         DropdownMenuItem(
-                            text = { Text(type.brandName) },
+                            text = { Text(format.label) },
                             onClick = {
-                                onAction(AddScriptAction.MedicationFormatSelected(type.id))
+                                onAction(AddScriptAction.MedicationFormatSelected(format.formatId))
                                 typeExpanded = false
                             },
                         )
@@ -203,7 +224,7 @@ private fun AddScriptScreenPreview() {
         AddScriptScreen(
             state = AddScriptState(
                 medicationFormats = listOf(
-                    MedicationFormat(1, "Panadol", "Paracetamol", "500", "24"),
+                    MedicationFormatDetails(1, 1, "Panadol", "Paracetamol", "500", "24"),
                 ),
                 selectedMedicationFormatId = 1,
                 directions = "Take one tablet twice a day",
@@ -212,6 +233,7 @@ private fun AddScriptScreenPreview() {
                 validToMillis = 0L,
             ),
             onAction = {},
+            onBack = {},
         )
     }
 }
