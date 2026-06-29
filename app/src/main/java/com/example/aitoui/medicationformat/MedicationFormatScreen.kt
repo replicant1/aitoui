@@ -1,4 +1,4 @@
-package com.example.aitoui.medicationtemplate
+package com.example.aitoui.medicationformat
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -25,12 +25,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.aitoui.ui.theme.AitouiTheme
 
 @Composable
-fun MedicationTemplateRoot(
+fun MedicationFormatRoot(
     onBack: () -> Unit,
-    viewModel: MedicationTemplateViewModel = viewModel(factory = MedicationTemplateViewModel.Factory),
+    viewModel: MedicationFormatViewModel = viewModel(factory = MedicationFormatViewModel.Factory),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    MedicationTemplateScreen(
+    MedicationFormatScreen(
         state = state,
         onAction = viewModel::onAction,
     )
@@ -38,17 +38,17 @@ fun MedicationTemplateRoot(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MedicationTemplateScreen(
-    state: MedicationTemplateState,
-    onAction: (MedicationTemplateAction) -> Unit,
+fun MedicationFormatScreen(
+    state: MedicationFormatState,
+    onAction: (MedicationFormatAction) -> Unit,
 ) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("Medication Type") },
+                title = { Text("Medication Format") },
                 actions = {
-                    TextButton(onClick = { onAction(MedicationTemplateAction.Save) }) {
+                    TextButton(onClick = { onAction(MedicationFormatAction.Save) }) {
                         Text("Save")
                     }
                 },
@@ -65,21 +65,21 @@ fun MedicationTemplateScreen(
         ) {
             OutlinedTextField(
                 value = state.brandName,
-                onValueChange = { onAction(MedicationTemplateAction.BrandNameChanged(it)) },
+                onValueChange = { onAction(MedicationFormatAction.BrandNameChanged(it)) },
                 label = { Text("Brand Name") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
                 value = state.activeIngredient,
-                onValueChange = { onAction(MedicationTemplateAction.ActiveIngredientChanged(it)) },
+                onValueChange = { onAction(MedicationFormatAction.ActiveIngredientChanged(it)) },
                 label = { Text("Active Ingredient") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
                 value = state.dosePerTablet,
-                onValueChange = { onAction(MedicationTemplateAction.DosePerTabletChanged(it)) },
+                onValueChange = { onAction(MedicationFormatAction.DosePerTabletChanged(it)) },
                 label = { Text("Dose per tablet") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -87,7 +87,7 @@ fun MedicationTemplateScreen(
             )
             OutlinedTextField(
                 value = state.tabletsPerBox,
-                onValueChange = { onAction(MedicationTemplateAction.TabletsPerBoxChanged(it)) },
+                onValueChange = { onAction(MedicationFormatAction.TabletsPerBoxChanged(it)) },
                 label = { Text("Tablets per box") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -99,10 +99,10 @@ fun MedicationTemplateScreen(
 
 @Preview(showBackground = true)
 @Composable
-private fun MedicationTemplateScreenPreview() {
+private fun MedicationFormatScreenPreview() {
     AitouiTheme {
-        MedicationTemplateScreen(
-            state = MedicationTemplateState(
+        MedicationFormatScreen(
+            state = MedicationFormatState(
                 brandName = "Panadol",
                 activeIngredient = "Paracetamol",
                 dosePerTablet = "500",
