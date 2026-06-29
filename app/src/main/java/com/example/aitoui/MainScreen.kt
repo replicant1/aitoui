@@ -23,6 +23,7 @@ fun MainScreen(
     onTakeTablets: () -> Unit = {},
     onInventory: () -> Unit = {},
     onAddScript: () -> Unit = {},
+    onDispense: () -> Unit = {},
 ) {
     Scaffold(modifier = modifier.fillMaxSize()) { innerPadding ->
         Column(
@@ -65,6 +66,12 @@ fun MainScreen(
                 modifier = Modifier.padding(top = 8.dp),
             ) {
                 Text("Add Script")
+            }
+            Button(
+                onClick = onDispense,
+                modifier = Modifier.padding(top = 8.dp),
+            ) {
+                Text("Dispense")
             }
         }
     }
