@@ -8,7 +8,8 @@ class MedicationFormatRepository(private val dao: MedicationFormatDao) {
     val medicationFormats: Flow<List<MedicationFormat>> =
         dao.getAll().map { entities -> entities.map { it.toDomain() } }
 
-    suspend fun add(template: MedicationFormat) {
-        dao.insert(template.toEntity())
-    }
+    /** Inserts a format and returns its new id. */
+    suspend fun add(format: MedicationFormat): Long = dao.insert(format.toEntity())
+
+    suspend fun count(): Int = dao.count()
 }
