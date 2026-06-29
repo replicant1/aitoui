@@ -14,8 +14,13 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -49,6 +54,7 @@ fun AddScriptRoot(
     AddScriptScreen(
         state = state,
         onAction = viewModel::onAction,
+        onBack = onBack,
     )
 }
 
@@ -57,6 +63,7 @@ fun AddScriptRoot(
 fun AddScriptScreen(
     state: AddScriptState,
     onAction: (AddScriptAction) -> Unit,
+    onBack: () -> Unit,
 ) {
     var typeExpanded by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
@@ -66,6 +73,14 @@ fun AddScriptScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Script") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                        )
+                    }
+                },
                 actions = {
                     TextButton(
                         onClick = { onAction(AddScriptAction.Save) },
@@ -85,6 +100,12 @@ fun AddScriptScreen(
                 .padding(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            Text(
+                text = "A Script is an authorization from your doctor for the chemist to " +
+                    "dispense to you a particular medication in a particular format.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             // Medication Format — dropdown of existing Medication Format records.
             ExposedDropdownMenuBox(
                 expanded = typeExpanded,
@@ -212,6 +233,7 @@ private fun AddScriptScreenPreview() {
                 validToMillis = 0L,
             ),
             onAction = {},
+            onBack = {},
         )
     }
 }

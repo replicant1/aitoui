@@ -20,6 +20,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -73,8 +77,11 @@ fun InventoryScreen(
             TopAppBar(
                 title = { Text("Inventory") },
                 navigationIcon = {
-                    TextButton(onClick = onBack) {
-                        Text("←", style = MaterialTheme.typography.titleLarge)
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                        )
                     }
                 },
             )
@@ -86,8 +93,10 @@ fun InventoryScreen(
                 .padding(innerPadding),
         ) {
             Text(
-                text = "Medications in hand:",
-                style = MaterialTheme.typography.titleMedium,
+                text = "The Inventory is the list of all medications you have had dispensed " +
+                    "but have not yet taken.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
             )
 

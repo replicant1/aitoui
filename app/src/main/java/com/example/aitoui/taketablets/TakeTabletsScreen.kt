@@ -13,6 +13,10 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
@@ -65,8 +69,11 @@ fun TakeTabletsScreen(
             TopAppBar(
                 title = { Text("Take Tablets") },
                 navigationIcon = {
-                    TextButton(onClick = onBack) {
-                        Text("←", style = MaterialTheme.typography.titleLarge)
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                        )
                     }
                 },
                 actions = {
@@ -109,7 +116,7 @@ fun TakeTabletsScreen(
                 ) {
                     state.medications.forEach { medication ->
                         DropdownMenuItem(
-                            text = { Text(medication.brandName) },
+                            text = { Text("${medication.brandName} (${medication.activeIngredient})") },
                             onClick = {
                                 onAction(TakeTabletsAction.MedicationSelected(medication.id))
                                 medicationExpanded = false

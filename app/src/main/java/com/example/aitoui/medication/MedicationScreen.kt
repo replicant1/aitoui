@@ -6,6 +6,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -29,6 +34,7 @@ fun MedicationRoot(
     MedicationScreen(
         state = state,
         onAction = viewModel::onAction,
+        onBack = onBack,
     )
 }
 
@@ -37,12 +43,21 @@ fun MedicationRoot(
 fun MedicationScreen(
     state: MedicationState,
     onAction: (MedicationAction) -> Unit,
+    onBack: () -> Unit,
 ) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
                 title = { Text("Medication") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                        )
+                    }
+                },
                 actions = {
                     TextButton(
                         onClick = { onAction(MedicationAction.Save) },
@@ -61,6 +76,12 @@ fun MedicationScreen(
                 .padding(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            Text(
+                text = "A Medication is a proprietary formulation based around an active " +
+                    "ingredient, that can be prescribed by your doctor.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             OutlinedTextField(
                 value = state.brandName,
                 onValueChange = { onAction(MedicationAction.BrandNameChanged(it)) },
@@ -86,6 +107,7 @@ private fun MedicationScreenPreview() {
         MedicationScreen(
             state = MedicationState(brandName = "Panadol", activeIngredient = "Paracetamol"),
             onAction = {},
+            onBack = {},
         )
     }
 }

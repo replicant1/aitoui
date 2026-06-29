@@ -10,8 +10,13 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -41,6 +46,7 @@ fun MedicationFormatRoot(
     MedicationFormatScreen(
         state = state,
         onAction = viewModel::onAction,
+        onBack = onBack,
     )
 }
 
@@ -49,6 +55,7 @@ fun MedicationFormatRoot(
 fun MedicationFormatScreen(
     state: MedicationFormatState,
     onAction: (MedicationFormatAction) -> Unit,
+    onBack: () -> Unit,
 ) {
     var medicationExpanded by remember { mutableStateOf(false) }
 
@@ -57,6 +64,14 @@ fun MedicationFormatScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Medication Format") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                        )
+                    }
+                },
                 actions = {
                     TextButton(
                         onClick = { onAction(MedicationFormatAction.Save) },
@@ -76,6 +91,12 @@ fun MedicationFormatScreen(
                 .padding(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            Text(
+                text = "A Medication Format is a particular packaging and presentation of a " +
+                    "medication — a dispensable unit of the medication. Typically a box or bottle of a capsule or tablet.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             // Medication — dropdown of existing Medication records.
             ExposedDropdownMenuBox(
                 expanded = medicationExpanded,
@@ -101,7 +122,7 @@ fun MedicationFormatScreen(
                 ) {
                     state.medications.forEach { medication ->
                         DropdownMenuItem(
-                            text = { Text("${medication.brandName} — ${medication.activeIngredient}") },
+                            text = { Text("${medication.brandName} (${medication.activeIngredient})") },
                             onClick = {
                                 onAction(MedicationFormatAction.MedicationSelected(medication.id))
                                 medicationExpanded = false
@@ -143,6 +164,7 @@ private fun MedicationFormatScreenPreview() {
                 tabletsPerBox = "24",
             ),
             onAction = {},
+            onBack = {},
         )
     }
 }
