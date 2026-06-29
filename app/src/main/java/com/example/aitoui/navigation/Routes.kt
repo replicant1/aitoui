@@ -19,4 +19,7 @@ object TakeTabletsRoute
 object InventoryRoute
 
 @Serializable
+object DispenseRoute
+
+@Serializable
 object ScriptRoute

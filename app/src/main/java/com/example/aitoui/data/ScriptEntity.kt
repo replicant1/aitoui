@@ -11,38 +11,35 @@ import androidx.room.PrimaryKey
         ForeignKey(
             entity = MedicationFormatEntity::class,
             parentColumns = ["id"],
-            childColumns = ["medicationFormatId"],
+            childColumns = ["dispensableUnitId"],
             onDelete = ForeignKey.CASCADE,
         ),
     ],
-    indices = [Index("medicationFormatId")],
+    indices = [Index("dispensableUnitId")],
 )
 data class ScriptEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val medicationFormatId: Long,
+    val dispensableUnitId: Long,
     val directions: String,
     val quantity: Int,
     val repeats: Int,
     val validToMillis: Long,
-    val dispensed: Int = 0,
 )
 
 fun ScriptEntity.toDomain(): Script = Script(
     id = id,
-    medicationFormatId = medicationFormatId,
+    dispensableUnitId = dispensableUnitId,
     directions = directions,
     quantity = quantity,
     repeats = repeats,
     validToMillis = validToMillis,
-    dispensed = dispensed,
 )
 
 fun Script.toEntity(): ScriptEntity = ScriptEntity(
     id = id,
-    medicationFormatId = medicationFormatId,
+    dispensableUnitId = dispensableUnitId,
     directions = directions,
     quantity = quantity,
     repeats = repeats,
     validToMillis = validToMillis,
-    dispensed = dispensed,
 )

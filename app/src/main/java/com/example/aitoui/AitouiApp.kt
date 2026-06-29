@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.room.Room
 import com.example.aitoui.data.AppDatabase
 import com.example.aitoui.data.DatabaseSeeder
+import com.example.aitoui.data.DispensationRepository
 import com.example.aitoui.data.MedicationFormatRepository
 import com.example.aitoui.data.MedicationRepository
 import com.example.aitoui.data.ScriptRepository
@@ -39,6 +40,10 @@ class AitouiApp : Application() {
         ScriptRepository(database.scriptDao())
     }
 
+    val dispensationRepository: DispensationRepository by lazy {
+        DispensationRepository(database.dispensationDao())
+    }
+
     override fun onCreate() {
         super.onCreate()
         // Debug-only: auto-populate the DB with dummy data on first run so the app can be exercised
@@ -49,6 +54,7 @@ class AitouiApp : Application() {
                     medicationRepository = medicationRepository,
                     formatRepository = medicationFormatRepository,
                     scriptRepository = scriptRepository,
+                    dispensationRepository = dispensationRepository,
                     nowMillis = System.currentTimeMillis(),
                 )
             }

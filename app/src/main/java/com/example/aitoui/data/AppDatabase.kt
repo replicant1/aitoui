@@ -4,12 +4,18 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 
 @Database(
-    entities = [MedicationEntity::class, MedicationFormatEntity::class, ScriptEntity::class],
-    version = 7,
+    entities = [
+        MedicationEntity::class,
+        MedicationFormatEntity::class,
+        ScriptEntity::class,
+        DispensationEntity::class,
+    ],
+    version = 12,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun medicationDao(): MedicationDao
     abstract fun medicationFormatDao(): MedicationFormatDao
     abstract fun scriptDao(): ScriptDao
+    abstract fun dispensationDao(): DispensationDao
 }

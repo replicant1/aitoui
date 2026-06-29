@@ -106,13 +106,13 @@ fun AddScriptScreen(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            // Medication Format — dropdown of existing Medication Format records.
+            // Medication Format — the single dispensable unit this script is for.
             ExposedDropdownMenuBox(
                 expanded = typeExpanded,
                 onExpandedChange = { typeExpanded = !typeExpanded },
             ) {
                 OutlinedTextField(
-                    value = state.selectedMedicationFormatName,
+                    value = state.selectedFormatLabel,
                     onValueChange = {},
                     readOnly = true,
                     label = { Text("Medication Format") },
@@ -224,9 +224,9 @@ private fun AddScriptScreenPreview() {
         AddScriptScreen(
             state = AddScriptState(
                 medicationFormats = listOf(
-                    MedicationFormatDetails(1, 1, "Panadol", "Paracetamol", "500", "24", 12, 48),
+                    MedicationFormatDetails(1, 1, "Panadol", "Paracetamol", "500", "24"),
                 ),
-                selectedMedicationFormatId = 1,
+                selectedFormatId = 1,
                 directions = "Take one tablet twice a day",
                 quantity = "30",
                 repeats = "2",

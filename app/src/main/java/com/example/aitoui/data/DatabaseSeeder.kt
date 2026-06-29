@@ -53,38 +53,51 @@ object DatabaseSeeder {
         medicationRepository: MedicationRepository,
         formatRepository: MedicationFormatRepository,
         scriptRepository: ScriptRepository,
+        dispensationRepository: DispensationRepository,
         nowMillis: Long,
     ) {
         if (medicationRepository.count() > 0) return // already seeded — never grow without bound
 
-        // One medication and one format per seed entry; capture the format id per brand for scripts.
-        val formatIdByBrand = HashMap<String, Long>()
+        // One medication and one dispensable unit per seed entry; capture the unit id per brand.
+        val unitIdByBrand = HashMap<String, Long>()
         for (med in MEDICATIONS) {
             val medicationId = medicationRepository.add(
                 Medication(brandName = med.brand, activeIngredient = med.activeIngredient)
             )
-            val formatId = formatRepository.add(
+            val unitId = formatRepository.add(
                 MedicationFormat(
                     medicationId = medicationId,
                     dosePerTablet = med.dosePerTablet,
                     tabletsPerBox = med.tabletsPerBox,
                 )
             )
-            formatIdByBrand[med.brand] = formatId
+            unitIdByBrand[med.brand] = unitId
         }
 
+        // Each seed script is for a single dispensable unit (many scripts → one unit).
         for (seed in SCRIPTS) {
-            val formatId = formatIdByBrand[seed.brand] ?: continue
-            scriptRepository.add(
+            val unitId = unitIdByBrand[seed.brand] ?: continue
+            val scriptId = scriptRepository.add(
                 Script(
-                    medicationFormatId = formatId,
+                    dispensableUnitId = unitId,
                     directions = seed.directions,
                     quantity = seed.quantity,
                     repeats = seed.repeats,
                     validToMillis = nowMillis + seed.validForDays * DAY_MILLIS,
-                    dispensed = seed.dispensed,
                 )
             )
+            // The script's dispensed count is now derived from the dispensations table, so record
+            // the seeded prior dispensations there rather than as a column on the script.
+            if (seed.dispensed > 0) {
+                dispensationRepository.add(
+                    Dispensation(
+                        scriptId = scriptId,
+                        dispensableUnitId = unitId,
+                        number = seed.dispensed,
+                        dispensedAtMillis = nowMillis,
+                    )
+                )
+            }
         }
     }
 
