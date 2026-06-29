@@ -3,7 +3,8 @@ package com.example.aitoui
 import android.app.Application
 import androidx.room.Room
 import com.example.aitoui.data.AppDatabase
-import com.example.aitoui.data.MedicationTemplateRepository
+import com.example.aitoui.data.MedicationFormatRepository
+import com.example.aitoui.data.ScriptRepository
 
 /**
  * Application that owns the singleton data layer. ViewModels reach the repository via a
@@ -18,7 +19,11 @@ class AitouiApp : Application() {
             .build()
     }
 
-    val medicationTemplateRepository: MedicationTemplateRepository by lazy {
-        MedicationTemplateRepository(database.medicationTemplateDao())
+    val medicationFormatRepository: MedicationFormatRepository by lazy {
+        MedicationFormatRepository(database.medicationFormatDao())
+    }
+
+    val scriptRepository: ScriptRepository by lazy {
+        ScriptRepository(database.scriptDao())
     }
 }

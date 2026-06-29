@@ -3,8 +3,8 @@ package com.example.aitoui.data
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "medication_templates")
-data class MedicationTemplateEntity(
+@Entity(tableName = "medication_formats")
+data class MedicationFormatEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val brandName: String,
     val activeIngredient: String,
@@ -12,7 +12,7 @@ data class MedicationTemplateEntity(
     val tabletsPerBox: String,
 )
 
-fun MedicationTemplateEntity.toDomain(): MedicationTemplate = MedicationTemplate(
+fun MedicationFormatEntity.toDomain(): MedicationFormat = MedicationFormat(
     id = id,
     brandName = brandName,
     activeIngredient = activeIngredient,
@@ -20,7 +20,7 @@ fun MedicationTemplateEntity.toDomain(): MedicationTemplate = MedicationTemplate
     tabletsPerBox = tabletsPerBox,
 )
 
-fun MedicationTemplate.toEntity(): MedicationTemplateEntity = MedicationTemplateEntity(
+fun MedicationFormat.toEntity(): MedicationFormatEntity = MedicationFormatEntity(
     id = id,
     brandName = brandName,
     activeIngredient = activeIngredient,

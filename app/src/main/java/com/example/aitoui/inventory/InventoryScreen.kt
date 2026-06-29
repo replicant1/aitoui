@@ -40,7 +40,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.aitoui.data.MedicationTemplate
+import com.example.aitoui.data.MedicationFormat
 import com.example.aitoui.ui.theme.AitouiTheme
 
 @Composable
@@ -64,7 +64,7 @@ fun InventoryScreen(
     onBack: () -> Unit,
 ) {
     // Keep the last shown medication so the panel still renders its details while sliding out.
-    var lastShown by remember { mutableStateOf<MedicationTemplate?>(null) }
+    var lastShown by remember { mutableStateOf<MedicationFormat?>(null) }
     state.selectedMedication?.let { lastShown = it }
 
     Scaffold(
@@ -121,7 +121,7 @@ fun InventoryScreen(
 
 @Composable
 private fun MedicationRow(
-    medication: MedicationTemplate,
+    medication: MedicationFormat,
     selected: Boolean,
     onClick: () -> Unit,
 ) {
@@ -148,7 +148,7 @@ private fun MedicationRow(
 
 @Composable
 private fun MedicationDetailSheet(
-    medication: MedicationTemplate,
+    medication: MedicationFormat,
     onClose: () -> Unit,
 ) {
     Surface(
@@ -216,8 +216,8 @@ private fun InventoryScreenPreview() {
         InventoryScreen(
             state = InventoryState(
                 medications = listOf(
-                    MedicationTemplate(1, "Panadol", "Paracetamol", "500", "24"),
-                    MedicationTemplate(2, "Nurofen", "Ibuprofen", "200", "16"),
+                    MedicationFormat(1, "Panadol", "Paracetamol", "500", "24"),
+                    MedicationFormat(2, "Nurofen", "Ibuprofen", "200", "16"),
                 ),
                 selectedId = 1,
             ),
