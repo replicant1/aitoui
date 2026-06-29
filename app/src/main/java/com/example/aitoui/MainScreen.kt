@@ -38,7 +38,7 @@ fun MainScreen(
                 onClick = onAddMedication,
                 modifier = Modifier.padding(top = 16.dp),
             ) {
-                Text("Add Medication")
+                Text("Add Medication Type")
             }
             Button(
                 onClick = onTakeTablets,

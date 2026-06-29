@@ -1,4 +1,4 @@
-package com.example.aitoui.medication
+package com.example.aitoui.medicationtemplate
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
@@ -6,58 +6,53 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.aitoui.AitouiApp
-import com.example.aitoui.data.Medication
-import com.example.aitoui.data.MedicationRepository
+import com.example.aitoui.data.MedicationTemplate
+import com.example.aitoui.data.MedicationTemplateRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** Form state for the Medication screen. All fields are raw text input. */
-data class MedicationState(
+/** Form state for the medication template entry screen. All fields are raw text input. */
+data class MedicationTemplateState(
     val brandName: String = "",
     val activeIngredient: String = "",
     val dosePerTablet: String = "",
     val tabletsPerBox: String = "",
-    val boxes: String = "",
 )
 
-/** User intents emitted by the Medication screen. */
-sealed interface MedicationAction {
-    data class BrandNameChanged(val value: String) : MedicationAction
-    data class ActiveIngredientChanged(val value: String) : MedicationAction
-    data class DosePerTabletChanged(val value: String) : MedicationAction
-    data class TabletsPerBoxChanged(val value: String) : MedicationAction
-    data class BoxesChanged(val value: String) : MedicationAction
-    data object Save : MedicationAction
+/** User intents emitted by the medication template entry screen. */
+sealed interface MedicationTemplateAction {
+    data class BrandNameChanged(val value: String) : MedicationTemplateAction
+    data class ActiveIngredientChanged(val value: String) : MedicationTemplateAction
+    data class DosePerTabletChanged(val value: String) : MedicationTemplateAction
+    data class TabletsPerBoxChanged(val value: String) : MedicationTemplateAction
+    data object Save : MedicationTemplateAction
 }
 
-class MedicationViewModel(
-    private val repository: MedicationRepository,
+class MedicationTemplateViewModel(
+    private val repository: MedicationTemplateRepository,
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(MedicationState())
-    val state: StateFlow<MedicationState> = _state.asStateFlow()
+    private val _state = MutableStateFlow(MedicationTemplateState())
+    val state: StateFlow<MedicationTemplateState> = _state.asStateFlow()
 
-    fun onAction(action: MedicationAction) {
+    fun onAction(action: MedicationTemplateAction) {
         when (action) {
-            is MedicationAction.BrandNameChanged ->
+            is MedicationTemplateAction.BrandNameChanged ->
                 _state.update { it.copy(brandName = action.value) }
 
-            is MedicationAction.ActiveIngredientChanged ->
+            is MedicationTemplateAction.ActiveIngredientChanged ->
                 _state.update { it.copy(activeIngredient = action.value) }
 
-            is MedicationAction.DosePerTabletChanged ->
+            is MedicationTemplateAction.DosePerTabletChanged ->
                 _state.update { it.copy(dosePerTablet = action.value.digitsOnly()) }
 
-            is MedicationAction.TabletsPerBoxChanged ->
+            is MedicationTemplateAction.TabletsPerBoxChanged ->
                 _state.update { it.copy(tabletsPerBox = action.value.digitsOnly()) }
 
-            is MedicationAction.BoxesChanged ->
-                _state.update { it.copy(boxes = action.value.digitsOnly()) }
-
-            MedicationAction.Save -> save()
+            MedicationTemplateAction.Save -> save()
         }
     }
 
@@ -66,17 +61,16 @@ class MedicationViewModel(
         if (current.brandName.isBlank()) return
         viewModelScope.launch {
             repository.add(
-                Medication(
+                MedicationTemplate(
                     brandName = current.brandName.trim(),
                     activeIngredient = current.activeIngredient.trim(),
                     dosePerTablet = current.dosePerTablet,
                     tabletsPerBox = current.tabletsPerBox,
-                    boxes = current.boxes,
                 )
             )
         }
         // Clear the form for the next entry.
-        _state.value = MedicationState()
+        _state.value = MedicationTemplateState()
     }
 
     private fun String.digitsOnly(): String = filter { it.isDigit() }
@@ -85,7 +79,7 @@ class MedicationViewModel(
         val Factory = viewModelFactory {
             initializer {
                 val app = this[APPLICATION_KEY] as AitouiApp
-                MedicationViewModel(app.medicationRepository)
+                MedicationTemplateViewModel(app.medicationTemplateRepository)
             }
         }
     }

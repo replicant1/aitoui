@@ -7,7 +7,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.aitoui.MainScreen
 import com.example.aitoui.inventory.InventoryRoot
-import com.example.aitoui.medication.MedicationRoot
+import com.example.aitoui.medicationtemplate.MedicationTemplateRoot
 import com.example.aitoui.taketablets.TakeTabletsRoot
 
 @Composable
@@ -15,13 +15,13 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
     NavHost(navController = navController, startDestination = MainRoute) {
         composable<MainRoute> {
             MainScreen(
-                onAddMedication = { navController.navigate(MedicationRoute) },
+                onAddMedication = { navController.navigate(MedicationTemplateRoute) },
                 onTakeTablets = { navController.navigate(TakeTabletsRoute) },
                 onInventory = { navController.navigate(InventoryRoute) },
             )
         }
-        composable<MedicationRoute> {
-            MedicationRoot(
+        composable<MedicationTemplateRoute> {
+            MedicationTemplateRoot(
                 onBack = { navController.popBackStack() }
             )
         }

@@ -40,7 +40,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.aitoui.data.Medication
+import com.example.aitoui.data.MedicationTemplate
 import com.example.aitoui.ui.theme.AitouiTheme
 
 @Composable
@@ -64,7 +64,7 @@ fun InventoryScreen(
     onBack: () -> Unit,
 ) {
     // Keep the last shown medication so the panel still renders its details while sliding out.
-    var lastShown by remember { mutableStateOf<Medication?>(null) }
+    var lastShown by remember { mutableStateOf<MedicationTemplate?>(null) }
     state.selectedMedication?.let { lastShown = it }
 
     Scaffold(
@@ -121,7 +121,7 @@ fun InventoryScreen(
 
 @Composable
 private fun MedicationRow(
-    medication: Medication,
+    medication: MedicationTemplate,
     selected: Boolean,
     onClick: () -> Unit,
 ) {
@@ -148,7 +148,7 @@ private fun MedicationRow(
 
 @Composable
 private fun MedicationDetailSheet(
-    medication: Medication,
+    medication: MedicationTemplate,
     onClose: () -> Unit,
 ) {
     Surface(
@@ -188,7 +188,6 @@ private fun MedicationDetailSheet(
             DetailRow("Active ingredient", medication.activeIngredient)
             DetailRow("Dose per tablet", medication.dosePerTablet)
             DetailRow("Tablets per box", medication.tabletsPerBox)
-            DetailRow("Boxes", medication.boxes)
         }
     }
 }
@@ -217,8 +216,8 @@ private fun InventoryScreenPreview() {
         InventoryScreen(
             state = InventoryState(
                 medications = listOf(
-                    Medication(1, "Panadol", "Paracetamol", "500", "24", "2"),
-                    Medication(2, "Nurofen", "Ibuprofen", "200", "16", "1"),
+                    MedicationTemplate(1, "Panadol", "Paracetamol", "500", "24"),
+                    MedicationTemplate(2, "Nurofen", "Ibuprofen", "200", "16"),
                 ),
                 selectedId = 1,
             ),

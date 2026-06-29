@@ -6,8 +6,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.aitoui.AitouiApp
-import com.example.aitoui.data.Medication
-import com.example.aitoui.data.MedicationRepository
+import com.example.aitoui.data.MedicationTemplate
+import com.example.aitoui.data.MedicationTemplateRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,10 +16,10 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 
 data class InventoryState(
-    val medications: List<Medication> = emptyList(),
+    val medications: List<MedicationTemplate> = emptyList(),
     val selectedId: Long? = null,
 ) {
-    val selectedMedication: Medication? get() = medications.firstOrNull { it.id == selectedId }
+    val selectedMedication: MedicationTemplate? get() = medications.firstOrNull { it.id == selectedId }
 }
 
 sealed interface InventoryAction {
@@ -28,14 +28,14 @@ sealed interface InventoryAction {
 }
 
 class InventoryViewModel(
-    repository: MedicationRepository,
+    repository: MedicationTemplateRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(InventoryState())
     val state: StateFlow<InventoryState> = _state.asStateFlow()
 
     init {
-        repository.medications
+        repository.medicationTemplates
             .onEach { meds ->
                 _state.update { current ->
                     // Drop selection if the selected item no longer exists.
@@ -64,7 +64,7 @@ class InventoryViewModel(
         val Factory = viewModelFactory {
             initializer {
                 val app = this[APPLICATION_KEY] as AitouiApp
-                InventoryViewModel(app.medicationRepository)
+                InventoryViewModel(app.medicationTemplateRepository)
             }
         }
     }
