@@ -1,12 +1,11 @@
 package com.example.aitoui.data
 
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 
 class MedicationFormatRepository(private val dao: MedicationFormatDao) {
 
-    val medicationFormats: Flow<List<MedicationFormat>> =
-        dao.getAll().map { entities -> entities.map { it.toDomain() } }
+    /** Formats joined with their medication, for lists/dropdowns. */
+    val formatsWithMedication: Flow<List<MedicationFormatDetails>> = dao.getAllWithMedication()
 
     /** Inserts a format and returns its new id. */
     suspend fun add(format: MedicationFormat): Long = dao.insert(format.toEntity())

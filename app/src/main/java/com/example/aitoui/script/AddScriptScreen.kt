@@ -34,7 +34,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.aitoui.data.MedicationFormat
+import com.example.aitoui.data.MedicationFormatDetails
 import com.example.aitoui.ui.theme.AitouiTheme
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -108,11 +108,11 @@ fun AddScriptScreen(
                     expanded = typeExpanded,
                     onDismissRequest = { typeExpanded = false },
                 ) {
-                    state.medicationFormats.forEach { type ->
+                    state.medicationFormats.forEach { format ->
                         DropdownMenuItem(
-                            text = { Text(type.brandName) },
+                            text = { Text(format.label) },
                             onClick = {
-                                onAction(AddScriptAction.MedicationFormatSelected(type.id))
+                                onAction(AddScriptAction.MedicationFormatSelected(format.formatId))
                                 typeExpanded = false
                             },
                         )
@@ -203,7 +203,7 @@ private fun AddScriptScreenPreview() {
         AddScriptScreen(
             state = AddScriptState(
                 medicationFormats = listOf(
-                    MedicationFormat(1, "Panadol", "Paracetamol", "500", "24"),
+                    MedicationFormatDetails(1, 1, "Panadol", "Paracetamol", "500", "24"),
                 ),
                 selectedMedicationFormatId = 1,
                 directions = "Take one tablet twice a day",

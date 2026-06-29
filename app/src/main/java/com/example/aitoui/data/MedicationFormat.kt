@@ -1,10 +1,12 @@
 package com.example.aitoui.data
 
-/** Domain model for a medication template (as defined in a script). Fields are raw text. */
+/**
+ * A specific format (dosage/packaging) of a [Medication].
+ * [medicationId] is a foreign key to [Medication.id].
+ */
 data class MedicationFormat(
     val id: Long = 0,
-    val brandName: String,
-    val activeIngredient: String,
+    val medicationId: Long,
     val dosePerTablet: String,
     val tabletsPerBox: String,
 )

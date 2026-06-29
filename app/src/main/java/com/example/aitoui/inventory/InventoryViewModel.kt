@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.aitoui.AitouiApp
-import com.example.aitoui.data.MedicationFormat
+import com.example.aitoui.data.MedicationFormatDetails
 import com.example.aitoui.data.MedicationFormatRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,14 +16,14 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 
 data class InventoryState(
-    val medications: List<MedicationFormat> = emptyList(),
+    val formats: List<MedicationFormatDetails> = emptyList(),
     val selectedId: Long? = null,
 ) {
-    val selectedMedication: MedicationFormat? get() = medications.firstOrNull { it.id == selectedId }
+    val selectedFormat: MedicationFormatDetails? get() = formats.firstOrNull { it.formatId == selectedId }
 }
 
 sealed interface InventoryAction {
-    data class MedicationSelected(val id: Long) : InventoryAction
+    data class FormatSelected(val id: Long) : InventoryAction
     data object SheetDismissed : InventoryAction
 }
 
@@ -35,13 +35,13 @@ class InventoryViewModel(
     val state: StateFlow<InventoryState> = _state.asStateFlow()
 
     init {
-        repository.medicationFormats
-            .onEach { meds ->
+        repository.formatsWithMedication
+            .onEach { formats ->
                 _state.update { current ->
                     // Drop selection if the selected item no longer exists.
-                    val stillThere = meds.any { it.id == current.selectedId }
+                    val stillThere = formats.any { it.formatId == current.selectedId }
                     current.copy(
-                        medications = meds,
+                        formats = formats,
                         selectedId = current.selectedId.takeIf { stillThere },
                     )
                 }
@@ -51,7 +51,7 @@ class InventoryViewModel(
 
     fun onAction(action: InventoryAction) {
         when (action) {
-            is InventoryAction.MedicationSelected -> _state.update {
+            is InventoryAction.FormatSelected -> _state.update {
                 // Re-tapping the selected row closes the sheet.
                 it.copy(selectedId = if (it.selectedId == action.id) null else action.id)
             }

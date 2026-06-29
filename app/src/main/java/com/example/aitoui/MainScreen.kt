@@ -19,6 +19,7 @@ import com.example.aitoui.ui.theme.AitouiTheme
 fun MainScreen(
     modifier: Modifier = Modifier,
     onAddMedication: () -> Unit = {},
+    onAddMedicationFormat: () -> Unit = {},
     onTakeTablets: () -> Unit = {},
     onInventory: () -> Unit = {},
     onAddScript: () -> Unit = {},
@@ -38,6 +39,12 @@ fun MainScreen(
             Button(
                 onClick = onAddMedication,
                 modifier = Modifier.padding(top = 16.dp),
+            ) {
+                Text("Add Medication")
+            }
+            Button(
+                onClick = onAddMedicationFormat,
+                modifier = Modifier.padding(top = 8.dp),
             ) {
                 Text("Add Medication Format")
             }
