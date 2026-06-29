@@ -11,6 +11,8 @@ data class MedicationFormatDetails(
     val activeIngredient: String,
     val dosePerTablet: String,
     val tabletsPerBox: String,
+    /** Total quantity dispensed across this format's scripts (computed). */
+    val dispensed: Int,
 ) {
     /** Short label for dropdowns, e.g. "Panadol (500mg)". */
     val label: String get() = "$brandName (${dosePerTablet}mg)"

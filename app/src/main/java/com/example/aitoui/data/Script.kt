@@ -11,4 +11,6 @@ data class Script(
     val quantity: Int,
     val repeats: Int,
     val validToMillis: Long,
+    /** Quantity already dispensed against this script. New scripts start at 0. */
+    val dispensed: Int = 0,
 )

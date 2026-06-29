@@ -24,6 +24,7 @@ data class ScriptEntity(
     val quantity: Int,
     val repeats: Int,
     val validToMillis: Long,
+    val dispensed: Int = 0,
 )
 
 fun ScriptEntity.toDomain(): Script = Script(
@@ -33,6 +34,7 @@ fun ScriptEntity.toDomain(): Script = Script(
     quantity = quantity,
     repeats = repeats,
     validToMillis = validToMillis,
+    dispensed = dispensed,
 )
 
 fun Script.toEntity(): ScriptEntity = ScriptEntity(
@@ -42,4 +44,5 @@ fun Script.toEntity(): ScriptEntity = ScriptEntity(
     quantity = quantity,
     repeats = repeats,
     validToMillis = validToMillis,
+    dispensed = dispensed,
 )

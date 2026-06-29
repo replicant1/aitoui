@@ -224,7 +224,7 @@ private fun AddScriptScreenPreview() {
         AddScriptScreen(
             state = AddScriptState(
                 medicationFormats = listOf(
-                    MedicationFormatDetails(1, 1, "Panadol", "Paracetamol", "500", "24"),
+                    MedicationFormatDetails(1, 1, "Panadol", "Paracetamol", "500", "24", 48),
                 ),
                 selectedMedicationFormatId = 1,
                 directions = "Take one tablet twice a day",
