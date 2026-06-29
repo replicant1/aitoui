@@ -18,27 +18,27 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** Form state for adding a Script. Numeric inputs are held as raw (digit-filtered) text. */
+/** Form state for adding a Script. A script is for a single dispensable unit (many scripts → one unit). */
 data class AddScriptState(
     val medicationFormats: List<MedicationFormatDetails> = emptyList(),
-    val selectedMedicationFormatId: Long? = null,
+    val selectedFormatId: Long? = null,
     val directions: String = "",
     val quantity: String = "",
     val repeats: String = "",
     val validToMillis: Long? = null,
 ) {
-    val selectedMedicationFormatName: String
-        get() = medicationFormats.firstOrNull { it.formatId == selectedMedicationFormatId }?.label ?: ""
+    val selectedFormatLabel: String
+        get() = medicationFormats.firstOrNull { it.formatId == selectedFormatId }?.label ?: ""
 
     // Basic field validation.
-    val medicationFormatValid: Boolean get() = selectedMedicationFormatId != null
+    val formatValid: Boolean get() = selectedFormatId != null
     val directionsValid: Boolean get() = directions.isNotBlank()
     val quantityValid: Boolean get() = (quantity.toIntOrNull() ?: 0) > 0
     val repeatsValid: Boolean get() = repeats.toIntOrNull() != null
     val validToValid: Boolean get() = validToMillis != null
 
     val canSave: Boolean
-        get() = medicationFormatValid && directionsValid && quantityValid && repeatsValid && validToValid
+        get() = formatValid && directionsValid && quantityValid && repeatsValid && validToValid
 }
 
 sealed interface AddScriptAction {
@@ -59,14 +59,14 @@ class AddScriptViewModel(
     val state: StateFlow<AddScriptState> = _state.asStateFlow()
 
     init {
-        // Keep the dropdown's options in sync with the Medication Format table.
+        // Keep the dropdown's options in sync with the dispensable units.
         medicationFormatRepository.formatsWithMedication
             .onEach { formats ->
                 _state.update { current ->
-                    val stillExists = formats.any { it.formatId == current.selectedMedicationFormatId }
+                    val stillExists = formats.any { it.formatId == current.selectedFormatId }
                     current.copy(
                         medicationFormats = formats,
-                        selectedMedicationFormatId = current.selectedMedicationFormatId.takeIf { stillExists },
+                        selectedFormatId = current.selectedFormatId.takeIf { stillExists },
                     )
                 }
             }
@@ -76,7 +76,7 @@ class AddScriptViewModel(
     fun onAction(action: AddScriptAction) {
         when (action) {
             is AddScriptAction.MedicationFormatSelected ->
-                _state.update { it.copy(selectedMedicationFormatId = action.id) }
+                _state.update { it.copy(selectedFormatId = action.id) }
 
             is AddScriptAction.DirectionsChanged ->
                 _state.update { it.copy(directions = action.value) }
@@ -100,7 +100,7 @@ class AddScriptViewModel(
         viewModelScope.launch {
             scriptRepository.add(
                 Script(
-                    medicationFormatId = current.selectedMedicationFormatId!!,
+                    dispensableUnitId = current.selectedFormatId!!,
                     directions = current.directions.trim(),
                     quantity = current.quantity.toInt(),
                     repeats = current.repeats.toInt(),
@@ -108,7 +108,7 @@ class AddScriptViewModel(
                 )
             )
         }
-        // Clear the form for the next entry (keep the loaded medication formats).
+        // Clear the form for the next entry (keep the loaded dispensable units).
         _state.update { AddScriptState(medicationFormats = it.medicationFormats) }
     }
 

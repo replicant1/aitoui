@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.aitoui.data.MedicationFormatDetails
+import com.example.aitoui.data.ScriptDetails
 import com.example.aitoui.ui.theme.AitouiTheme
 
 @Composable
@@ -61,6 +62,7 @@ fun DispenseScreen(
     onAction: (DispenseAction) -> Unit,
     onBack: () -> Unit,
 ) {
+    var scriptExpanded by remember { mutableStateOf(false) }
     var formatExpanded by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -92,26 +94,62 @@ fun DispenseScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                text = "Record a trip to the pharmacy where your scripts are filled. Add each " +
-                    "medication format dispensed and the number received, then Save.",
+                text = "Record a trip to the pharmacy where your scripts are filled. Pick the " +
+                    "script being dispensed, the format and number received, then Save.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
-            // Medication Format — dropdown of existing Medication Format records.
+            // Script — dropdown of existing scripts.
+            ExposedDropdownMenuBox(
+                expanded = scriptExpanded,
+                onExpandedChange = { scriptExpanded = !scriptExpanded },
+            ) {
+                OutlinedTextField(
+                    value = state.selectedScriptLabel,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Script") },
+                    placeholder = { Text("Select a script") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = scriptExpanded) },
+                    supportingText = if (state.scripts.isEmpty()) {
+                        { Text("No scripts yet — add one first") }
+                    } else null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                )
+                ExposedDropdownMenu(
+                    expanded = scriptExpanded,
+                    onDismissRequest = { scriptExpanded = false },
+                ) {
+                    state.scripts.forEach { script ->
+                        DropdownMenuItem(
+                            text = { Text(script.label) },
+                            onClick = {
+                                onAction(DispenseAction.ScriptSelected(script.scriptId))
+                                scriptExpanded = false
+                            },
+                        )
+                    }
+                }
+            }
+
+            // Medication Format — restricted to formats of the selected script's medication.
             ExposedDropdownMenuBox(
                 expanded = formatExpanded,
-                onExpandedChange = { formatExpanded = !formatExpanded },
+                onExpandedChange = { if (state.selectedScriptId != null) formatExpanded = !formatExpanded },
             ) {
                 OutlinedTextField(
                     value = state.selectedFormatLabel,
                     onValueChange = {},
                     readOnly = true,
+                    enabled = state.selectedScriptId != null,
                     label = { Text("Medication Format") },
                     placeholder = { Text("Select a medication format") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = formatExpanded) },
-                    supportingText = if (state.formats.isEmpty()) {
-                        { Text("No medication formats yet — add one first") }
+                    supportingText = if (state.selectedScriptId == null) {
+                        { Text("Select a script first") }
                     } else null,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -121,7 +159,7 @@ fun DispenseScreen(
                     expanded = formatExpanded,
                     onDismissRequest = { formatExpanded = false },
                 ) {
-                    state.formats.forEach { format ->
+                    state.availableFormats.forEach { format ->
                         DropdownMenuItem(
                             text = { Text(format.label) },
                             onClick = {
@@ -155,7 +193,7 @@ fun DispenseScreen(
             OutlinedCard(modifier = Modifier.fillMaxWidth().weight(1f)) {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(state.dispensations, key = { it.id }) { entry ->
-                        val selected = entry.id == state.selectedId
+                        val selected = entry.id == state.selectedRowId
                         Text(
                             text = entry.label,
                             style = MaterialTheme.typography.bodyLarge,
@@ -188,14 +226,15 @@ private fun DispenseScreenPreview() {
     AitouiTheme {
         DispenseScreen(
             state = DispenseState(
-                formats = listOf(
-                    MedicationFormatDetails(1, 1, "Panadol", "Paracetamol", "500", "24", 2, 6),
+                scripts = listOf(ScriptDetails(1, 1, "Panadol", "500", 2, 6)),
+                selectedScriptId = 1,
+                allFormats = listOf(
+                    MedicationFormatDetails(1, 1, "Panadol", "Paracetamol", "500", "24"),
                 ),
+                selectedFormatId = 1,
                 dispensations = listOf(
-                    DispensationEntry(0, 1, "Panadol (500mg)", "3"),
-                    DispensationEntry(1, 1, "Amoxil (500mg)", "1"),
+                    DispensationEntry(0, 1, 1, "Panadol (500mg)", "1"),
                 ),
-                selectedId = 1,
             ),
             onAction = {},
             onBack = {},

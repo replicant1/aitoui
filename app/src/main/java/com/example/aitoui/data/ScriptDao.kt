@@ -23,4 +23,18 @@ interface ScriptDao {
 
     @Query("SELECT * FROM scripts WHERE id = :id")
     suspend fun getById(id: Long): ScriptEntity?
+
+    @Query(
+        """
+        SELECT s.id AS scriptId, s.dispensableUnitId AS dispensableUnitId,
+               m.brandName AS brandName, du.dosePerTablet AS dosePerTablet,
+               COALESCE((SELECT SUM(d.number) FROM dispensations d WHERE d.scriptId = s.id), 0) AS dispensed,
+               s.quantity AS quantity
+        FROM scripts s
+        JOIN dispensable_units du ON du.id = s.dispensableUnitId
+        JOIN medications m ON m.id = du.medicationId
+        ORDER BY m.brandName COLLATE NOCASE, s.id
+        """
+    )
+    fun getAllWithDetails(): Flow<List<ScriptDetails>>
 }

@@ -6,7 +6,7 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(
-    tableName = "medication_formats",
+    tableName = "dispensable_units",
     foreignKeys = [
         ForeignKey(
             entity = MedicationEntity::class,
