@@ -156,7 +156,7 @@ private fun MedicationRow(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
-            text = format.dispensed.toString(),
+            text = "${format.dispensed}/${format.quantity}",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -233,8 +233,8 @@ private fun InventoryScreenPreview() {
         InventoryScreen(
             state = InventoryState(
                 formats = listOf(
-                    MedicationFormatDetails(1, 1, "Panadol", "Paracetamol", "500", "24", 72),
-                    MedicationFormatDetails(2, 2, "Nurofen", "Ibuprofen", "200", "16", 0),
+                    MedicationFormatDetails(1, 1, "Panadol", "Paracetamol", "500", "24", 12, 48),
+                    MedicationFormatDetails(2, 2, "Nurofen", "Ibuprofen", "200", "16", 0, 0),
                 ),
                 selectedId = 1,
             ),
