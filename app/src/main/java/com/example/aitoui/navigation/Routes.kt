@@ -11,3 +11,6 @@ object MedicationRoute
 
 @Serializable
 object TakeTabletsRoute
+
+@Serializable
+object InventoryRoute

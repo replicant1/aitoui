@@ -1,10 +1,18 @@
 package com.example.aitoui.medication
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import com.example.aitoui.AitouiApp
+import com.example.aitoui.data.Medication
+import com.example.aitoui.data.MedicationRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 /** Form state for the Medication screen. All fields are raw text input. */
 data class MedicationState(
@@ -25,7 +33,9 @@ sealed interface MedicationAction {
     data object Save : MedicationAction
 }
 
-class MedicationViewModel : ViewModel() {
+class MedicationViewModel(
+    private val repository: MedicationRepository,
+) : ViewModel() {
 
     private val _state = MutableStateFlow(MedicationState())
     val state: StateFlow<MedicationState> = _state.asStateFlow()
@@ -47,11 +57,36 @@ class MedicationViewModel : ViewModel() {
             is MedicationAction.BoxesChanged ->
                 _state.update { it.copy(boxes = action.value.digitsOnly()) }
 
-            MedicationAction.Save -> {
-                // TODO: persist the medication once a data layer exists. Stub for now.
-            }
+            MedicationAction.Save -> save()
         }
     }
 
+    private fun save() {
+        val current = _state.value
+        if (current.brandName.isBlank()) return
+        viewModelScope.launch {
+            repository.add(
+                Medication(
+                    brandName = current.brandName.trim(),
+                    activeIngredient = current.activeIngredient.trim(),
+                    dosePerTablet = current.dosePerTablet,
+                    tabletsPerBox = current.tabletsPerBox,
+                    boxes = current.boxes,
+                )
+            )
+        }
+        // Clear the form for the next entry.
+        _state.value = MedicationState()
+    }
+
     private fun String.digitsOnly(): String = filter { it.isDigit() }
+
+    companion object {
+        val Factory = viewModelFactory {
+            initializer {
+                val app = this[APPLICATION_KEY] as AitouiApp
+                MedicationViewModel(app.medicationRepository)
+            }
+        }
+    }
 }
