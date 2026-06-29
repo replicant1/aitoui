@@ -33,16 +33,18 @@ object DatabaseSeeder {
         MedicationSeed("Cipramil", "Citalopram", "20", "28"),
     )
 
-    /** brand (must match a MEDICATIONS entry), directions, quantity, repeats, valid-for (days from now) */
+    /** brand (must match a MEDICATIONS entry), directions, quantity, repeats, valid-for (days), dispensed */
     private val SCRIPTS = listOf(
-        ScriptSeed("Panadol", "Take two tablets every 4–6 hours as needed", 48, 2, 180),
-        ScriptSeed("Amoxil", "Take one capsule three times a day for 7 days", 21, 0, 30),
-        ScriptSeed("Augmentin", "Take one tablet twice a day for 5 days", 10, 0, 30),
-        ScriptSeed("Ventolin", "Two puffs as needed for shortness of breath", 1, 3, 365),
-        ScriptSeed("Lipitor", "Take one tablet at night", 30, 5, 365),
-        ScriptSeed("Zoloft", "Take one tablet in the morning", 30, 5, 180),
-        ScriptSeed("Nexium", "Take one tablet before breakfast", 30, 2, 90),
-        ScriptSeed("Diabex", "Take one tablet twice a day with meals", 60, 5, 365),
+        ScriptSeed("Panadol", "Take two tablets every 4–6 hours as needed", 48, 2, 180, 48),
+        // A second Panadol script — its dispensed amount adds to the Panadol total in the inventory.
+        ScriptSeed("Panadol", "Take two at night for pain", 24, 1, 120, 24),
+        ScriptSeed("Amoxil", "Take one capsule three times a day for 7 days", 21, 0, 30, 21),
+        ScriptSeed("Augmentin", "Take one tablet twice a day for 5 days", 10, 0, 30, 10),
+        ScriptSeed("Ventolin", "Two puffs as needed for shortness of breath", 1, 3, 365, 1),
+        ScriptSeed("Lipitor", "Take one tablet at night", 30, 5, 365, 30),
+        ScriptSeed("Zoloft", "Take one tablet in the morning", 30, 5, 180, 30),
+        ScriptSeed("Nexium", "Take one tablet before breakfast", 30, 2, 90, 30),
+        ScriptSeed("Diabex", "Take one tablet twice a day with meals", 60, 5, 365, 60),
     )
 
     suspend fun seedIfEmpty(
@@ -78,6 +80,7 @@ object DatabaseSeeder {
                     quantity = seed.quantity,
                     repeats = seed.repeats,
                     validToMillis = nowMillis + seed.validForDays * DAY_MILLIS,
+                    dispensed = seed.dispensed,
                 )
             )
         }
@@ -96,5 +99,6 @@ object DatabaseSeeder {
         val quantity: Int,
         val repeats: Int,
         val validForDays: Long,
+        val dispensed: Int,
     )
 }

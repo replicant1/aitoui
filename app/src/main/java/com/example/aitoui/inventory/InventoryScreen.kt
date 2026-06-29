@@ -136,19 +136,27 @@ private fun MedicationRow(
 ) {
     val background =
         if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
-    Column(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .background(background)
             .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = format.brandName,
             style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.weight(1f),
         )
         Text(
-            text = format.activeIngredient,
+            text = "${format.dosePerTablet}mg",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = format.dispensed.toString(),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -225,8 +233,8 @@ private fun InventoryScreenPreview() {
         InventoryScreen(
             state = InventoryState(
                 formats = listOf(
-                    MedicationFormatDetails(1, 1, "Panadol", "Paracetamol", "500", "24"),
-                    MedicationFormatDetails(2, 2, "Nurofen", "Ibuprofen", "200", "16"),
+                    MedicationFormatDetails(1, 1, "Panadol", "Paracetamol", "500", "24", 72),
+                    MedicationFormatDetails(2, 2, "Nurofen", "Ibuprofen", "200", "16", 0),
                 ),
                 selectedId = 1,
             ),
