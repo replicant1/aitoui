@@ -19,7 +19,8 @@ interface MedicationFormatDao {
         SELECT f.id AS formatId, f.medicationId AS medicationId,
                m.brandName AS brandName, m.activeIngredient AS activeIngredient,
                f.dosePerTablet AS dosePerTablet, f.tabletsPerBox AS tabletsPerBox,
-               COALESCE(SUM(s.dispensed), 0) AS dispensed
+               COALESCE(s.dispensed, 0) AS dispensed,
+               COALESCE(s.quantity, 0) AS quantity
         FROM medication_formats f
         JOIN medications m ON m.id = f.medicationId
         LEFT JOIN scripts s ON s.medicationFormatId = f.id

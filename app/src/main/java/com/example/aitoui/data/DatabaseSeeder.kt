@@ -33,18 +33,20 @@ object DatabaseSeeder {
         MedicationSeed("Cipramil", "Citalopram", "20", "28"),
     )
 
-    /** brand (must match a MEDICATIONS entry), directions, quantity, repeats, valid-for (days), dispensed */
+    /**
+     * One script per medication format. Columns: brand (must match a MEDICATIONS entry), directions,
+     * quantity (total dispensations allowed), repeats, valid-for (days), dispensed (times dispensed
+     * so far, ≤ quantity). The inventory shows "dispensed/quantity" per format.
+     */
     private val SCRIPTS = listOf(
-        ScriptSeed("Panadol", "Take two tablets every 4–6 hours as needed", 48, 2, 180, 48),
-        // A second Panadol script — its dispensed amount adds to the Panadol total in the inventory.
-        ScriptSeed("Panadol", "Take two at night for pain", 24, 1, 120, 24),
-        ScriptSeed("Amoxil", "Take one capsule three times a day for 7 days", 21, 0, 30, 21),
-        ScriptSeed("Augmentin", "Take one tablet twice a day for 5 days", 10, 0, 30, 10),
-        ScriptSeed("Ventolin", "Two puffs as needed for shortness of breath", 1, 3, 365, 1),
-        ScriptSeed("Lipitor", "Take one tablet at night", 30, 5, 365, 30),
-        ScriptSeed("Zoloft", "Take one tablet in the morning", 30, 5, 180, 30),
-        ScriptSeed("Nexium", "Take one tablet before breakfast", 30, 2, 90, 30),
-        ScriptSeed("Diabex", "Take one tablet twice a day with meals", 60, 5, 365, 60),
+        ScriptSeed("Panadol", "Take two tablets every 4–6 hours as needed", 6, 5, 180, 2),
+        ScriptSeed("Amoxil", "Take one capsule three times a day for 7 days", 1, 0, 30, 1),
+        ScriptSeed("Augmentin", "Take one tablet twice a day for 5 days", 1, 0, 30, 0),
+        ScriptSeed("Ventolin", "Two puffs as needed for shortness of breath", 4, 3, 365, 1),
+        ScriptSeed("Lipitor", "Take one tablet at night", 6, 5, 365, 3),
+        ScriptSeed("Zoloft", "Take one tablet in the morning", 6, 5, 180, 6),
+        ScriptSeed("Nexium", "Take one tablet before breakfast", 3, 2, 90, 1),
+        ScriptSeed("Diabex", "Take one tablet twice a day with meals", 6, 5, 365, 4),
     )
 
     suspend fun seedIfEmpty(
