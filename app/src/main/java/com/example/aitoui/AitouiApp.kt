@@ -3,7 +3,7 @@ package com.example.aitoui
 import android.app.Application
 import androidx.room.Room
 import com.example.aitoui.data.AppDatabase
-import com.example.aitoui.data.MedicationRepository
+import com.example.aitoui.data.MedicationTemplateRepository
 
 /**
  * Application that owns the singleton data layer. ViewModels reach the repository via a
@@ -12,10 +12,13 @@ import com.example.aitoui.data.MedicationRepository
 class AitouiApp : Application() {
 
     private val database: AppDatabase by lazy {
-        Room.databaseBuilder(this, AppDatabase::class.java, "aitoui.db").build()
+        Room.databaseBuilder(this, AppDatabase::class.java, "aitoui.db")
+            // Dev app: schema changes recreate the DB rather than requiring hand-written migrations.
+            .fallbackToDestructiveMigration(dropAllTables = true)
+            .build()
     }
 
-    val medicationRepository: MedicationRepository by lazy {
-        MedicationRepository(database.medicationDao())
+    val medicationTemplateRepository: MedicationTemplateRepository by lazy {
+        MedicationTemplateRepository(database.medicationTemplateDao())
     }
 }

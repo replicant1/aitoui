@@ -1,4 +1,4 @@
-package com.example.aitoui.medication
+package com.example.aitoui.medicationtemplate
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -25,12 +25,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.aitoui.ui.theme.AitouiTheme
 
 @Composable
-fun MedicationRoot(
+fun MedicationTemplateRoot(
     onBack: () -> Unit,
-    viewModel: MedicationViewModel = viewModel(factory = MedicationViewModel.Factory),
+    viewModel: MedicationTemplateViewModel = viewModel(factory = MedicationTemplateViewModel.Factory),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    MedicationScreen(
+    MedicationTemplateScreen(
         state = state,
         onAction = viewModel::onAction,
     )
@@ -38,17 +38,17 @@ fun MedicationRoot(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MedicationScreen(
-    state: MedicationState,
-    onAction: (MedicationAction) -> Unit,
+fun MedicationTemplateScreen(
+    state: MedicationTemplateState,
+    onAction: (MedicationTemplateAction) -> Unit,
 ) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("Medication") },
+                title = { Text("Medication Type") },
                 actions = {
-                    TextButton(onClick = { onAction(MedicationAction.Save) }) {
+                    TextButton(onClick = { onAction(MedicationTemplateAction.Save) }) {
                         Text("Save")
                     }
                 },
@@ -65,21 +65,21 @@ fun MedicationScreen(
         ) {
             OutlinedTextField(
                 value = state.brandName,
-                onValueChange = { onAction(MedicationAction.BrandNameChanged(it)) },
+                onValueChange = { onAction(MedicationTemplateAction.BrandNameChanged(it)) },
                 label = { Text("Brand Name") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
                 value = state.activeIngredient,
-                onValueChange = { onAction(MedicationAction.ActiveIngredientChanged(it)) },
+                onValueChange = { onAction(MedicationTemplateAction.ActiveIngredientChanged(it)) },
                 label = { Text("Active Ingredient") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
                 value = state.dosePerTablet,
-                onValueChange = { onAction(MedicationAction.DosePerTabletChanged(it)) },
+                onValueChange = { onAction(MedicationTemplateAction.DosePerTabletChanged(it)) },
                 label = { Text("Dose per tablet") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -87,16 +87,8 @@ fun MedicationScreen(
             )
             OutlinedTextField(
                 value = state.tabletsPerBox,
-                onValueChange = { onAction(MedicationAction.TabletsPerBoxChanged(it)) },
+                onValueChange = { onAction(MedicationTemplateAction.TabletsPerBoxChanged(it)) },
                 label = { Text("Tablets per box") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth(),
-            )
-            OutlinedTextField(
-                value = state.boxes,
-                onValueChange = { onAction(MedicationAction.BoxesChanged(it)) },
-                label = { Text("Boxes") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
@@ -107,15 +99,14 @@ fun MedicationScreen(
 
 @Preview(showBackground = true)
 @Composable
-private fun MedicationScreenPreview() {
+private fun MedicationTemplateScreenPreview() {
     AitouiTheme {
-        MedicationScreen(
-            state = MedicationState(
+        MedicationTemplateScreen(
+            state = MedicationTemplateState(
                 brandName = "Panadol",
                 activeIngredient = "Paracetamol",
                 dosePerTablet = "500",
                 tabletsPerBox = "24",
-                boxes = "2",
             ),
             onAction = {},
         )

@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
 object MainRoute
 
 @Serializable
-object MedicationRoute
+object MedicationTemplateRoute
 
 @Serializable
 object TakeTabletsRoute
