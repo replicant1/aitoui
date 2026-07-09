@@ -18,9 +18,6 @@ data class ScriptDetails(
     /** Medication name with dosage, e.g. "Panadol (500mg)". */
     val medicationLabel: String get() = "$brandName (${dosePerTablet}mg)"
 
-    /** Scripts-list card label, e.g. "Panadol - Paracetamol (500mg) Qty 24". */
-    val cardLabel: String get() = "$brandName - $activeIngredient (${dosePerTablet}mg) Qty $tabletsPerUnit"
-
     /** Dropdown label, e.g. "Panadol (500mg) — 2 dispensed". */
     val label: String get() = "$medicationLabel — $dispensed dispensed"
 }

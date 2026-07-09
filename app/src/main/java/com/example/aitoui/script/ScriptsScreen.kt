@@ -37,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -191,22 +192,32 @@ private fun ScriptCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            // Yellow header: medication name + dosage on the left, delete (cross) icon top-right.
+            // Yellow header: two-line medication label on the left, delete (cross) icon top-right.
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(CardYellow),
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Alignment.Top,
             ) {
-                Text(
-                    text = script.cardLabel,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black,
+                Column(
                     modifier = Modifier
                         .weight(1f)
                         .padding(start = 16.dp, top = 12.dp, bottom = 12.dp),
-                )
+                ) {
+                    Text(
+                        text = "${script.brandName} (${script.activeIngredient})",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = "${script.dosePerTablet}mg × Qty ${script.tabletsPerUnit}",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color.Black.copy(alpha = 0.6f),
+                    )
+                }
                 IconButton(onClick = onDeleteClick) {
                     Icon(
                         imageVector = Icons.Filled.Close,

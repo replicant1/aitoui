@@ -45,12 +45,14 @@ class MedicationsViewModel(
     init {
         repository.medications
             .onEach { medications ->
+                // Alphabetical (case-insensitive) by brand name — independent of the source query.
+                val sorted = medications.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.brandName })
                 _state.update { current ->
                     // Drop the pending delete if that medication no longer exists.
                     current.copy(
-                        medications = medications,
+                        medications = sorted,
                         pendingDeleteMedicationId = current.pendingDeleteMedicationId
-                            ?.takeIf { id -> medications.any { it.id == id } },
+                            ?.takeIf { id -> sorted.any { it.id == id } },
                     )
                 }
             }
