@@ -120,6 +120,23 @@ fun ScriptsScreen(
             },
         )
     }
+
+    // Error when the script has already been dispensed its maximum number of times.
+    state.maxedOutScript?.let { script ->
+        AlertDialog(
+            onDismissRequest = { onAction(ScriptsAction.DismissMaxedOut) },
+            title = { Text("Cannot dispense") },
+            text = {
+                Text(
+                    "${script.medicationLabel} has already been dispensed the maximum number of " +
+                        "times (${script.repeats}).",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { onAction(ScriptsAction.DismissMaxedOut) }) { Text("OK") }
+            },
+        )
+    }
 }
 
 /**

@@ -23,9 +23,14 @@ data class ScriptsState(
     val scripts: List<ScriptDetails> = emptyList(),
     /** Script awaiting the user's confirmation to dispense one unit, if any. */
     val pendingDispenseScriptId: Long? = null,
+    /** Script whose dispensed count has already reached its repeats maximum, if the user tapped it. */
+    val maxedOutScriptId: Long? = null,
 ) {
     val pendingDispenseScript: ScriptDetails?
         get() = scripts.firstOrNull { it.scriptId == pendingDispenseScriptId }
+
+    val maxedOutScript: ScriptDetails?
+        get() = scripts.firstOrNull { it.scriptId == maxedOutScriptId }
 }
 
 sealed interface ScriptsAction {
@@ -35,6 +40,8 @@ sealed interface ScriptsAction {
     data object ConfirmDispense : ScriptsAction
     /** Dismiss the confirmation without dispensing. */
     data object CancelDispense : ScriptsAction
+    /** Dismiss the "already at maximum" error. */
+    data object DismissMaxedOut : ScriptsAction
 }
 
 class ScriptsViewModel(
@@ -49,11 +56,13 @@ class ScriptsViewModel(
         scriptRepository.scriptsWithDetails
             .onEach { scripts ->
                 _state.update { current ->
-                    // Drop the pending confirmation if that script no longer exists.
-                    val stillThere = scripts.any { it.scriptId == current.pendingDispenseScriptId }
+                    // Drop any open dialog whose script no longer exists.
                     current.copy(
                         scripts = scripts,
-                        pendingDispenseScriptId = current.pendingDispenseScriptId.takeIf { stillThere },
+                        pendingDispenseScriptId = current.pendingDispenseScriptId
+                            ?.takeIf { id -> scripts.any { it.scriptId == id } },
+                        maxedOutScriptId = current.maxedOutScriptId
+                            ?.takeIf { id -> scripts.any { it.scriptId == id } },
                     )
                 }
             }
@@ -62,13 +71,23 @@ class ScriptsViewModel(
 
     fun onAction(action: ScriptsAction) {
         when (action) {
-            is ScriptsAction.DispensedTapped ->
-                _state.update { it.copy(pendingDispenseScriptId = action.scriptId) }
+            is ScriptsAction.DispensedTapped -> _state.update { current ->
+                val script = current.scripts.firstOrNull { it.scriptId == action.scriptId }
+                // Already dispensed the maximum number of times → show an error instead of confirming.
+                if (script != null && script.dispensed >= script.repeats) {
+                    current.copy(maxedOutScriptId = action.scriptId)
+                } else {
+                    current.copy(pendingDispenseScriptId = action.scriptId)
+                }
+            }
 
             ScriptsAction.CancelDispense ->
                 _state.update { it.copy(pendingDispenseScriptId = null) }
 
             ScriptsAction.ConfirmDispense -> dispenseOne()
+
+            ScriptsAction.DismissMaxedOut ->
+                _state.update { it.copy(maxedOutScriptId = null) }
         }
     }
 
