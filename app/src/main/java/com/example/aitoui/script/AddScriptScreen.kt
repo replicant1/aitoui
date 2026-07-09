@@ -106,7 +106,7 @@ fun AddScriptScreen(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            // Medication Format — the single dispensable unit this script is for.
+            // Dispensable Unit — the single dispensable unit this script is for.
             ExposedDropdownMenuBox(
                 expanded = typeExpanded,
                 onExpandedChange = { typeExpanded = !typeExpanded },
@@ -115,11 +115,11 @@ fun AddScriptScreen(
                     value = state.selectedFormatLabel,
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Medication Format") },
-                    placeholder = { Text("Select a medication format") },
+                    label = { Text("Dispensable Unit") },
+                    placeholder = { Text("Select a dispensable unit") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeExpanded) },
                     supportingText = if (state.medicationFormats.isEmpty()) {
-                        { Text("No medication formats yet — add one first") }
+                        { Text("No dispensable units yet — add one first") }
                     } else null,
                     modifier = Modifier
                         .fillMaxWidth()

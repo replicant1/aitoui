@@ -16,4 +16,8 @@ interface MedicationDao {
 
     @Query("SELECT * FROM medications ORDER BY brandName COLLATE NOCASE")
     fun getAll(): Flow<List<MedicationEntity>>
+
+    /** Deletes the medication with [id]. Its units, scripts and dispensations cascade-delete. */
+    @Query("DELETE FROM medications WHERE id = :id")
+    suspend fun deleteById(id: Long)
 }

@@ -25,12 +25,17 @@ data class ScriptsState(
     val pendingDispenseScriptId: Long? = null,
     /** Script whose dispensed count has already reached its repeats maximum, if the user tapped it. */
     val maxedOutScriptId: Long? = null,
+    /** Script awaiting the user's confirmation to delete it, if any. */
+    val pendingDeleteScriptId: Long? = null,
 ) {
     val pendingDispenseScript: ScriptDetails?
         get() = scripts.firstOrNull { it.scriptId == pendingDispenseScriptId }
 
     val maxedOutScript: ScriptDetails?
         get() = scripts.firstOrNull { it.scriptId == maxedOutScriptId }
+
+    val pendingDeleteScript: ScriptDetails?
+        get() = scripts.firstOrNull { it.scriptId == pendingDeleteScriptId }
 }
 
 sealed interface ScriptsAction {
@@ -42,10 +47,16 @@ sealed interface ScriptsAction {
     data object CancelDispense : ScriptsAction
     /** Dismiss the "already at maximum" error. */
     data object DismissMaxedOut : ScriptsAction
+    /** The user tapped the delete (cross) icon on a script card. */
+    data class DeleteTapped(val scriptId: Long) : ScriptsAction
+    /** Confirm deleting the pending script. */
+    data object ConfirmDelete : ScriptsAction
+    /** Dismiss the delete confirmation without deleting. */
+    data object CancelDelete : ScriptsAction
 }
 
 class ScriptsViewModel(
-    scriptRepository: ScriptRepository,
+    private val scriptRepository: ScriptRepository,
     private val dispensationRepository: DispensationRepository,
 ) : ViewModel() {
 
@@ -62,6 +73,8 @@ class ScriptsViewModel(
                         pendingDispenseScriptId = current.pendingDispenseScriptId
                             ?.takeIf { id -> scripts.any { it.scriptId == id } },
                         maxedOutScriptId = current.maxedOutScriptId
+                            ?.takeIf { id -> scripts.any { it.scriptId == id } },
+                        pendingDeleteScriptId = current.pendingDeleteScriptId
                             ?.takeIf { id -> scripts.any { it.scriptId == id } },
                     )
                 }
@@ -88,6 +101,23 @@ class ScriptsViewModel(
 
             ScriptsAction.DismissMaxedOut ->
                 _state.update { it.copy(maxedOutScriptId = null) }
+
+            is ScriptsAction.DeleteTapped ->
+                _state.update { it.copy(pendingDeleteScriptId = action.scriptId) }
+
+            ScriptsAction.CancelDelete ->
+                _state.update { it.copy(pendingDeleteScriptId = null) }
+
+            ScriptsAction.ConfirmDelete -> deleteScript()
+        }
+    }
+
+    /** Deletes the pending script (its dispensations cascade). The list updates reactively. */
+    private fun deleteScript() {
+        val script = _state.value.pendingDeleteScript ?: return
+        viewModelScope.launch {
+            scriptRepository.deleteById(script.scriptId)
+            _state.update { it.copy(pendingDeleteScriptId = null) }
         }
     }
 

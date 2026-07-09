@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** Form state for the Medication Format entry screen. */
+/** Form state for the Dispensable Unit entry screen. */
 data class MedicationFormatState(
     val medications: List<Medication> = emptyList(),
     val selectedMedicationId: Long? = null,

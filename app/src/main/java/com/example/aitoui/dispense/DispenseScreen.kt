@@ -135,7 +135,7 @@ fun DispenseScreen(
                 }
             }
 
-            // Medication Format — restricted to formats of the selected script's medication.
+            // Dispensable Unit — restricted to units of the selected script's medication.
             ExposedDropdownMenuBox(
                 expanded = formatExpanded,
                 onExpandedChange = { if (state.selectedScriptId != null) formatExpanded = !formatExpanded },
@@ -145,8 +145,8 @@ fun DispenseScreen(
                     onValueChange = {},
                     readOnly = true,
                     enabled = state.selectedScriptId != null,
-                    label = { Text("Medication Format") },
-                    placeholder = { Text("Select a medication format") },
+                    label = { Text("Dispensable Unit") },
+                    placeholder = { Text("Select a dispensable unit") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = formatExpanded) },
                     supportingText = if (state.selectedScriptId == null) {
                         { Text("Select a script first") }
@@ -226,7 +226,7 @@ private fun DispenseScreenPreview() {
     AitouiTheme {
         DispenseScreen(
             state = DispenseState(
-                scripts = listOf(ScriptDetails(1, 1, "Panadol", "500", 2, 5)),
+                scripts = listOf(ScriptDetails(1, 1, "Panadol", "Paracetamol", "500", "24", 2, 5)),
                 selectedScriptId = 1,
                 allFormats = listOf(
                     MedicationFormatDetails(1, 1, "Panadol", "Paracetamol", "500", "24"),

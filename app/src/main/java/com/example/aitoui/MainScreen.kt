@@ -18,11 +18,10 @@ import com.example.aitoui.ui.theme.AitouiTheme
 @Composable
 fun MainScreen(
     modifier: Modifier = Modifier,
-    onAddMedication: () -> Unit = {},
+    onMedications: () -> Unit = {},
     onAddMedicationFormat: () -> Unit = {},
     onTakeTablets: () -> Unit = {},
     onInventory: () -> Unit = {},
-    onAddScript: () -> Unit = {},
     onScripts: () -> Unit = {},
     onDispense: () -> Unit = {},
     onLog: () -> Unit = {},
@@ -40,16 +39,16 @@ fun MainScreen(
                 style = MaterialTheme.typography.headlineMedium,
             )
             Button(
-                onClick = onAddMedication,
+                onClick = onMedications,
                 modifier = Modifier.padding(top = 16.dp),
             ) {
-                Text("Add Medication")
+                Text("Medications")
             }
             Button(
                 onClick = onAddMedicationFormat,
                 modifier = Modifier.padding(top = 8.dp),
             ) {
-                Text("Add Medication Format")
+                Text("Add Dispensable Unit")
             }
             Button(
                 onClick = onTakeTablets,
@@ -62,12 +61,6 @@ fun MainScreen(
                 modifier = Modifier.padding(top = 8.dp),
             ) {
                 Text("Inventory")
-            }
-            Button(
-                onClick = onAddScript,
-                modifier = Modifier.padding(top = 8.dp),
-            ) {
-                Text("Add Script")
             }
             Button(
                 onClick = onScripts,
