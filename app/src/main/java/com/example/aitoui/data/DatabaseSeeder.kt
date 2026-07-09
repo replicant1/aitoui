@@ -17,7 +17,7 @@ object DatabaseSeeder {
 
     private const val DAY_MILLIS = 24L * 60 * 60 * 1000
 
-    /** brand, activeIngredient, dosePerTablet, tabletsPerBox */
+    /** brand, activeIngredient, dosePerTablet, tabletsPerUnit */
     private val MEDICATIONS = listOf(
         MedicationSeed("Panadol", "Paracetamol", "500", "24"),
         MedicationSeed("Nurofen", "Ibuprofen", "200", "24"),
@@ -68,7 +68,7 @@ object DatabaseSeeder {
                 MedicationFormat(
                     medicationId = medicationId,
                     dosePerTablet = med.dosePerTablet,
-                    tabletsPerBox = med.tabletsPerBox,
+                    tabletsPerUnit = med.tabletsPerUnit,
                 )
             )
             unitIdByBrand[med.brand] = unitId
@@ -105,7 +105,7 @@ object DatabaseSeeder {
         val brand: String,
         val activeIngredient: String,
         val dosePerTablet: String,
-        val tabletsPerBox: String,
+        val tabletsPerUnit: String,
     )
 
     private data class ScriptSeed(

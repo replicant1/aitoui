@@ -8,5 +8,5 @@ data class MedicationFormat(
     val id: Long = 0,
     val medicationId: Long,
     val dosePerTablet: String,
-    val tabletsPerBox: String,
+    val tabletsPerUnit: String,
 )

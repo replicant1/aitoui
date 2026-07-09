@@ -18,7 +18,7 @@ interface MedicationFormatDao {
         """
         SELECT f.id AS formatId, f.medicationId AS medicationId,
                m.brandName AS brandName, m.activeIngredient AS activeIngredient,
-               f.dosePerTablet AS dosePerTablet, f.tabletsPerBox AS tabletsPerBox
+               f.dosePerTablet AS dosePerTablet, f.tabletsPerUnit AS tabletsPerUnit
         FROM dispensable_units f
         JOIN medications m ON m.id = f.medicationId
         ORDER BY m.brandName COLLATE NOCASE, f.dosePerTablet
