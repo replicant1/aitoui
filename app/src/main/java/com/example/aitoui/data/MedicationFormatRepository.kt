@@ -10,5 +10,7 @@ class MedicationFormatRepository(private val dao: MedicationFormatDao) {
     /** Inserts a format and returns its new id. */
     suspend fun add(format: MedicationFormat): Long = dao.insert(format.toEntity())
 
+    suspend fun deleteById(id: Long) = dao.deleteById(id)
+
     suspend fun count(): Int = dao.count()
 }

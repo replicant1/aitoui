@@ -25,4 +25,8 @@ interface MedicationFormatDao {
         """
     )
     fun getAllWithMedication(): Flow<List<MedicationFormatDetails>>
+
+    /** Deletes the dispensable unit with [id]. Its scripts and dispensations cascade-delete. */
+    @Query("DELETE FROM dispensable_units WHERE id = :id")
+    suspend fun deleteById(id: Long)
 }

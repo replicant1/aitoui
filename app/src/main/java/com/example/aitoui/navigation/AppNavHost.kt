@@ -8,10 +8,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.aitoui.MainScreen
 import com.example.aitoui.MainViewModel
-import com.example.aitoui.dispense.DispenseRoot
 import com.example.aitoui.inventory.InventoryRoot
 import com.example.aitoui.medication.MedicationRoot
 import com.example.aitoui.medication.MedicationsRoot
+import com.example.aitoui.medicationformat.DispensableUnitsRoot
 import com.example.aitoui.medicationformat.MedicationFormatRoot
 import com.example.aitoui.script.AddScriptRoot
 import com.example.aitoui.script.ScriptsRoot
@@ -24,11 +24,10 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
             val mainViewModel: MainViewModel = viewModel(factory = MainViewModel.Factory)
             MainScreen(
                 onMedications = { navController.navigate(MedicationsRoute) },
-                onAddMedicationFormat = { navController.navigate(MedicationFormatRoute) },
+                onDispensableUnits = { navController.navigate(DispensableUnitsRoute) },
                 onTakeTablets = { navController.navigate(TakeTabletsRoute) },
                 onInventory = { navController.navigate(InventoryRoute) },
                 onScripts = { navController.navigate(ScriptsRoute) },
-                onDispense = { navController.navigate(DispenseRoute) },
                 onLog = { mainViewModel.logDatabase() },
             )
         }
@@ -46,6 +45,12 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
         composable<MedicationFormatRoute> {
             MedicationFormatRoot(
                 onBack = { navController.popBackStack() }
+            )
+        }
+        composable<DispensableUnitsRoute> {
+            DispensableUnitsRoot(
+                onBack = { navController.popBackStack() },
+                onAddDispensableUnit = { navController.navigate(MedicationFormatRoute) },
             )
         }
         composable<TakeTabletsRoute> {
@@ -67,11 +72,6 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
             ScriptsRoot(
                 onBack = { navController.popBackStack() },
                 onAddScript = { navController.navigate(ScriptRoute) },
-            )
-        }
-        composable<DispenseRoute> {
-            DispenseRoot(
-                onBack = { navController.popBackStack() }
             )
         }
     }

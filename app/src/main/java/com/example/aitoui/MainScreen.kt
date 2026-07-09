@@ -2,84 +2,153 @@ package com.example.aitoui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.Medication
+import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.Vaccines
+import androidx.compose.material.icons.filled.Widgets
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.aitoui.ui.theme.AitouiTheme
 
+// Clinical pharmaceutical palette: a professional teal for the header, white wordmark.
+private val PharmaTeal = Color(0xFF00695C)
+private val PharmaOnTeal = Color(0xFFFFFFFF)
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
     modifier: Modifier = Modifier,
     onMedications: () -> Unit = {},
-    onAddMedicationFormat: () -> Unit = {},
+    onDispensableUnits: () -> Unit = {},
     onTakeTablets: () -> Unit = {},
     onInventory: () -> Unit = {},
     onScripts: () -> Unit = {},
-    onDispense: () -> Unit = {},
     onLog: () -> Unit = {},
 ) {
-    Scaffold(modifier = modifier.fillMaxSize()) { innerPadding ->
-        Column(
+    // The scripts / dispensable units / medications group.
+    val prescribingGroup = listOf(
+        MainMenuItem("Scripts", Icons.Filled.Description, onScripts),
+        MainMenuItem("Dispensable Units", Icons.Filled.Widgets, onDispensableUnits),
+        MainMenuItem("Medications", Icons.Filled.Medication, onMedications),
+    )
+    // Everything else.
+    val otherGroup = listOf(
+        MainMenuItem("Take Tablets", Icons.Filled.Vaccines, onTakeTablets),
+        MainMenuItem("Inventory", Icons.Filled.Inventory2, onInventory),
+        MainMenuItem("Log", Icons.Filled.Storage, onLog),
+    )
+
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        text = "PxTx",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 4.sp,
+                    )
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = PharmaTeal,
+                    titleContentColor = PharmaOnTeal,
+                ),
+            )
+        },
+    ) { innerPadding ->
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
+            // Extra top padding vertically separates the grid from the title bar.
+            contentPadding = PaddingValues(start = 16.dp, top = 32.dp, end = 16.dp, bottom = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(
-                text = "MainScreen",
-                style = MaterialTheme.typography.headlineMedium,
+            items(prescribingGroup) { item ->
+                MainMenuButton(label = item.label, icon = item.icon, onClick = item.onClick)
+            }
+            // Full-width divider separating the two groups.
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            }
+            items(otherGroup) { item ->
+                MainMenuButton(label = item.label, icon = item.icon, onClick = item.onClick)
+            }
+        }
+    }
+}
+
+private data class MainMenuItem(
+    val label: String,
+    val icon: ImageVector,
+    val onClick: () -> Unit,
+)
+
+/** A uniform, outlined, rounded tile filling its grid cell: an icon on top, label centered underneath. */
+@Composable
+private fun MainMenuButton(
+    label: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(100.dp),
+        shape = RoundedCornerShape(16.dp),
+        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 12.dp),
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(32.dp),
             )
-            Button(
-                onClick = onMedications,
-                modifier = Modifier.padding(top = 16.dp),
-            ) {
-                Text("Medications")
-            }
-            Button(
-                onClick = onAddMedicationFormat,
-                modifier = Modifier.padding(top = 8.dp),
-            ) {
-                Text("Add Dispensable Unit")
-            }
-            Button(
-                onClick = onTakeTablets,
-                modifier = Modifier.padding(top = 8.dp),
-            ) {
-                Text("Take Tablets")
-            }
-            Button(
-                onClick = onInventory,
-                modifier = Modifier.padding(top = 8.dp),
-            ) {
-                Text("Inventory")
-            }
-            Button(
-                onClick = onScripts,
-                modifier = Modifier.padding(top = 8.dp),
-            ) {
-                Text("Scripts")
-            }
-            Button(
-                onClick = onDispense,
-                modifier = Modifier.padding(top = 8.dp),
-            ) {
-                Text("Dispense")
-            }
-            Button(
-                onClick = onLog,
-                modifier = Modifier.padding(top = 8.dp),
-            ) {
-                Text("Log")
-            }
+            Text(
+                text = label,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
