@@ -226,7 +226,7 @@ private fun DispenseScreenPreview() {
     AitouiTheme {
         DispenseScreen(
             state = DispenseState(
-                scripts = listOf(ScriptDetails(1, 1, "Panadol", "500", 2)),
+                scripts = listOf(ScriptDetails(1, 1, "Panadol", "500", 2, 5)),
                 selectedScriptId = 1,
                 allFormats = listOf(
                     MedicationFormatDetails(1, 1, "Panadol", "Paracetamol", "500", "24"),
