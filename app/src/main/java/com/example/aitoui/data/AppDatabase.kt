@@ -10,7 +10,7 @@ import androidx.room.RoomDatabase
         ScriptEntity::class,
         DispensationEntity::class,
     ],
-    version = 13,
+    version = 15,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
