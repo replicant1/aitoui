@@ -45,12 +45,14 @@ class DispensableUnitsViewModel(
     init {
         repository.formatsWithMedication
             .onEach { units ->
+                // Alphabetical (case-insensitive) by brand name — independent of the source query.
+                val sorted = units.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.brandName })
                 _state.update { current ->
                     // Drop the pending delete if that unit no longer exists.
                     current.copy(
-                        units = units,
+                        units = sorted,
                         pendingDeleteUnitId = current.pendingDeleteUnitId
-                            ?.takeIf { id -> units.any { it.formatId == id } },
+                            ?.takeIf { id -> sorted.any { it.formatId == id } },
                     )
                 }
             }

@@ -161,7 +161,7 @@ private fun DispensableUnitRow(
                 )
                 // Dispensable-unit specifics.
                 Text(
-                    text = "${unit.dosePerTablet}mg · ${unit.tabletsPerUnit} per unit",
+                    text = "${unit.dosePerTablet}mg × Qty ${unit.tabletsPerUnit}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp),
