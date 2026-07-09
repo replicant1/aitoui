@@ -16,13 +16,13 @@ object MedicationsRoute
 object MedicationFormatRoute
 
 @Serializable
+object DispensableUnitsRoute
+
+@Serializable
 object TakeTabletsRoute
 
 @Serializable
 object InventoryRoute
-
-@Serializable
-object DispenseRoute
 
 @Serializable
 object ScriptRoute

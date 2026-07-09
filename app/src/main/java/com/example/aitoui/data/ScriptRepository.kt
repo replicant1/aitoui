@@ -8,7 +8,7 @@ class ScriptRepository(private val dao: ScriptDao) {
     val scripts: Flow<List<Script>> =
         dao.getAll().map { entities -> entities.map { it.toDomain() } }
 
-    /** Scripts joined with medication/format details, for the Dispense script dropdown. */
+    /** Scripts joined with medication/format details, for the Scripts list screen. */
     val scriptsWithDetails: Flow<List<ScriptDetails>> = dao.getAllWithDetails()
 
     suspend fun add(script: Script): Long = dao.insert(script.toEntity())
