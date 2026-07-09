@@ -23,3 +23,6 @@ object DispenseRoute
 
 @Serializable
 object ScriptRoute
+
+@Serializable
+object ScriptsRoute
