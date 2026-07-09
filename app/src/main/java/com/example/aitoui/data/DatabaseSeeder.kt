@@ -34,19 +34,19 @@ object DatabaseSeeder {
     )
 
     /**
-     * One script per medication format. Columns: brand (must match a MEDICATIONS entry), repeats,
-     * valid-for (days), dispensed (times dispensed so far). The inventory shows the dispensed count
-     * per format.
+     * One script per medication format. Columns: brand (must match a MEDICATIONS entry), valid-for
+     * (days), dispensed (times dispensed so far). Every seeded script defaults to 5 repeats. The
+     * inventory shows the dispensed count per format.
      */
     private val SCRIPTS = listOf(
-        ScriptSeed("Panadol", 5, 180, 2),
-        ScriptSeed("Amoxil", 0, 30, 1),
-        ScriptSeed("Augmentin", 0, 30, 0),
-        ScriptSeed("Ventolin", 3, 365, 1),
-        ScriptSeed("Lipitor", 5, 365, 3),
-        ScriptSeed("Zoloft", 5, 180, 6),
-        ScriptSeed("Nexium", 2, 90, 1),
-        ScriptSeed("Diabex", 5, 365, 4),
+        ScriptSeed("Panadol", 180, 2),
+        ScriptSeed("Amoxil", 30, 1),
+        ScriptSeed("Augmentin", 30, 0),
+        ScriptSeed("Ventolin", 365, 1),
+        ScriptSeed("Lipitor", 365, 3),
+        ScriptSeed("Zoloft", 180, 6),
+        ScriptSeed("Nexium", 90, 1),
+        ScriptSeed("Diabex", 365, 4),
     )
 
     suspend fun seedIfEmpty(
@@ -108,8 +108,8 @@ object DatabaseSeeder {
 
     private data class ScriptSeed(
         val brand: String,
-        val repeats: Int,
         val validForDays: Long,
         val dispensed: Int,
+        val repeats: Int = 5,
     )
 }
