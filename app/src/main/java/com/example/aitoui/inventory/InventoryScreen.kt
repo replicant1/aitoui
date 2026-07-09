@@ -199,7 +199,7 @@ private fun MedicationDetailSheet(
 
             DetailRow("Active ingredient", format.activeIngredient)
             DetailRow("Dose per tablet", format.dosePerTablet)
-            DetailRow("Tablets per box", format.tabletsPerBox)
+            DetailRow("Tablets per unit", format.tabletsPerUnit)
         }
     }
 }

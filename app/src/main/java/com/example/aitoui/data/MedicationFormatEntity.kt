@@ -21,19 +21,19 @@ data class MedicationFormatEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val medicationId: Long,
     val dosePerTablet: String,
-    val tabletsPerBox: String,
+    val tabletsPerUnit: String,
 )
 
 fun MedicationFormatEntity.toDomain(): MedicationFormat = MedicationFormat(
     id = id,
     medicationId = medicationId,
     dosePerTablet = dosePerTablet,
-    tabletsPerBox = tabletsPerBox,
+    tabletsPerUnit = tabletsPerUnit,
 )
 
 fun MedicationFormat.toEntity(): MedicationFormatEntity = MedicationFormatEntity(
     id = id,
     medicationId = medicationId,
     dosePerTablet = dosePerTablet,
-    tabletsPerBox = tabletsPerBox,
+    tabletsPerUnit = tabletsPerUnit,
 )

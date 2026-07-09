@@ -141,9 +141,9 @@ fun MedicationFormatScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
-                value = state.tabletsPerBox,
-                onValueChange = { onAction(MedicationFormatAction.TabletsPerBoxChanged(it)) },
-                label = { Text("Tablets per box") },
+                value = state.tabletsPerUnit,
+                onValueChange = { onAction(MedicationFormatAction.TabletsPerUnitChanged(it)) },
+                label = { Text("Tablets per unit") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
@@ -161,7 +161,7 @@ private fun MedicationFormatScreenPreview() {
                 medications = listOf(Medication(1, "Panadol", "Paracetamol")),
                 selectedMedicationId = 1,
                 dosePerTablet = "500",
-                tabletsPerBox = "24",
+                tabletsPerUnit = "24",
             ),
             onAction = {},
             onBack = {},

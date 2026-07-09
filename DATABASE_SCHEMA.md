@@ -34,7 +34,7 @@ A specific format (dosage/packaging) of a medication — a dispensable unit.
 | `id` | INTEGER | PK, auto-generated | |
 | `medicationId` | INTEGER | **FK → `medications.id`** (ON DELETE CASCADE), indexed | |
 | `dosePerTablet` | TEXT | not null | raw text (e.g. `"500"`) |
-| `tabletsPerBox` | TEXT | not null | raw text |
+| `tabletsPerUnit` | TEXT | not null | raw text |
 
 ### `scripts`
 A prescription — what a doctor writes and you take to the pharmacy. Each script is for one dispensable
@@ -100,7 +100,7 @@ classDiagram
         +Long id «PK»
         +Long medicationId «FK»
         +String dosePerTablet
-        +String tabletsPerBox
+        +String tabletsPerUnit
     }
     class scripts {
         +Long id «PK»

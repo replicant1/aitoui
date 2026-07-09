@@ -23,19 +23,19 @@ data class MedicationFormatState(
     val medications: List<Medication> = emptyList(),
     val selectedMedicationId: Long? = null,
     val dosePerTablet: String = "",
-    val tabletsPerBox: String = "",
+    val tabletsPerUnit: String = "",
 ) {
     val selectedMedicationName: String
         get() = medications.firstOrNull { it.id == selectedMedicationId }?.brandName ?: ""
 
     val canSave: Boolean
-        get() = selectedMedicationId != null && dosePerTablet.isNotBlank() && tabletsPerBox.isNotBlank()
+        get() = selectedMedicationId != null && dosePerTablet.isNotBlank() && tabletsPerUnit.isNotBlank()
 }
 
 sealed interface MedicationFormatAction {
     data class MedicationSelected(val id: Long) : MedicationFormatAction
     data class DosePerTabletChanged(val value: String) : MedicationFormatAction
-    data class TabletsPerBoxChanged(val value: String) : MedicationFormatAction
+    data class TabletsPerUnitChanged(val value: String) : MedicationFormatAction
     data object Save : MedicationFormatAction
 }
 
@@ -70,8 +70,8 @@ class MedicationFormatViewModel(
             is MedicationFormatAction.DosePerTabletChanged ->
                 _state.update { it.copy(dosePerTablet = action.value.digitsOnly()) }
 
-            is MedicationFormatAction.TabletsPerBoxChanged ->
-                _state.update { it.copy(tabletsPerBox = action.value.digitsOnly()) }
+            is MedicationFormatAction.TabletsPerUnitChanged ->
+                _state.update { it.copy(tabletsPerUnit = action.value.digitsOnly()) }
 
             MedicationFormatAction.Save -> save()
         }
@@ -85,7 +85,7 @@ class MedicationFormatViewModel(
                 MedicationFormat(
                     medicationId = current.selectedMedicationId!!,
                     dosePerTablet = current.dosePerTablet,
-                    tabletsPerBox = current.tabletsPerBox,
+                    tabletsPerUnit = current.tabletsPerUnit,
                 )
             )
         }
