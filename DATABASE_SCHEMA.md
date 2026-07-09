@@ -44,8 +44,6 @@ unit (many scripts → one unit).
 |---|---|---|---|
 | `id` | INTEGER | PK, auto-generated | |
 | `dispensableUnitId` | INTEGER | **FK → `dispensable_units.id`** (ON DELETE CASCADE), indexed | the unit the script is for |
-| `directions` | TEXT | not null | how to take it |
-| `quantity` | INTEGER | not null | total dispensations allowed |
 | `repeats` | INTEGER | not null | |
 | `validToMillis` | INTEGER | not null | "valid to" date, epoch millis |
 
@@ -54,7 +52,7 @@ script's rows in `dispensations`.
 
 ### `dispensations`
 A recorded pharmacy fill: a dispensable unit dispensed `number` times against a script. The sum of a
-script's `number` values is its derived "dispensed" total (shown as "dispensed/quantity").
+script's `number` values is its derived "dispensed" total.
 
 | Column | Type | Constraints | Notes |
 |---|---|---|---|
@@ -105,8 +103,6 @@ classDiagram
     class scripts {
         +Long id «PK»
         +Long dispensableUnitId «FK»
-        +String directions
-        +Int quantity
         +Int repeats
         +Long validToMillis
     }

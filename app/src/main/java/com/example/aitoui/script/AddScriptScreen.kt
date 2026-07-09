@@ -142,28 +142,6 @@ fun AddScriptScreen(
             }
 
             OutlinedTextField(
-                value = state.directions,
-                onValueChange = { onAction(AddScriptAction.DirectionsChanged(it)) },
-                label = { Text("Directions") },
-                placeholder = { Text("e.g. Take one tablet twice a day") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            OutlinedTextField(
-                value = state.quantity,
-                onValueChange = { onAction(AddScriptAction.QuantityChanged(it)) },
-                label = { Text("Quantity") },
-                singleLine = true,
-                isError = state.quantity.isNotBlank() && !state.quantityValid,
-                supportingText = if (state.quantity.isNotBlank() && !state.quantityValid) {
-                    { Text("Must be greater than 0") }
-                } else null,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            OutlinedTextField(
                 value = state.repeats,
                 onValueChange = { onAction(AddScriptAction.RepeatsChanged(it)) },
                 label = { Text("Number of repeats") },
@@ -227,8 +205,6 @@ private fun AddScriptScreenPreview() {
                     MedicationFormatDetails(1, 1, "Panadol", "Paracetamol", "500", "24"),
                 ),
                 selectedFormatId = 1,
-                directions = "Take one tablet twice a day",
-                quantity = "30",
                 repeats = "2",
                 validToMillis = 0L,
             ),

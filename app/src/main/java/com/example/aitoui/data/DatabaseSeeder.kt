@@ -34,19 +34,19 @@ object DatabaseSeeder {
     )
 
     /**
-     * One script per medication format. Columns: brand (must match a MEDICATIONS entry), directions,
-     * quantity (total dispensations allowed), repeats, valid-for (days), dispensed (times dispensed
-     * so far, ≤ quantity). The inventory shows "dispensed/quantity" per format.
+     * One script per medication format. Columns: brand (must match a MEDICATIONS entry), repeats,
+     * valid-for (days), dispensed (times dispensed so far). The inventory shows the dispensed count
+     * per format.
      */
     private val SCRIPTS = listOf(
-        ScriptSeed("Panadol", "Take two tablets every 4–6 hours as needed", 6, 5, 180, 2),
-        ScriptSeed("Amoxil", "Take one capsule three times a day for 7 days", 1, 0, 30, 1),
-        ScriptSeed("Augmentin", "Take one tablet twice a day for 5 days", 1, 0, 30, 0),
-        ScriptSeed("Ventolin", "Two puffs as needed for shortness of breath", 4, 3, 365, 1),
-        ScriptSeed("Lipitor", "Take one tablet at night", 6, 5, 365, 3),
-        ScriptSeed("Zoloft", "Take one tablet in the morning", 6, 5, 180, 6),
-        ScriptSeed("Nexium", "Take one tablet before breakfast", 3, 2, 90, 1),
-        ScriptSeed("Diabex", "Take one tablet twice a day with meals", 6, 5, 365, 4),
+        ScriptSeed("Panadol", 5, 180, 2),
+        ScriptSeed("Amoxil", 0, 30, 1),
+        ScriptSeed("Augmentin", 0, 30, 0),
+        ScriptSeed("Ventolin", 3, 365, 1),
+        ScriptSeed("Lipitor", 5, 365, 3),
+        ScriptSeed("Zoloft", 5, 180, 6),
+        ScriptSeed("Nexium", 2, 90, 1),
+        ScriptSeed("Diabex", 5, 365, 4),
     )
 
     suspend fun seedIfEmpty(
@@ -80,8 +80,6 @@ object DatabaseSeeder {
             val scriptId = scriptRepository.add(
                 Script(
                     dispensableUnitId = unitId,
-                    directions = seed.directions,
-                    quantity = seed.quantity,
                     repeats = seed.repeats,
                     validToMillis = nowMillis + seed.validForDays * DAY_MILLIS,
                 )
@@ -110,8 +108,6 @@ object DatabaseSeeder {
 
     private data class ScriptSeed(
         val brand: String,
-        val directions: String,
-        val quantity: Int,
         val repeats: Int,
         val validForDays: Long,
         val dispensed: Int,

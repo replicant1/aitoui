@@ -7,8 +7,6 @@ package com.example.aitoui.data
 data class Script(
     val id: Long = 0,
     val dispensableUnitId: Long,
-    val directions: String,
-    val quantity: Int,
     val repeats: Int,
     val validToMillis: Long,
 )

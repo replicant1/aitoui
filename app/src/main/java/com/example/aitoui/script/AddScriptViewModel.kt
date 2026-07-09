@@ -22,8 +22,6 @@ import kotlinx.coroutines.launch
 data class AddScriptState(
     val medicationFormats: List<MedicationFormatDetails> = emptyList(),
     val selectedFormatId: Long? = null,
-    val directions: String = "",
-    val quantity: String = "",
     val repeats: String = "",
     val validToMillis: Long? = null,
 ) {
@@ -32,19 +30,15 @@ data class AddScriptState(
 
     // Basic field validation.
     val formatValid: Boolean get() = selectedFormatId != null
-    val directionsValid: Boolean get() = directions.isNotBlank()
-    val quantityValid: Boolean get() = (quantity.toIntOrNull() ?: 0) > 0
     val repeatsValid: Boolean get() = repeats.toIntOrNull() != null
     val validToValid: Boolean get() = validToMillis != null
 
     val canSave: Boolean
-        get() = formatValid && directionsValid && quantityValid && repeatsValid && validToValid
+        get() = formatValid && repeatsValid && validToValid
 }
 
 sealed interface AddScriptAction {
     data class MedicationFormatSelected(val id: Long) : AddScriptAction
-    data class DirectionsChanged(val value: String) : AddScriptAction
-    data class QuantityChanged(val value: String) : AddScriptAction
     data class RepeatsChanged(val value: String) : AddScriptAction
     data class ValidToChanged(val millis: Long?) : AddScriptAction
     data object Save : AddScriptAction
@@ -78,12 +72,6 @@ class AddScriptViewModel(
             is AddScriptAction.MedicationFormatSelected ->
                 _state.update { it.copy(selectedFormatId = action.id) }
 
-            is AddScriptAction.DirectionsChanged ->
-                _state.update { it.copy(directions = action.value) }
-
-            is AddScriptAction.QuantityChanged ->
-                _state.update { it.copy(quantity = action.value.digitsOnly()) }
-
             is AddScriptAction.RepeatsChanged ->
                 _state.update { it.copy(repeats = action.value.digitsOnly()) }
 
@@ -101,8 +89,6 @@ class AddScriptViewModel(
             scriptRepository.add(
                 Script(
                     dispensableUnitId = current.selectedFormatId!!,
-                    directions = current.directions.trim(),
-                    quantity = current.quantity.toInt(),
                     repeats = current.repeats.toInt(),
                     validToMillis = current.validToMillis!!,
                 )
