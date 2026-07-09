@@ -10,6 +10,9 @@ object MainRoute
 object MedicationRoute
 
 @Serializable
+object MedicationsRoute
+
+@Serializable
 object MedicationFormatRoute
 
 @Serializable

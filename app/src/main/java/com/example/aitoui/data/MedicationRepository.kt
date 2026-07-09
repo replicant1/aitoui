@@ -11,5 +11,7 @@ class MedicationRepository(private val dao: MedicationDao) {
     /** Inserts a medication and returns its new id. */
     suspend fun add(medication: Medication): Long = dao.insert(medication.toEntity())
 
+    suspend fun deleteById(id: Long) = dao.deleteById(id)
+
     suspend fun count(): Int = dao.count()
 }

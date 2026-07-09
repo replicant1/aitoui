@@ -15,10 +15,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -47,10 +50,16 @@ private val CardYellow = Color(0xFFFFF176)
 @Composable
 fun ScriptsRoot(
     onBack: () -> Unit,
+    onAddScript: () -> Unit,
     viewModel: ScriptsViewModel = viewModel(factory = ScriptsViewModel.Factory),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    ScriptsScreen(state = state, onAction = viewModel::onAction, onBack = onBack)
+    ScriptsScreen(
+        state = state,
+        onAction = viewModel::onAction,
+        onBack = onBack,
+        onAddScript = onAddScript,
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,6 +68,7 @@ fun ScriptsScreen(
     state: ScriptsState,
     onAction: (ScriptsAction) -> Unit,
     onBack: () -> Unit,
+    onAddScript: () -> Unit,
 ) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -74,6 +84,11 @@ fun ScriptsScreen(
                     }
                 },
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = onAddScript) {
+                Icon(imageVector = Icons.Filled.Add, contentDescription = "Add script")
+            }
         },
     ) { innerPadding ->
         Column(
@@ -98,6 +113,7 @@ fun ScriptsScreen(
                     ScriptCard(
                         script = script,
                         onDispensedClick = { onAction(ScriptsAction.DispensedTapped(script.scriptId)) },
+                        onDeleteClick = { onAction(ScriptsAction.DeleteTapped(script.scriptId)) },
                     )
                 }
             }
@@ -137,6 +153,26 @@ fun ScriptsScreen(
             },
         )
     }
+
+    // Confirm before deleting a script.
+    state.pendingDeleteScript?.let { script ->
+        AlertDialog(
+            onDismissRequest = { onAction(ScriptsAction.CancelDelete) },
+            title = { Text("Delete script?") },
+            text = {
+                Text(
+                    "Delete the script for ${script.medicationLabel}? This also removes its " +
+                        "dispensation history and cannot be undone.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { onAction(ScriptsAction.ConfirmDelete) }) { Text("Delete") }
+            },
+            dismissButton = {
+                TextButton(onClick = { onAction(ScriptsAction.CancelDelete) }) { Text("Cancel") }
+            },
+        )
+    }
 }
 
 /**
@@ -147,6 +183,7 @@ fun ScriptsScreen(
 private fun ScriptCard(
     script: ScriptDetails,
     onDispensedClick: () -> Unit,
+    onDeleteClick: () -> Unit,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -154,17 +191,30 @@ private fun ScriptCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            // Yellow header: medication name followed by dosage in brackets.
-            Text(
-                text = script.medicationLabel,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black,
+            // Yellow header: medication name + dosage on the left, delete (cross) icon top-right.
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(CardYellow)
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-            )
+                    .background(CardYellow),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = script.cardLabel,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 16.dp, top = 12.dp, bottom = 12.dp),
+                )
+                IconButton(onClick = onDeleteClick) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = "Delete script",
+                        tint = Color.Black,
+                    )
+                }
+            }
 
             HorizontalDivider(thickness = 1.dp, color = Color.Black)
 
@@ -227,13 +277,14 @@ private fun ScriptsScreenPreview() {
         ScriptsScreen(
             state = ScriptsState(
                 scripts = listOf(
-                    ScriptDetails(1, 1, "Panadol", "500", dispensed = 2, repeats = 5),
-                    ScriptDetails(2, 2, "Amoxil", "500", dispensed = 1, repeats = 0),
-                    ScriptDetails(3, 3, "Ventolin", "100", dispensed = 1, repeats = 3),
+                    ScriptDetails(1, 1, "Panadol", "Paracetamol", "500", "24", dispensed = 2, repeats = 5),
+                    ScriptDetails(2, 2, "Amoxil", "Amoxicillin", "500", "20", dispensed = 1, repeats = 0),
+                    ScriptDetails(3, 3, "Ventolin", "Salbutamol", "100", "200", dispensed = 1, repeats = 3),
                 ),
             ),
             onAction = {},
             onBack = {},
+            onAddScript = {},
         )
     }
 }

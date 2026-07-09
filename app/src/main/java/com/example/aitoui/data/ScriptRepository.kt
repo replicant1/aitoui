@@ -17,5 +17,7 @@ class ScriptRepository(private val dao: ScriptDao) {
 
     suspend fun delete(script: Script) = dao.delete(script.toEntity())
 
+    suspend fun deleteById(id: Long) = dao.deleteById(id)
+
     suspend fun getById(id: Long): Script? = dao.getById(id)?.toDomain()
 }

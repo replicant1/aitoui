@@ -18,6 +18,10 @@ interface ScriptDao {
     @Delete
     suspend fun delete(entity: ScriptEntity)
 
+    /** Deletes the script with [id]. Its dispensations cascade-delete via the foreign key. */
+    @Query("DELETE FROM scripts WHERE id = :id")
+    suspend fun deleteById(id: Long)
+
     @Query("SELECT * FROM scripts ORDER BY validToMillis")
     fun getAll(): Flow<List<ScriptEntity>>
 
@@ -27,7 +31,8 @@ interface ScriptDao {
     @Query(
         """
         SELECT s.id AS scriptId, s.dispensableUnitId AS dispensableUnitId,
-               m.brandName AS brandName, du.dosePerTablet AS dosePerTablet,
+               m.brandName AS brandName, m.activeIngredient AS activeIngredient,
+               du.dosePerTablet AS dosePerTablet, du.tabletsPerUnit AS tabletsPerUnit,
                COALESCE((SELECT SUM(d.number) FROM dispensations d WHERE d.scriptId = s.id), 0) AS dispensed,
                s.repeats AS repeats
         FROM scripts s

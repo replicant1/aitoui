@@ -63,7 +63,7 @@ fun MedicationFormatScreen(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("Medication Format") },
+                title = { Text("Dispensable Unit") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
@@ -92,8 +92,8 @@ fun MedicationFormatScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text(
-                text = "A Medication Format is a particular packaging and presentation of a " +
-                    "medication — a dispensable unit of the medication. Typically a box or bottle of a capsule or tablet.",
+                text = "A Dispensable Unit is a particular packaging and presentation of a " +
+                    "medication. Typically a box or bottle of a capsule or tablet.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

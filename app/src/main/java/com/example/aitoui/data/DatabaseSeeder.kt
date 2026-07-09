@@ -84,14 +84,16 @@ object DatabaseSeeder {
                     validToMillis = nowMillis + seed.validForDays * DAY_MILLIS,
                 )
             )
-            // The script's dispensed count is now derived from the dispensations table, so record
-            // the seeded prior dispensations there rather than as a column on the script.
-            if (seed.dispensed > 0) {
+            // The script's dispensed count is derived from the dispensations table, so record the
+            // seeded prior dispensations there. Clamp to 0..repeats so a script is never seeded as
+            // dispensed more times than it may be.
+            val dispensed = seed.dispensed.coerceIn(0, seed.repeats)
+            if (dispensed > 0) {
                 dispensationRepository.add(
                     Dispensation(
                         scriptId = scriptId,
                         dispensableUnitId = unitId,
-                        number = seed.dispensed,
+                        number = dispensed,
                         dispensedAtMillis = nowMillis,
                     )
                 )
