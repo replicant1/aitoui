@@ -6,20 +6,22 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.aitoui.AitouiApp
-import com.example.aitoui.data.DispensableUnitDetails
+import com.example.aitoui.data.DailyScheduleRepository
 import com.example.aitoui.data.DispensableUnitRepository
+import com.example.aitoui.data.DispensationRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 
 data class InventoryState(
-    val formats: List<DispensableUnitDetails> = emptyList(),
+    val items: List<InventoryItem> = emptyList(),
     val selectedId: Long? = null,
 ) {
-    val selectedFormat: DispensableUnitDetails? get() = formats.firstOrNull { it.formatId == selectedId }
+    val selectedItem: InventoryItem? get() = items.firstOrNull { it.unit.formatId == selectedId }
 }
 
 sealed interface InventoryAction {
@@ -28,20 +30,35 @@ sealed interface InventoryAction {
 }
 
 class InventoryViewModel(
-    repository: DispensableUnitRepository,
+    dispensableUnitRepository: DispensableUnitRepository,
+    dispensationRepository: DispensationRepository,
+    dailyScheduleRepository: DailyScheduleRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(InventoryState())
     val state: StateFlow<InventoryState> = _state.asStateFlow()
 
     init {
-        repository.formatsWithMedication
-            .onEach { formats ->
+        combine(
+            dispensableUnitRepository.formatsWithMedication,
+            dispensationRepository.dispensations,
+            dailyScheduleRepository.dailySchedule,
+        ) { formats, dispensations, schedule ->
+            val dailyByMedication = schedule.associate { it.medicationId to it.quantity }
+            val days = computeDaysRemaining(
+                units = formats,
+                dispensations = dispensations,
+                dailyByMedication = dailyByMedication,
+                nowMillis = System.currentTimeMillis(),
+            )
+            formats.map { InventoryItem(it, days[it.medicationId]) }
+        }
+            .onEach { items ->
                 _state.update { current ->
                     // Drop selection if the selected item no longer exists.
-                    val stillThere = formats.any { it.formatId == current.selectedId }
+                    val stillThere = items.any { it.unit.formatId == current.selectedId }
                     current.copy(
-                        formats = formats,
+                        items = items,
                         selectedId = current.selectedId.takeIf { stillThere },
                     )
                 }
@@ -64,7 +81,11 @@ class InventoryViewModel(
         val Factory = viewModelFactory {
             initializer {
                 val app = this[APPLICATION_KEY] as AitouiApp
-                InventoryViewModel(app.dispensableUnitRepository)
+                InventoryViewModel(
+                    dispensableUnitRepository = app.dispensableUnitRepository,
+                    dispensationRepository = app.dispensationRepository,
+                    dailyScheduleRepository = app.dailyScheduleRepository,
+                )
             }
         }
     }

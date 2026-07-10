@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Transaction
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface DailyScheduleDao {
@@ -17,6 +18,18 @@ interface DailyScheduleDao {
         """
     )
     suspend fun getAllWithMedication(): List<DailyScheduleDetails>
+
+    /** Reactive variant of [getAllWithMedication], for screens that recompute on schedule changes. */
+    @Query(
+        """
+        SELECT ds.id AS id, ds.medicationId AS medicationId,
+               m.brandName AS brandName, ds.quantity AS quantity
+        FROM daily_schedule ds
+        JOIN medications m ON m.id = ds.medicationId
+        ORDER BY m.brandName COLLATE NOCASE
+        """
+    )
+    fun getAllWithMedicationFlow(): Flow<List<DailyScheduleDetails>>
 
     @Insert
     suspend fun insertAll(entities: List<DailyScheduleEntity>)
