@@ -8,6 +8,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.aitoui.AitouiApp
 import com.example.aitoui.data.Dispensation
 import com.example.aitoui.data.DispensationRepository
+import com.example.aitoui.data.InHandRepository
 import com.example.aitoui.data.ScriptDetails
 import com.example.aitoui.data.ScriptRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,7 +24,7 @@ data class ScriptsState(
     val scripts: List<ScriptDetails> = emptyList(),
     /** Script awaiting the user's confirmation to dispense one unit, if any. */
     val pendingDispenseScriptId: Long? = null,
-    /** Script whose dispensed count has already reached its repeats maximum, if the user tapped it. */
+    /** Script whose dispensed count has exceeded its repeats (no dispensations left), if tapped. */
     val maxedOutScriptId: Long? = null,
     /** Script awaiting the user's confirmation to delete it, if any. */
     val pendingDeleteScriptId: Long? = null,
@@ -58,6 +59,7 @@ sealed interface ScriptsAction {
 class ScriptsViewModel(
     private val scriptRepository: ScriptRepository,
     private val dispensationRepository: DispensationRepository,
+    private val inHandRepository: InHandRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ScriptsState())
@@ -86,8 +88,9 @@ class ScriptsViewModel(
         when (action) {
             is ScriptsAction.DispensedTapped -> _state.update { current ->
                 val script = current.scripts.firstOrNull { it.scriptId == action.scriptId }
-                // Already dispensed the maximum number of times → show an error instead of confirming.
-                if (script != null && script.dispensed >= script.repeats) {
+                // A script allows repeats + 1 dispensations (the original plus its repeats), so it is
+                // only finished once dispensed exceeds repeats. Show an error instead of confirming.
+                if (script != null && script.dispensed > script.repeats) {
                     current.copy(maxedOutScriptId = action.scriptId)
                 } else {
                     current.copy(pendingDispenseScriptId = action.scriptId)
@@ -121,18 +124,24 @@ class ScriptsViewModel(
         }
     }
 
-    /** Records a single dispensation for the pending script. The derived dispensed count follows. */
+    /**
+     * Records a single dispensation for the pending script and adds the dispensed tablets to the
+     * in-hand table. The derived dispensed count follows.
+     */
     private fun dispenseOne() {
         val script = _state.value.pendingDispenseScript ?: return
+        val units = 1
+        val tabletsPerUnit = script.tabletsPerUnit.toDoubleOrNull() ?: 0.0
         viewModelScope.launch {
             dispensationRepository.add(
                 Dispensation(
                     scriptId = script.scriptId,
                     dispensableUnitId = script.dispensableUnitId,
-                    number = 1,
+                    number = units,
                     dispensedAtMillis = System.currentTimeMillis(),
                 )
             )
+            inHandRepository.addTablets(script.medicationId, units * tabletsPerUnit)
             _state.update { it.copy(pendingDispenseScriptId = null) }
         }
     }
@@ -141,7 +150,11 @@ class ScriptsViewModel(
         val Factory = viewModelFactory {
             initializer {
                 val app = this[APPLICATION_KEY] as AitouiApp
-                ScriptsViewModel(app.scriptRepository, app.dispensationRepository)
+                ScriptsViewModel(
+                    app.scriptRepository,
+                    app.dispensationRepository,
+                    app.inHandRepository,
+                )
             }
         }
     }

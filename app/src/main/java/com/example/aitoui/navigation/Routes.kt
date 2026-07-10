@@ -22,6 +22,9 @@ object DispensableUnitsRoute
 object DailyScheduleRoute
 
 @Serializable
+object InHandRoute
+
+@Serializable
 object InventoryRoute
 
 @Serializable

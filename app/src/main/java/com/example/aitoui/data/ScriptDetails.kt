@@ -3,17 +3,20 @@ package com.example.aitoui.data
 /**
  * A [Script] joined with its dispensable unit / medication, for the Dispense screen's script dropdown
  * and the Scripts list screen. [dispensed] is the derived count of times dispensed; [repeats] is the
- * maximum number of times the script may be dispensed.
+ * number of repeat dispensations, so the script allows `repeats + 1` dispensations in total.
  */
 data class ScriptDetails(
     val scriptId: Long,
     val dispensableUnitId: Long,
+    val medicationId: Long,
     val brandName: String,
     val activeIngredient: String,
     val dosePerTablet: String,
     val tabletsPerUnit: String,
     val dispensed: Int,
     val repeats: Int,
+    /** Date the script was issued, as UTC epoch millis. */
+    val dateOfIssue: Long,
 ) {
     /** Medication name with dosage, e.g. "Panadol (500mg)". */
     val medicationLabel: String get() = "$brandName (${dosePerTablet}mg)"

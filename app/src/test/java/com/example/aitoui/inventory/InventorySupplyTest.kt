@@ -29,12 +29,14 @@ class InventorySupplyTest {
         ScriptDetails(
             scriptId = 0,
             dispensableUnitId = unitId,
+            medicationId = 0,
             brandName = "Brand",
             activeIngredient = "Ingredient",
             dosePerTablet = "500",
             tabletsPerUnit = "0",   // unused by computeSupply (it uses the unit's tabletsPerUnit)
             dispensed = dispensed,
             repeats = repeats,
+            dateOfIssue = 0L,
         )
 
     // --- on-hand (dispensed) supply; no scripts ---
@@ -187,11 +189,11 @@ class InventorySupplyTest {
             nowMillis = now,
         )
         val s = r[1]!!
-        assertEquals(5, s.undispensedFills)
+        assertEquals(6, s.undispensedFills)              // repeats 5 + 1 - dispensed 0
         assertEquals(10, s.tabletsPerUnit)
-        assertEquals(50, s.undispensedTablets)           // 5 * 10
-        assertEquals(10, s.undispensedDays)              // 50 / 5
-        assertEquals(10, s.totalDays)
+        assertEquals(60, s.undispensedTablets)           // 6 * 10
+        assertEquals(12, s.undispensedDays)              // 60 / 5
+        assertEquals(12, s.totalDays)
     }
 
     @Test
@@ -205,12 +207,26 @@ class InventorySupplyTest {
         )
         val s = r[1]!!
         assertEquals(0, s.dispensedDays)                 // 20 - 4*5 = 0
-        assertEquals(6, s.undispensedDays)               // 3 fills * 10 = 30 / 5
-        assertEquals(6, s.totalDays)
+        assertEquals(8, s.undispensedDays)               // (5 + 1 - 2) fills * 10 = 40 / 5
+        assertEquals(8, s.totalDays)
     }
 
     @Test
-    fun `a fully dispensed script adds no future supply`() {
+    fun `a fully finished script adds no future supply`() {
+        val r = computeSupply(
+            units = listOf(unit(1, 1, "10")),
+            dispensations = emptyList(),
+            // dispensed exceeds repeats (repeats + 1 fills all used) -> nothing left.
+            scripts = listOf(script(unitId = 1, dispensed = 6, repeats = 5)),
+            dailyByMedication = mapOf(1L to 5.0),
+            nowMillis = now,
+        )
+        assertEquals(0, r[1]?.undispensedFills)
+        assertEquals(0, r[1]?.totalDays)
+    }
+
+    @Test
+    fun `dispensed equal to repeats still leaves one fill`() {
         val r = computeSupply(
             units = listOf(unit(1, 1, "10")),
             dispensations = emptyList(),
@@ -218,8 +234,8 @@ class InventorySupplyTest {
             dailyByMedication = mapOf(1L to 5.0),
             nowMillis = now,
         )
-        assertEquals(0, r[1]?.undispensedFills)
-        assertEquals(0, r[1]?.totalDays)
+        assertEquals(1, r[1]?.undispensedFills)           // repeats + 1 - dispensed = 1
+        assertEquals(2, r[1]?.totalDays)                  // 1 * 10 / 5
     }
 
     @Test

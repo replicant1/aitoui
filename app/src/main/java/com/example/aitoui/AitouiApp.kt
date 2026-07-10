@@ -6,6 +6,7 @@ import com.example.aitoui.data.AppDatabase
 import com.example.aitoui.data.DailyScheduleRepository
 import com.example.aitoui.data.DatabaseSeeder
 import com.example.aitoui.data.DispensationRepository
+import com.example.aitoui.data.InHandRepository
 import com.example.aitoui.data.DispensableUnitRepository
 import com.example.aitoui.data.MedicationRepository
 import com.example.aitoui.data.ScriptRepository
@@ -47,6 +48,10 @@ class AitouiApp : Application() {
 
     val dailyScheduleRepository: DailyScheduleRepository by lazy {
         DailyScheduleRepository(database.dailyScheduleDao())
+    }
+
+    val inHandRepository: InHandRepository by lazy {
+        InHandRepository(database.inHandDao())
     }
 
     override fun onCreate() {

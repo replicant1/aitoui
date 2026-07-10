@@ -16,6 +16,7 @@ import com.example.aitoui.dispensableunit.DispensableUnitRoot
 import com.example.aitoui.script.AddScriptRoot
 import com.example.aitoui.script.ScriptsRoot
 import com.example.aitoui.dailyschedule.DailyScheduleRoot
+import com.example.aitoui.inhand.InHandRoot
 
 @Composable
 fun AppNavHost(navController: NavHostController = rememberNavController()) {
@@ -26,6 +27,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
                 onMedications = { navController.navigate(MedicationsRoute) },
                 onDispensableUnits = { navController.navigate(DispensableUnitsRoute) },
                 onDailySchedule = { navController.navigate(DailyScheduleRoute) },
+                onInHand = { navController.navigate(InHandRoute) },
                 onInventory = { navController.navigate(InventoryRoute) },
                 onScripts = { navController.navigate(ScriptsRoute) },
                 onLog = { mainViewModel.logDatabase() },
@@ -55,6 +57,11 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
         }
         composable<DailyScheduleRoute> {
             DailyScheduleRoot(
+                onBack = { navController.popBackStack() }
+            )
+        }
+        composable<InHandRoute> {
+            InHandRoot(
                 onBack = { navController.popBackStack() }
             )
         }

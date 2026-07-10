@@ -1,6 +1,6 @@
 # Database Schema
 
-**Database:** `aitoui.db` (Room) · **version:** 16 · **package:** `com.example.aitoui.data`
+**Database:** `aitoui.db` (Room) · **version:** 18 · **package:** `com.example.aitoui.data`
 
 The schema models prescriptions and pharmacy dispensing as a chain:
 
@@ -44,6 +44,8 @@ unit (many scripts → one unit).
 |---|---|---|---|
 | `id` | INTEGER | PK, auto-generated | |
 | `dispensableUnitId` | INTEGER | **FK → `dispensable_units.id`** (ON DELETE CASCADE), indexed | the unit the script is for |
+| `serialNo` | TEXT | not null | prescription serial number |
+| `dateOfIssue` | INTEGER | not null | date issued, epoch millis |
 | `repeats` | INTEGER | not null | |
 | `validToMillis` | INTEGER | not null | "valid to" date, epoch millis |
 
@@ -72,6 +74,17 @@ Schedule screen replaces the whole table on save.
 | `medicationId` | INTEGER | **FK → `medications.id`** (ON DELETE CASCADE), indexed | the medication taken |
 | `quantity` | REAL | not null | tablets taken per day (may be fractional, e.g. `0.5`) |
 
+### `in_hand`
+Tablets currently in the user's possession — dispensed but not yet consumed. Recording a dispensation
+(from the Scripts screen) adds that many tablets here; the In Hand screen replaces the whole table on
+save.
+
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `id` | INTEGER | PK, auto-generated | |
+| `medicationId` | INTEGER | **FK → `medications.id`** (ON DELETE CASCADE), indexed | the medication in hand |
+| `quantity` | REAL | not null | tablets in hand (may be fractional) |
+
 ---
 
 ## Relationships
@@ -81,6 +94,7 @@ Schedule screen replaces the whole table on save.
 - `scripts` **1 — N** `dispensations` (`dispensations.scriptId`)
 - `dispensable_units` **1 — N** `dispensations` (`dispensations.dispensableUnitId`)
 - `medications` **1 — N** `daily_schedule` (`daily_schedule.medicationId`)
+- `medications` **1 — N** `in_hand` (`in_hand.medicationId`)
 
 All foreign keys use `ON DELETE CASCADE`.
 
@@ -114,6 +128,8 @@ classDiagram
     class scripts {
         +Long id «PK»
         +Long dispensableUnitId «FK»
+        +String serialNo
+        +Long dateOfIssue
         +Int repeats
         +Long validToMillis
     }
@@ -129,11 +145,17 @@ classDiagram
         +Long medicationId «FK»
         +Double quantity
     }
+    class in_hand {
+        +Long id «PK»
+        +Long medicationId «FK»
+        +Double quantity
+    }
     medications "1" *-- "0..*" dispensable_units : medicationId
     dispensable_units "1" *-- "0..*" scripts : dispensableUnitId
     scripts "1" *-- "0..*" dispensations : scriptId
     dispensable_units "1" *-- "0..*" dispensations : dispensableUnitId
     medications "1" *-- "0..*" daily_schedule : medicationId
+    medications "1" *-- "0..*" in_hand : medicationId
 ```
 
 </details>
