@@ -93,9 +93,9 @@ fun InventoryScreen(
                 .padding(innerPadding),
         ) {
             Text(
-                text = "For each medication, the figure shows how long before you run out — the " +
-                    "time your supply will last, counting both what has already been dispensed and " +
-                    "the future dispensations still available on your scripts.",
+                text = "For each medication, the figure shows how long before you run out, counting " +
+                    "both what has already been dispensed and the future dispensations still " +
+                    "available on your scripts.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -162,7 +162,7 @@ private fun MedicationRow(
                     } else {
                         "${supply.undispensedFills} scripts × " +
                             "${supply.tabletsPerUnit} tabs = ${supply.undispensedTablets} tabs = " +
-                            "${humanizeDuration(supply.undispensedDays)} supply"
+                            humanizeDuration(supply.undispensedDays)
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -172,7 +172,7 @@ private fun MedicationRow(
                         "None dispensed"
                     } else {
                         "Dispensed: ${supply.dispensedTablets} tabs = " +
-                            "${humanizeDuration(supply.dispensedDays)} supply"
+                            humanizeDuration(supply.dispensedDays)
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

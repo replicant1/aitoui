@@ -237,17 +237,16 @@ class InventorySupplyTest {
     // --- humanizeDuration ---
 
     @Test
-    fun `humanizeDuration picks the largest sensible unit`() {
+    fun `humanizeDuration uses only days and weeks`() {
         assertEquals("0 days", humanizeDuration(0))
         assertEquals("1 day", humanizeDuration(1))
         assertEquals("6 days", humanizeDuration(6))
         assertEquals("1 week", humanizeDuration(7))
         assertEquals("1 week", humanizeDuration(13))
         assertEquals("2 weeks", humanizeDuration(14))
-        assertEquals("1 month", humanizeDuration(30))
-        assertEquals("3 months", humanizeDuration(90))
-        assertEquals("12 months", humanizeDuration(364))
-        assertEquals("1 year", humanizeDuration(365))
-        assertEquals("2 years", humanizeDuration(800))
+        assertEquals("4 weeks", humanizeDuration(30))
+        assertEquals("12 weeks", humanizeDuration(90))
+        assertEquals("52 weeks", humanizeDuration(365))
+        assertEquals("114 weeks", humanizeDuration(800))
     }
 }
