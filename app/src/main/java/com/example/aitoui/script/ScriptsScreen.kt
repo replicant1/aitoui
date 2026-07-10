@@ -43,6 +43,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.aitoui.data.ScriptDetails
+import java.text.SimpleDateFormat
+import java.util.Locale
+import java.util.TimeZone
 import com.example.aitoui.ui.theme.AitouiTheme
 
 /** The yellow band across the top of each script "card". */
@@ -149,7 +152,7 @@ fun ScriptsScreen(
             text = {
                 Text(
                     "${script.medicationLabel} has already been dispensed the maximum number of " +
-                        "times (${script.repeats}).",
+                        "times (${script.repeats + 1}).",
                 )
             },
             confirmButton = {
@@ -251,8 +254,28 @@ private fun ScriptCard(
                     value = script.repeats.toString(),
                 )
             }
+
+            HorizontalDivider(thickness = 1.dp, color = Color.Black)
+
+            // Yellow footer: the script's date of issue, left-justified.
+            Text(
+                text = "Issued: ${formatIssueDate(script.dateOfIssue)}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.Black,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(CardYellow)
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+            )
         }
     }
+}
+
+/** Formats a UTC epoch-millis date as "dd/MM/yyyy". */
+private fun formatIssueDate(millis: Long): String {
+    val formatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+    formatter.timeZone = TimeZone.getTimeZone("UTC")
+    return formatter.format(millis)
 }
 
 @Composable
@@ -291,9 +314,9 @@ private fun ScriptsScreenPreview() {
         ScriptsScreen(
             state = ScriptsState(
                 scripts = listOf(
-                    ScriptDetails(1, 1, 1, "Panadol", "Paracetamol", "500", "24", dispensed = 2, repeats = 5),
-                    ScriptDetails(2, 2, 2, "Amoxil", "Amoxicillin", "500", "20", dispensed = 1, repeats = 0),
-                    ScriptDetails(3, 3, 3, "Ventolin", "Salbutamol", "100", "200", dispensed = 1, repeats = 3),
+                    ScriptDetails(1, 1, 1, "Panadol", "Paracetamol", "500", "24", dispensed = 2, repeats = 5, dateOfIssue = 0L),
+                    ScriptDetails(2, 2, 2, "Amoxil", "Amoxicillin", "500", "20", dispensed = 1, repeats = 0, dateOfIssue = 0L),
+                    ScriptDetails(3, 3, 3, "Ventolin", "Salbutamol", "100", "200", dispensed = 1, repeats = 3, dateOfIssue = 0L),
                 ),
             ),
             onAction = {},

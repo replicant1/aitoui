@@ -12,7 +12,7 @@ import kotlin.math.roundToInt
  * is still to come from undispensed script repeats. Each part is expressed as tablets and whole days.
  */
 data class SupplyBreakdown(
-    /** Remaining script fills for this unit: sum of (repeats - dispensed), floored at 0. */
+    /** Remaining script fills for this unit: sum of (repeats + 1 - dispensed), floored at 0. */
     val undispensedFills: Int,
     val tabletsPerUnit: Int,
     /** [undispensedFills] × [tabletsPerUnit]. */
@@ -42,7 +42,8 @@ private const val DAY_MILLIS = 86_400_000.0
  * Dispensed (on-hand) tablets come from replaying the unit's dispensations as a running balance that
  * depletes at the medication's daily rate up to [nowMillis], never below zero (supply that lapsed
  * before the next dispensation is gone). Undispensed tablets come from the unit's scripts' remaining
- * repeats (`repeats - dispensed`) × tablets-per-unit. Days are `floor(tablets / rate)`; a unit whose
+ * repeats (`repeats + 1 - dispensed`, since a script allows one more dispensation than its repeats
+ * count) × tablets-per-unit. Days are `floor(tablets / rate)`; a unit whose
  * medication has no positive daily rate maps to `null`.
  */
 fun computeSupply(
@@ -80,7 +81,7 @@ fun computeSupply(
 
         // Undispensed: remaining repeats across this unit's scripts.
         val undispensedFills = scriptsByUnit[unit.formatId].orEmpty()
-            .sumOf { (it.repeats - it.dispensed).coerceAtLeast(0) }
+            .sumOf { (it.repeats + 1 - it.dispensed).coerceAtLeast(0) }
         val undispensedTablets = undispensedFills * tabletsPerUnit
         val undispensedDays = floor(undispensedTablets.toDouble() / rate).toInt()
 

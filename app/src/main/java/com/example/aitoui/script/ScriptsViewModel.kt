@@ -24,7 +24,7 @@ data class ScriptsState(
     val scripts: List<ScriptDetails> = emptyList(),
     /** Script awaiting the user's confirmation to dispense one unit, if any. */
     val pendingDispenseScriptId: Long? = null,
-    /** Script whose dispensed count has already reached its repeats maximum, if the user tapped it. */
+    /** Script whose dispensed count has exceeded its repeats (no dispensations left), if tapped. */
     val maxedOutScriptId: Long? = null,
     /** Script awaiting the user's confirmation to delete it, if any. */
     val pendingDeleteScriptId: Long? = null,
@@ -88,8 +88,9 @@ class ScriptsViewModel(
         when (action) {
             is ScriptsAction.DispensedTapped -> _state.update { current ->
                 val script = current.scripts.firstOrNull { it.scriptId == action.scriptId }
-                // Already dispensed the maximum number of times → show an error instead of confirming.
-                if (script != null && script.dispensed >= script.repeats) {
+                // A script allows repeats + 1 dispensations (the original plus its repeats), so it is
+                // only finished once dispensed exceeds repeats. Show an error instead of confirming.
+                if (script != null && script.dispensed > script.repeats) {
                     current.copy(maxedOutScriptId = action.scriptId)
                 } else {
                     current.copy(pendingDispenseScriptId = action.scriptId)

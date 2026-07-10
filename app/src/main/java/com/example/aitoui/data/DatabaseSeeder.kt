@@ -112,9 +112,9 @@ object DatabaseSeeder {
                 )
             )
             // The script's dispensed count is derived from the dispensations table, so record the
-            // seeded prior dispensations there. Clamp to 0..repeats so a script is never seeded as
-            // dispensed more times than it may be.
-            val dispensed = seed.dispensed.coerceIn(0, seed.repeats)
+            // seeded prior dispensations there. Clamp to 0..repeats+1 (a script allows one more
+            // dispensation than its repeats count) so it is never seeded past its limit.
+            val dispensed = seed.dispensed.coerceIn(0, seed.repeats + 1)
             if (dispensed > 0) {
                 dispensationRepository.add(
                     Dispensation(
