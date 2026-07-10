@@ -8,7 +8,7 @@ package com.example.aitoui.data
  * grow the data without bound.
  *
  * Data is split across the normalized schema: a [Medication] (brand + active ingredient), a
- * [MedicationFormat] referencing it (dose/tablets), and [Script]s referencing the format.
+ * [DispensableUnit] referencing it (dose/tablets), and [Script]s referencing the format.
  *
  * The medication data is a curated, embedded list of real-world brand/active-ingredient pairs
  * (no network call: the app has no INTERNET permission and a startup fetch would be fragile).
@@ -51,7 +51,7 @@ object DatabaseSeeder {
 
     suspend fun seedIfEmpty(
         medicationRepository: MedicationRepository,
-        formatRepository: MedicationFormatRepository,
+        formatRepository: DispensableUnitRepository,
         scriptRepository: ScriptRepository,
         dispensationRepository: DispensationRepository,
         nowMillis: Long,
@@ -65,7 +65,7 @@ object DatabaseSeeder {
                 Medication(brandName = med.brand, activeIngredient = med.activeIngredient)
             )
             val unitId = formatRepository.add(
-                MedicationFormat(
+                DispensableUnit(
                     medicationId = medicationId,
                     dosePerTablet = med.dosePerTablet,
                     tabletsPerUnit = med.tabletsPerUnit,

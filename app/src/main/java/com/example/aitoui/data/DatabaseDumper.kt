@@ -21,7 +21,7 @@ object DatabaseDumper {
 
     suspend fun dump(
         medicationRepository: MedicationRepository,
-        formatRepository: MedicationFormatRepository,
+        formatRepository: DispensableUnitRepository,
         scriptRepository: ScriptRepository,
         dispensationRepository: DispensationRepository,
     ): String {

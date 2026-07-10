@@ -1,16 +1,13 @@
-package com.example.aitoui.taketablets
+package com.example.aitoui.dispensableunit
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material.icons.Icons
@@ -21,7 +18,6 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -42,12 +38,12 @@ import com.example.aitoui.data.Medication
 import com.example.aitoui.ui.theme.AitouiTheme
 
 @Composable
-fun TakeTabletsRoot(
+fun DispensableUnitRoot(
     onBack: () -> Unit,
-    viewModel: TakeTabletsViewModel = viewModel(factory = TakeTabletsViewModel.Factory),
+    viewModel: DispensableUnitViewModel = viewModel(factory = DispensableUnitViewModel.Factory),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    TakeTabletsScreen(
+    DispensableUnitScreen(
         state = state,
         onAction = viewModel::onAction,
         onBack = onBack,
@@ -56,9 +52,9 @@ fun TakeTabletsRoot(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TakeTabletsScreen(
-    state: TakeTabletsState,
-    onAction: (TakeTabletsAction) -> Unit,
+fun DispensableUnitScreen(
+    state: DispensableUnitState,
+    onAction: (DispensableUnitAction) -> Unit,
     onBack: () -> Unit,
 ) {
     var medicationExpanded by remember { mutableStateOf(false) }
@@ -67,7 +63,7 @@ fun TakeTabletsScreen(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("Daily Schedule") },
+                title = { Text("Dispensable Unit") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
@@ -77,8 +73,11 @@ fun TakeTabletsScreen(
                     }
                 },
                 actions = {
-                    TextButton(onClick = { onAction(TakeTabletsAction.Save) }) {
-                        Text("SAVE")
+                    TextButton(
+                        onClick = { onAction(DispensableUnitAction.Save) },
+                        enabled = state.canSave,
+                    ) {
+                        Text("Save")
                     }
                 },
             )
@@ -88,15 +87,16 @@ fun TakeTabletsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text(
-                text = "This is the number and type of tablets that you take every day.",
+                text = "A Dispensable Unit is a particular packaging and presentation of a " +
+                    "medication. Typically a box or bottle of a capsule or tablet.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-
             // Medication — dropdown of existing Medication records.
             ExposedDropdownMenuBox(
                 expanded = medicationExpanded,
@@ -124,7 +124,7 @@ fun TakeTabletsScreen(
                         DropdownMenuItem(
                             text = { Text("${medication.brandName} (${medication.activeIngredient})") },
                             onClick = {
-                                onAction(TakeTabletsAction.MedicationSelected(medication.id))
+                                onAction(DispensableUnitAction.MedicationSelected(medication.id))
                                 medicationExpanded = false
                             },
                         )
@@ -133,69 +133,35 @@ fun TakeTabletsScreen(
             }
 
             OutlinedTextField(
-                value = state.numberOfTablets,
-                onValueChange = { onAction(TakeTabletsAction.NumberOfTabletsChanged(it)) },
-                label = { Text("Number of tablets") },
+                value = state.dosePerTablet,
+                onValueChange = { onAction(DispensableUnitAction.DosePerTabletChanged(it)) },
+                label = { Text("Dose per tablet") },
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
             )
-            Button(
-                onClick = { onAction(TakeTabletsAction.Add) },
-                enabled = state.canAdd,
-            ) {
-                Text("ADD")
-            }
-
-            Text(
-                text = "Tablets taken daily:",
-                style = MaterialTheme.typography.titleMedium,
+            OutlinedTextField(
+                value = state.tabletsPerUnit,
+                onValueChange = { onAction(DispensableUnitAction.TabletsPerUnitChanged(it)) },
+                label = { Text("Tablets per unit") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth(),
             )
-            OutlinedCard(modifier = Modifier.fillMaxWidth().weight(1f)) {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(state.tabletsTaken, key = { it.id }) { entry ->
-                        val selected = entry.id == state.selectedId
-                        Text(
-                            text = entry.label,
-                            style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onAction(TakeTabletsAction.RowSelected(entry.id)) }
-                                .background(
-                                    if (selected) MaterialTheme.colorScheme.primaryContainer
-                                    else MaterialTheme.colorScheme.surface
-                                )
-                                .padding(horizontal = 16.dp, vertical = 12.dp),
-                        )
-                    }
-                }
-            }
-
-            Button(
-                onClick = { onAction(TakeTabletsAction.Delete) },
-                enabled = state.canDelete,
-            ) {
-                Text("DELETE")
-            }
         }
     }
 }
 
 @Preview(showBackground = true)
 @Composable
-private fun TakeTabletsScreenPreview() {
+private fun DispensableUnitScreenPreview() {
     AitouiTheme {
-        TakeTabletsScreen(
-            state = TakeTabletsState(
-                medications = listOf(
-                    Medication(1, "Panadol", "Paracetamol"),
-                    Medication(2, "Nurofen", "Ibuprofen"),
-                ),
-                tabletsTaken = listOf(
-                    TabletEntry(0, 1, "Panadol", "2"),
-                    TabletEntry(1, 2, "Nurofen", "0.5"),
-                ),
-                selectedId = 1,
+        DispensableUnitScreen(
+            state = DispensableUnitState(
+                medications = listOf(Medication(1, "Panadol", "Paracetamol")),
+                selectedMedicationId = 1,
+                dosePerTablet = "500",
+                tabletsPerUnit = "24",
             ),
             onAction = {},
             onBack = {},

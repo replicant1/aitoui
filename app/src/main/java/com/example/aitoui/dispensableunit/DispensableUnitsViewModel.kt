@@ -1,4 +1,4 @@
-package com.example.aitoui.medicationformat
+package com.example.aitoui.dispensableunit
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
@@ -6,8 +6,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.aitoui.AitouiApp
-import com.example.aitoui.data.MedicationFormatDetails
-import com.example.aitoui.data.MedicationFormatRepository
+import com.example.aitoui.data.DispensableUnitDetails
+import com.example.aitoui.data.DispensableUnitRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,13 +16,13 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** State for the Dispensable Units list — one [MedicationFormatDetails] per dispensable_units row. */
+/** State for the Dispensable Units list — one [DispensableUnitDetails] per dispensable_units row. */
 data class DispensableUnitsState(
-    val units: List<MedicationFormatDetails> = emptyList(),
+    val units: List<DispensableUnitDetails> = emptyList(),
     /** Unit awaiting the user's confirmation to delete it, if any. */
     val pendingDeleteUnitId: Long? = null,
 ) {
-    val pendingDeleteUnit: MedicationFormatDetails?
+    val pendingDeleteUnit: DispensableUnitDetails?
         get() = units.firstOrNull { it.formatId == pendingDeleteUnitId }
 }
 
@@ -36,7 +36,7 @@ sealed interface DispensableUnitsAction {
 }
 
 class DispensableUnitsViewModel(
-    private val repository: MedicationFormatRepository,
+    private val repository: DispensableUnitRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(DispensableUnitsState())
@@ -84,7 +84,7 @@ class DispensableUnitsViewModel(
         val Factory = viewModelFactory {
             initializer {
                 val app = this[APPLICATION_KEY] as AitouiApp
-                DispensableUnitsViewModel(app.medicationFormatRepository)
+                DispensableUnitsViewModel(app.dispensableUnitRepository)
             }
         }
     }

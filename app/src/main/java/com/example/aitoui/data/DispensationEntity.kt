@@ -15,7 +15,7 @@ import androidx.room.PrimaryKey
             onDelete = ForeignKey.CASCADE,
         ),
         ForeignKey(
-            entity = MedicationFormatEntity::class,
+            entity = DispensableUnitEntity::class,
             parentColumns = ["id"],
             childColumns = ["dispensableUnitId"],
             onDelete = ForeignKey.CASCADE,

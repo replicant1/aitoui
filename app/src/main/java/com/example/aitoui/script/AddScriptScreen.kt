@@ -39,7 +39,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.aitoui.data.MedicationFormatDetails
+import com.example.aitoui.data.DispensableUnitDetails
 import com.example.aitoui.ui.theme.AitouiTheme
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -118,7 +118,7 @@ fun AddScriptScreen(
                     label = { Text("Dispensable Unit") },
                     placeholder = { Text("Select a dispensable unit") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeExpanded) },
-                    supportingText = if (state.medicationFormats.isEmpty()) {
+                    supportingText = if (state.dispensableUnits.isEmpty()) {
                         { Text("No dispensable units yet — add one first") }
                     } else null,
                     modifier = Modifier
@@ -129,11 +129,11 @@ fun AddScriptScreen(
                     expanded = typeExpanded,
                     onDismissRequest = { typeExpanded = false },
                 ) {
-                    state.medicationFormats.forEach { format ->
+                    state.dispensableUnits.forEach { format ->
                         DropdownMenuItem(
                             text = { Text(format.label) },
                             onClick = {
-                                onAction(AddScriptAction.MedicationFormatSelected(format.formatId))
+                                onAction(AddScriptAction.DispensableUnitSelected(format.formatId))
                                 typeExpanded = false
                             },
                         )
@@ -201,8 +201,8 @@ private fun AddScriptScreenPreview() {
     AitouiTheme {
         AddScriptScreen(
             state = AddScriptState(
-                medicationFormats = listOf(
-                    MedicationFormatDetails(1, 1, "Panadol", "Paracetamol", "500", "24"),
+                dispensableUnits = listOf(
+                    DispensableUnitDetails(1, 1, "Panadol", "Paracetamol", "500", "24"),
                 ),
                 selectedFormatId = 1,
                 repeats = "2",

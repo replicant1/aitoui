@@ -6,8 +6,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.aitoui.AitouiApp
-import com.example.aitoui.data.MedicationFormatDetails
-import com.example.aitoui.data.MedicationFormatRepository
+import com.example.aitoui.data.DispensableUnitDetails
+import com.example.aitoui.data.DispensableUnitRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,10 +16,10 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 
 data class InventoryState(
-    val formats: List<MedicationFormatDetails> = emptyList(),
+    val formats: List<DispensableUnitDetails> = emptyList(),
     val selectedId: Long? = null,
 ) {
-    val selectedFormat: MedicationFormatDetails? get() = formats.firstOrNull { it.formatId == selectedId }
+    val selectedFormat: DispensableUnitDetails? get() = formats.firstOrNull { it.formatId == selectedId }
 }
 
 sealed interface InventoryAction {
@@ -28,7 +28,7 @@ sealed interface InventoryAction {
 }
 
 class InventoryViewModel(
-    repository: MedicationFormatRepository,
+    repository: DispensableUnitRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(InventoryState())
@@ -64,7 +64,7 @@ class InventoryViewModel(
         val Factory = viewModelFactory {
             initializer {
                 val app = this[APPLICATION_KEY] as AitouiApp
-                InventoryViewModel(app.medicationFormatRepository)
+                InventoryViewModel(app.dispensableUnitRepository)
             }
         }
     }

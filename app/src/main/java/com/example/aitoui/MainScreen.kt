@@ -52,7 +52,7 @@ fun MainScreen(
     modifier: Modifier = Modifier,
     onMedications: () -> Unit = {},
     onDispensableUnits: () -> Unit = {},
-    onTakeTablets: () -> Unit = {},
+    onDailySchedule: () -> Unit = {},
     onInventory: () -> Unit = {},
     onScripts: () -> Unit = {},
     onLog: () -> Unit = {},
@@ -65,7 +65,7 @@ fun MainScreen(
     )
     // Everything else.
     val otherGroup = listOf(
-        MainMenuItem("Daily Schedule", Icons.Filled.CalendarMonth, onTakeTablets),
+        MainMenuItem("Daily Schedule", Icons.Filled.CalendarMonth, onDailySchedule),
         MainMenuItem("Inventory", Icons.Filled.Inventory2, onInventory),
         MainMenuItem("Log", Icons.Filled.Storage, onLog),
     )

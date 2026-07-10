@@ -1,4 +1,4 @@
-package com.example.aitoui.taketablets
+package com.example.aitoui.dailyschedule
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
@@ -19,7 +19,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /** A single row in the daily-schedule list. */
-data class TabletEntry(
+data class DailyScheduleEntry(
     val id: Long,
     val medicationId: Long,
     val brand: String,
@@ -30,11 +30,11 @@ data class TabletEntry(
 }
 
 /** Screen state for the Daily Schedule screen. */
-data class TakeTabletsState(
+data class DailyScheduleState(
     val medications: List<Medication> = emptyList(),
     val selectedMedicationId: Long? = null,
     val numberOfTablets: String = "",
-    val tabletsTaken: List<TabletEntry> = emptyList(),
+    val tabletsTaken: List<DailyScheduleEntry> = emptyList(),
     val selectedId: Long? = null,
 ) {
     val selectedMedicationName: String
@@ -46,22 +46,22 @@ data class TakeTabletsState(
 }
 
 /** User intents emitted by the Daily Schedule screen. */
-sealed interface TakeTabletsAction {
-    data class MedicationSelected(val id: Long) : TakeTabletsAction
-    data class NumberOfTabletsChanged(val value: String) : TakeTabletsAction
-    data object Add : TakeTabletsAction
-    data class RowSelected(val id: Long) : TakeTabletsAction
-    data object Delete : TakeTabletsAction
-    data object Save : TakeTabletsAction
+sealed interface DailyScheduleAction {
+    data class MedicationSelected(val id: Long) : DailyScheduleAction
+    data class NumberOfTabletsChanged(val value: String) : DailyScheduleAction
+    data object Add : DailyScheduleAction
+    data class RowSelected(val id: Long) : DailyScheduleAction
+    data object Delete : DailyScheduleAction
+    data object Save : DailyScheduleAction
 }
 
-class TakeTabletsViewModel(
+class DailyScheduleViewModel(
     medicationRepository: MedicationRepository,
     private val dailyScheduleRepository: DailyScheduleRepository,
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(TakeTabletsState())
-    val state: StateFlow<TakeTabletsState> = _state.asStateFlow()
+    private val _state = MutableStateFlow(DailyScheduleState())
+    val state: StateFlow<DailyScheduleState> = _state.asStateFlow()
 
     private var nextId = 0L
 
@@ -72,7 +72,7 @@ class TakeTabletsViewModel(
             _state.update { current ->
                 current.copy(
                     tabletsTaken = saved.map { item ->
-                        TabletEntry(
+                        DailyScheduleEntry(
                             id = nextId++,
                             medicationId = item.medicationId,
                             brand = item.brandName,
@@ -96,19 +96,19 @@ class TakeTabletsViewModel(
             .launchIn(viewModelScope)
     }
 
-    fun onAction(action: TakeTabletsAction) {
+    fun onAction(action: DailyScheduleAction) {
         when (action) {
-            is TakeTabletsAction.MedicationSelected ->
+            is DailyScheduleAction.MedicationSelected ->
                 _state.update { it.copy(selectedMedicationId = action.id) }
 
-            is TakeTabletsAction.NumberOfTabletsChanged ->
+            is DailyScheduleAction.NumberOfTabletsChanged ->
                 _state.update { it.copy(numberOfTablets = action.value.decimalOnly()) }
 
-            TakeTabletsAction.Add -> _state.update { current ->
+            DailyScheduleAction.Add -> _state.update { current ->
                 if (!current.canAdd) return@update current
                 val medication = current.medications.firstOrNull { it.id == current.selectedMedicationId }
                     ?: return@update current
-                val entry = TabletEntry(
+                val entry = DailyScheduleEntry(
                     id = nextId++,
                     medicationId = medication.id,
                     brand = medication.brandName,
@@ -122,10 +122,10 @@ class TakeTabletsViewModel(
                 )
             }
 
-            is TakeTabletsAction.RowSelected ->
+            is DailyScheduleAction.RowSelected ->
                 _state.update { it.copy(selectedId = action.id) }
 
-            TakeTabletsAction.Delete -> _state.update { current ->
+            DailyScheduleAction.Delete -> _state.update { current ->
                 val selected = current.selectedId ?: return@update current
                 current.copy(
                     tabletsTaken = current.tabletsTaken.filterNot { it.id == selected },
@@ -133,7 +133,7 @@ class TakeTabletsViewModel(
                 )
             }
 
-            TakeTabletsAction.Save -> save()
+            DailyScheduleAction.Save -> save()
         }
     }
 
@@ -162,7 +162,7 @@ class TakeTabletsViewModel(
         val Factory = viewModelFactory {
             initializer {
                 val app = this[APPLICATION_KEY] as AitouiApp
-                TakeTabletsViewModel(app.medicationRepository, app.dailyScheduleRepository)
+                DailyScheduleViewModel(app.medicationRepository, app.dailyScheduleRepository)
             }
         }
     }

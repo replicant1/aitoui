@@ -1,4 +1,4 @@
-package com.example.aitoui.medicationformat
+package com.example.aitoui.dispensableunit
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -33,7 +33,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.aitoui.data.MedicationFormatDetails
+import com.example.aitoui.data.DispensableUnitDetails
 import com.example.aitoui.ui.theme.AitouiTheme
 
 @Composable
@@ -135,7 +135,7 @@ fun DispensableUnitsScreen(
  */
 @Composable
 private fun DispensableUnitRow(
-    unit: MedicationFormatDetails,
+    unit: DispensableUnitDetails,
     onDeleteClick: () -> Unit,
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
@@ -181,9 +181,9 @@ private fun DispensableUnitsScreenPreview() {
         DispensableUnitsScreen(
             state = DispensableUnitsState(
                 units = listOf(
-                    MedicationFormatDetails(1, 1, "Panadol", "Paracetamol", "500", "24"),
-                    MedicationFormatDetails(2, 2, "Nurofen", "Ibuprofen", "200", "16"),
-                    MedicationFormatDetails(3, 3, "Ventolin", "Salbutamol", "100", "200"),
+                    DispensableUnitDetails(1, 1, "Panadol", "Paracetamol", "500", "24"),
+                    DispensableUnitDetails(2, 2, "Nurofen", "Ibuprofen", "200", "16"),
+                    DispensableUnitDetails(3, 3, "Ventolin", "Salbutamol", "100", "200"),
                 ),
             ),
             onAction = {},
