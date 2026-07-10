@@ -44,7 +44,10 @@ class InventoryViewModel(
             dispensationRepository.dispensations,
             dailyScheduleRepository.dailySchedule,
         ) { formats, dispensations, schedule ->
-            val dailyByMedication = schedule.associate { it.medicationId to it.quantity }
+            // A medication can have several schedule rows (e.g. AM + PM), so sum them per medication.
+            val dailyByMedication = schedule
+                .groupBy { it.medicationId }
+                .mapValues { (_, rows) -> rows.sumOf { it.quantity } }
             val days = computeDaysRemaining(
                 units = formats,
                 dispensations = dispensations,

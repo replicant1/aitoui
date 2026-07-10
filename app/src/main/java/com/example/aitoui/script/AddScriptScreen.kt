@@ -66,7 +66,8 @@ fun AddScriptScreen(
     onBack: () -> Unit,
 ) {
     var typeExpanded by remember { mutableStateOf(false) }
-    var showDatePicker by remember { mutableStateOf(false) }
+    var showIssuePicker by remember { mutableStateOf(false) }
+    var showValidToPicker by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -142,6 +143,31 @@ fun AddScriptScreen(
             }
 
             OutlinedTextField(
+                value = state.serialNo,
+                onValueChange = { onAction(AddScriptAction.SerialNoChanged(it)) },
+                label = { Text("Serial number") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            // Date of issue — read-only field that opens a date picker on tap.
+            Box {
+                OutlinedTextField(
+                    value = state.dateOfIssue?.let { formatDate(it) } ?: "",
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Date of issue") },
+                    placeholder = { Text("Select a date") },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .clickable { showIssuePicker = true },
+                )
+            }
+
+            OutlinedTextField(
                 value = state.repeats,
                 onValueChange = { onAction(AddScriptAction.RepeatsChanged(it)) },
                 label = { Text("Number of repeats") },
@@ -163,24 +189,42 @@ fun AddScriptScreen(
                 Box(
                     modifier = Modifier
                         .matchParentSize()
-                        .clickable { showDatePicker = true },
+                        .clickable { showValidToPicker = true },
                 )
             }
         }
     }
 
-    if (showDatePicker) {
-        val dpState = rememberDatePickerState(initialSelectedDateMillis = state.validToMillis)
+    if (showIssuePicker) {
+        val dpState = rememberDatePickerState(initialSelectedDateMillis = state.dateOfIssue)
         DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
+            onDismissRequest = { showIssuePicker = false },
             confirmButton = {
                 TextButton(onClick = {
-                    onAction(AddScriptAction.ValidToChanged(dpState.selectedDateMillis))
-                    showDatePicker = false
+                    onAction(AddScriptAction.DateOfIssueChanged(dpState.selectedDateMillis))
+                    showIssuePicker = false
                 }) { Text("OK") }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+                TextButton(onClick = { showIssuePicker = false }) { Text("Cancel") }
+            },
+        ) {
+            DatePicker(state = dpState)
+        }
+    }
+
+    if (showValidToPicker) {
+        val dpState = rememberDatePickerState(initialSelectedDateMillis = state.validToMillis)
+        DatePickerDialog(
+            onDismissRequest = { showValidToPicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    onAction(AddScriptAction.ValidToChanged(dpState.selectedDateMillis))
+                    showValidToPicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showValidToPicker = false }) { Text("Cancel") }
             },
         ) {
             DatePicker(state = dpState)
@@ -205,6 +249,8 @@ private fun AddScriptScreenPreview() {
                     DispensableUnitDetails(1, 1, "Panadol", "Paracetamol", "500", "24"),
                 ),
                 selectedFormatId = 1,
+                serialNo = "SN-0001",
+                dateOfIssue = 0L,
                 repeats = "2",
                 validToMillis = 0L,
             ),
