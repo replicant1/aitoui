@@ -98,7 +98,7 @@ fun InventoryScreen(
         ) {
             Text(
                 text = "For each medication, the figure shows how long before you run out, counting " +
-                    "both what has already been dispensed and the future dispensations still " +
+                    "both the tablets you have in hand and the future dispensations still " +
                     "available on your scripts.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -141,65 +141,78 @@ private fun MedicationRow(
 ) {
     val background =
         if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .background(background)
             .padding(horizontal = 16.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.Top,
+        verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        item.unit.imagePath?.let { imagePath ->
-            val context = LocalContext.current
-            AsyncImage(
-                model = ImageStore.fileFor(context, imagePath),
-                contentDescription = "Tablet photo for ${item.unit.brandName}",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(RoundedCornerShape(6.dp)),
-            )
-        }
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
+        // Top block: the tablet photo, with the brand name and dose/pack size wrapped to its right,
+        // and the total runway figure at the far right.
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.Top,
         ) {
-            Text(
-                text = item.unit.brandName,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-            )
-            item.supply?.let { supply ->
+            item.unit.imagePath?.let { imagePath ->
+                val context = LocalContext.current
+                AsyncImage(
+                    model = ImageStore.fileFor(context, imagePath),
+                    contentDescription = "Tablet photo for ${item.unit.brandName}",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(RoundedCornerShape(6.dp)),
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
                 Text(
-                    text = if (supply.undispensedFills == 0) {
-                        "No scripts"
-                    } else {
-                        "${supply.undispensedFills} scripts × " +
-                            "${supply.tabletsPerUnit} tabs = ${supply.undispensedTablets} tabs = " +
-                            humanizeDuration(supply.undispensedDays)
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = item.unit.brandName,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = if (supply.dispensedTablets == 0) {
-                        "None dispensed"
-                    } else {
-                        "Dispensed: ${supply.dispensedTablets} tabs = " +
-                            humanizeDuration(supply.dispensedDays)
-                    },
+                    text = "${item.unit.dosePerTablet}mg × Qty ${item.unit.tabletsPerUnit}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            Text(
+                text = item.supply?.let { humanizeDuration(it.totalDays) } ?: "—",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.primary,
+            )
         }
-        Text(
-            text = item.supply?.let { humanizeDuration(it.totalDays) } ?: "—",
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.primary,
-        )
+        // Bottom block: the two supply lines, full width, left-justified below the thumbnail.
+        item.supply?.let { supply ->
+            Text(
+                text = if (supply.undispensedFills == 0) {
+                    "No scripts"
+                } else {
+                    "${supply.undispensedFills} scripts × " +
+                        "${supply.tabletsPerUnit} tabs = ${supply.undispensedTablets} tabs = " +
+                        humanizeDuration(supply.undispensedDays)
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = if (supply.inHandTablets == 0) {
+                    "None in hand"
+                } else {
+                    "In hand: ${supply.inHandTablets} tabs = " +
+                        humanizeDuration(supply.inHandDays)
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
@@ -279,7 +292,7 @@ private fun InventoryScreenPreview() {
                         DispensableUnitDetails(1, 1, "Panadol", "Paracetamol", "500", "24", null),
                         supply = SupplyBreakdown(
                             undispensedFills = 3, tabletsPerUnit = 24, undispensedTablets = 72,
-                            undispensedDays = 36, dispensedTablets = 48, dispensedDays = 24,
+                            undispensedDays = 36, inHandTablets = 48, inHandDays = 24,
                         ),
                     ),
                     InventoryItem(

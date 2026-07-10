@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Transaction
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface InHandDao {
@@ -17,6 +18,18 @@ interface InHandDao {
         """
     )
     suspend fun getAllWithMedication(): List<InHandDetails>
+
+    /** Reactive variant of [getAllWithMedication], for screens that observe in-hand changes live. */
+    @Query(
+        """
+        SELECT ih.id AS id, ih.medicationId AS medicationId,
+               m.brandName AS brandName, ih.quantity AS quantity
+        FROM in_hand ih
+        JOIN medications m ON m.id = ih.medicationId
+        ORDER BY m.brandName COLLATE NOCASE
+        """
+    )
+    fun getAllWithMedicationFlow(): Flow<List<InHandDetails>>
 
     @Insert
     suspend fun insert(entity: InHandEntity): Long

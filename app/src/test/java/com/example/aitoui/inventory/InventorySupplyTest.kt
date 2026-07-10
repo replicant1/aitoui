@@ -1,6 +1,5 @@
 package com.example.aitoui.inventory
 
-import com.example.aitoui.data.Dispensation
 import com.example.aitoui.data.DispensableUnitDetails
 import com.example.aitoui.data.ScriptDetails
 import org.junit.Assert.assertEquals
@@ -8,9 +7,6 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 class InventorySupplyTest {
-
-    private val day = 86_400_000L
-    private val now = 100 * day
 
     private fun unit(formatId: Long, medicationId: Long, tabletsPerUnit: String) =
         DispensableUnitDetails(
@@ -22,9 +18,6 @@ class InventorySupplyTest {
             tabletsPerUnit = tabletsPerUnit,
             imagePath = null,
         )
-
-    private fun disp(unitId: Long, number: Int, dayNo: Long) =
-        Dispensation(scriptId = 0, dispensableUnitId = unitId, number = number, dispensedAtMillis = dayNo * day)
 
     private fun script(unitId: Long, dispensed: Int, repeats: Int) =
         ScriptDetails(
@@ -40,79 +33,77 @@ class InventorySupplyTest {
             dateOfIssue = 0L,
         )
 
-    // --- on-hand (dispensed) supply; no scripts ---
+    // --- in-hand supply (taken from the in_hand table) ---
 
     @Test
-    fun `single dispensation depleted exactly to zero`() {
+    fun `in-hand tablets convert to whole days`() {
         val r = computeSupply(
             units = listOf(unit(1, 1, "10")),
-            dispensations = listOf(disp(1, 10, 80)),   // 100 tablets, 20 days ago
             scripts = emptyList(),
             dailyByMedication = mapOf(1L to 5.0),
-            nowMillis = now,
+            inHandByMedication = mapOf(1L to 80.0),
         )
-        assertEquals(0, r[1]?.dispensedTablets)          // 100 - 20*5 = 0
-        assertEquals(0, r[1]?.totalDays)
-    }
-
-    @Test
-    fun `single dispensation with surplus floors down`() {
-        val r = computeSupply(
-            units = listOf(unit(1, 1, "10")),
-            dispensations = listOf(disp(1, 10, 96)),     // 100 tablets, 4 days ago
-            scripts = emptyList(),
-            dailyByMedication = mapOf(1L to 5.0),
-            nowMillis = now,
-        )
-        assertEquals(80, r[1]?.dispensedTablets)
-        assertEquals(16, r[1]?.dispensedDays)            // 80 / 5
+        assertEquals(80, r[1]?.inHandTablets)
+        assertEquals(16, r[1]?.inHandDays)               // 80 / 5
         assertEquals(16, r[1]?.totalDays)
     }
 
     @Test
-    fun `fractional days are floored`() {
+    fun `in-hand days floor down`() {
         val r = computeSupply(
             units = listOf(unit(1, 1, "10")),
-            dispensations = listOf(disp(1, 10, 90)),     // 100 tablets, 10 days ago
             scripts = emptyList(),
             dailyByMedication = mapOf(1L to 3.0),
-            nowMillis = now,
+            inHandByMedication = mapOf(1L to 70.0),
         )
-        assertEquals(23, r[1]?.totalDays)                // (100 - 30) / 3 = 23.33 -> 23
+        assertEquals(23, r[1]?.inHandDays)               // 70 / 3 = 23.33 -> 23
+        assertEquals(23, r[1]?.totalDays)
     }
 
     @Test
-    fun `multiple dispensations use a running balance`() {
+    fun `fractional in-hand rounds the tablet count but floors the days`() {
         val r = computeSupply(
             units = listOf(unit(1, 1, "10")),
-            dispensations = listOf(disp(1, 10, 80), disp(1, 10, 90)),
             scripts = emptyList(),
-            dailyByMedication = mapOf(1L to 10.0),
-            nowMillis = now,
+            dailyByMedication = mapOf(1L to 5.0),
+            inHandByMedication = mapOf(1L to 12.5),
         )
+        assertEquals(13, r[1]?.inHandTablets)            // 12.5 rounds to 13 for display
+        assertEquals(2, r[1]?.inHandDays)                // floor(12.5 / 5) = 2
+    }
+
+    @Test
+    fun `in-hand is looked up by medication, shared across that medication's units`() {
+        val r = computeSupply(
+            units = listOf(unit(1, 7, "10"), unit(2, 7, "20")),
+            scripts = emptyList(),
+            dailyByMedication = mapOf(7L to 5.0),
+            inHandByMedication = mapOf(7L to 50.0),
+        )
+        assertEquals(50, r[1]?.inHandTablets)            // both units of medication 7 see the same total
+        assertEquals(50, r[2]?.inHandTablets)
+        assertEquals(10, r[1]?.inHandDays)               // 50 / 5
+    }
+
+    @Test
+    fun `no in-hand entry yields zero in-hand tablets`() {
+        val r = computeSupply(
+            units = listOf(unit(1, 1, "10")),
+            scripts = emptyList(),
+            dailyByMedication = mapOf(1L to 5.0),
+            inHandByMedication = emptyMap(),
+        )
+        assertEquals(0, r[1]?.inHandTablets)
         assertEquals(0, r[1]?.totalDays)
-    }
-
-    @Test
-    fun `stock cannot carry negative across a stockout gap`() {
-        val r = computeSupply(
-            units = listOf(unit(1, 1, "10")),
-            dispensations = listOf(disp(1, 10, 50), disp(1, 10, 95)),
-            scripts = emptyList(),
-            dailyByMedication = mapOf(1L to 10.0),
-            nowMillis = now,
-        )
-        assertEquals(5, r[1]?.totalDays)                 // day50 pack lapses; day95 +100 -> 50 by day100
     }
 
     @Test
     fun `no schedule entry yields null`() {
         val r = computeSupply(
             units = listOf(unit(1, 2, "10")),
-            dispensations = listOf(disp(1, 10, 90)),
             scripts = emptyList(),
             dailyByMedication = emptyMap(),
-            nowMillis = now,
+            inHandByMedication = mapOf(2L to 100.0),
         )
         assertNull(r[1])
     }
@@ -121,61 +112,11 @@ class InventorySupplyTest {
     fun `non-positive rate yields null`() {
         val r = computeSupply(
             units = listOf(unit(1, 1, "10")),
-            dispensations = listOf(disp(1, 10, 90)),
             scripts = emptyList(),
             dailyByMedication = mapOf(1L to 0.0),
-            nowMillis = now,
+            inHandByMedication = mapOf(1L to 100.0),
         )
         assertNull(r[1])
-    }
-
-    @Test
-    fun `unit with no dispensations or scripts yields zero`() {
-        val r = computeSupply(
-            units = listOf(unit(1, 1, "10")),
-            dispensations = emptyList(),
-            scripts = emptyList(),
-            dailyByMedication = mapOf(1L to 5.0),
-            nowMillis = now,
-        )
-        assertEquals(0, r[1]?.totalDays)
-    }
-
-    @Test
-    fun `dispensation for an unknown unit is skipped`() {
-        val r = computeSupply(
-            units = listOf(unit(1, 1, "10")),
-            dispensations = listOf(disp(999, 10, 96), disp(1, 10, 96)),
-            scripts = emptyList(),
-            dailyByMedication = mapOf(1L to 5.0),
-            nowMillis = now,
-        )
-        assertEquals(16, r[1]?.totalDays)                // only the valid dispensation counts
-        assertNull(r[999L])
-    }
-
-    @Test
-    fun `blank tabletsPerUnit contributes zero tablets`() {
-        val r = computeSupply(
-            units = listOf(unit(1, 1, "")),
-            dispensations = listOf(disp(1, 10, 90)),
-            scripts = emptyList(),
-            dailyByMedication = mapOf(1L to 5.0),
-            nowMillis = now,
-        )
-        assertEquals(0, r[1]?.totalDays)
-    }
-
-    @Test
-    fun `future dated dispensation is ignored`() {
-        val r = computeSupply(
-            units = listOf(unit(1, 1, "1")),
-            dispensations = listOf(disp(1, 200, 110), disp(1, 10, 98)),  // first is in the future
-            scripts = emptyList(),
-            dailyByMedication = mapOf(1L to 5.0),
-            nowMillis = now,
-        )
-        assertEquals(0, r[1]?.totalDays)                 // only day-98 (10 tablets): 10 - 2*5 = 0
     }
 
     // --- undispensed (future) supply from script repeats ---
@@ -184,10 +125,9 @@ class InventorySupplyTest {
     fun `remaining repeats give the undispensed breakdown`() {
         val r = computeSupply(
             units = listOf(unit(1, 1, "10")),
-            dispensations = emptyList(),
             scripts = listOf(script(unitId = 1, dispensed = 0, repeats = 5)),
             dailyByMedication = mapOf(1L to 5.0),
-            nowMillis = now,
+            inHandByMedication = emptyMap(),
         )
         val s = r[1]!!
         assertEquals(6, s.undispensedFills)              // repeats 5 + 1 - dispensed 0
@@ -198,29 +138,27 @@ class InventorySupplyTest {
     }
 
     @Test
-    fun `future repeats combine with on-hand supply`() {
+    fun `future repeats combine with in-hand supply`() {
         val r = computeSupply(
             units = listOf(unit(1, 1, "10")),
-            dispensations = listOf(disp(1, 2, 96)),      // 20 tablets, 4 days ago -> depletes to 0
             scripts = listOf(script(unitId = 1, dispensed = 2, repeats = 5)),
             dailyByMedication = mapOf(1L to 5.0),
-            nowMillis = now,
+            inHandByMedication = mapOf(1L to 40.0),      // 40 in hand
         )
         val s = r[1]!!
-        assertEquals(0, s.dispensedDays)                 // 20 - 4*5 = 0
+        assertEquals(8, s.inHandDays)                    // 40 / 5
         assertEquals(8, s.undispensedDays)               // (5 + 1 - 2) fills * 10 = 40 / 5
-        assertEquals(8, s.totalDays)
+        assertEquals(16, s.totalDays)
     }
 
     @Test
     fun `a fully finished script adds no future supply`() {
         val r = computeSupply(
             units = listOf(unit(1, 1, "10")),
-            dispensations = emptyList(),
             // dispensed exceeds repeats (repeats + 1 fills all used) -> nothing left.
             scripts = listOf(script(unitId = 1, dispensed = 6, repeats = 5)),
             dailyByMedication = mapOf(1L to 5.0),
-            nowMillis = now,
+            inHandByMedication = emptyMap(),
         )
         assertEquals(0, r[1]?.undispensedFills)
         assertEquals(0, r[1]?.totalDays)
@@ -230,10 +168,9 @@ class InventorySupplyTest {
     fun `dispensed equal to repeats still leaves one fill`() {
         val r = computeSupply(
             units = listOf(unit(1, 1, "10")),
-            dispensations = emptyList(),
             scripts = listOf(script(unitId = 1, dispensed = 5, repeats = 5)),
             dailyByMedication = mapOf(1L to 5.0),
-            nowMillis = now,
+            inHandByMedication = emptyMap(),
         )
         assertEquals(1, r[1]?.undispensedFills)           // repeats + 1 - dispensed = 1
         assertEquals(2, r[1]?.totalDays)                  // 1 * 10 / 5
@@ -243,27 +180,40 @@ class InventorySupplyTest {
     fun `script for an unknown unit is skipped`() {
         val r = computeSupply(
             units = listOf(unit(1, 1, "10")),
-            dispensations = emptyList(),
             scripts = listOf(script(unitId = 999, dispensed = 0, repeats = 5)),
             dailyByMedication = mapOf(1L to 5.0),
-            nowMillis = now,
+            inHandByMedication = emptyMap(),
         )
         assertEquals(0, r[1]?.totalDays)
+    }
+
+    @Test
+    fun `blank tabletsPerUnit contributes zero undispensed tablets`() {
+        val r = computeSupply(
+            units = listOf(unit(1, 1, "")),
+            scripts = listOf(script(unitId = 1, dispensed = 0, repeats = 5)),
+            dailyByMedication = mapOf(1L to 5.0),
+            inHandByMedication = mapOf(1L to 25.0),
+        )
+        assertEquals(0, r[1]?.undispensedTablets)         // blank pack size -> 0 tablets per fill
+        assertEquals(5, r[1]?.inHandDays)                 // in-hand is unaffected: 25 / 5
     }
 
     // --- humanizeDuration ---
 
     @Test
-    fun `humanizeDuration uses only days and weeks`() {
+    fun `humanizeDuration uses days, weeks, months and years with one decimal`() {
         assertEquals("0 days", humanizeDuration(0))
         assertEquals("1 day", humanizeDuration(1))
         assertEquals("6 days", humanizeDuration(6))
         assertEquals("1 week", humanizeDuration(7))
-        assertEquals("1 week", humanizeDuration(13))
+        assertEquals("1.9 weeks", humanizeDuration(13))    // 13 / 7 = 1.857 -> 1.9
         assertEquals("2 weeks", humanizeDuration(14))
-        assertEquals("4 weeks", humanizeDuration(30))
-        assertEquals("12 weeks", humanizeDuration(90))
-        assertEquals("52 weeks", humanizeDuration(365))
-        assertEquals("114 weeks", humanizeDuration(800))
+        assertEquals("1 month", humanizeDuration(30))
+        assertEquals("1.5 months", humanizeDuration(45))   // 45 / 30 = 1.5
+        assertEquals("3 months", humanizeDuration(90))
+        assertEquals("1 year", humanizeDuration(365))
+        assertEquals("1.1 years", humanizeDuration(400))   // 400 / 365 = 1.096 -> 1.1
+        assertEquals("2.2 years", humanizeDuration(800))   // 800 / 365 = 2.19 -> 2.2
     }
 }

@@ -8,7 +8,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.aitoui.AitouiApp
 import com.example.aitoui.data.DailyScheduleRepository
 import com.example.aitoui.data.DispensableUnitRepository
-import com.example.aitoui.data.DispensationRepository
+import com.example.aitoui.data.InHandRepository
 import com.example.aitoui.data.ScriptRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -32,7 +32,7 @@ sealed interface InventoryAction {
 
 class InventoryViewModel(
     dispensableUnitRepository: DispensableUnitRepository,
-    dispensationRepository: DispensationRepository,
+    inHandRepository: InHandRepository,
     dailyScheduleRepository: DailyScheduleRepository,
     scriptRepository: ScriptRepository,
 ) : ViewModel() {
@@ -43,20 +43,21 @@ class InventoryViewModel(
     init {
         combine(
             dispensableUnitRepository.formatsWithMedication,
-            dispensationRepository.dispensations,
+            inHandRepository.inHand,
             dailyScheduleRepository.dailySchedule,
             scriptRepository.scriptsWithDetails,
-        ) { formats, dispensations, schedule, scripts ->
+        ) { formats, inHand, schedule, scripts ->
             // A medication can have several schedule rows (e.g. AM + PM), so sum them per medication.
             val dailyByMedication = schedule
                 .groupBy { it.medicationId }
                 .mapValues { (_, rows) -> rows.sumOf { it.quantity } }
+            // In-hand tablets are keyed by medication (one row per medication).
+            val inHandByMedication = inHand.associate { it.medicationId to it.quantity }
             val supply = computeSupply(
                 units = formats,
-                dispensations = dispensations,
                 scripts = scripts,
                 dailyByMedication = dailyByMedication,
-                nowMillis = System.currentTimeMillis(),
+                inHandByMedication = inHandByMedication,
             )
             formats.map { InventoryItem(it, supply[it.formatId]) }
         }
@@ -90,7 +91,7 @@ class InventoryViewModel(
                 val app = this[APPLICATION_KEY] as AitouiApp
                 InventoryViewModel(
                     dispensableUnitRepository = app.dispensableUnitRepository,
-                    dispensationRepository = app.dispensationRepository,
+                    inHandRepository = app.inHandRepository,
                     dailyScheduleRepository = app.dailyScheduleRepository,
                     scriptRepository = app.scriptRepository,
                 )
