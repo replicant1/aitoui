@@ -6,10 +6,10 @@ import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-interface MedicationFormatDao {
+interface DispensableUnitDao {
     /** Returns the auto-generated row id of the inserted format. */
     @Insert
-    suspend fun insert(entity: MedicationFormatEntity): Long
+    suspend fun insert(entity: DispensableUnitEntity): Long
 
     @Query("SELECT COUNT(*) FROM dispensable_units")
     suspend fun count(): Int
@@ -24,7 +24,7 @@ interface MedicationFormatDao {
         ORDER BY m.brandName COLLATE NOCASE, f.dosePerTablet
         """
     )
-    fun getAllWithMedication(): Flow<List<MedicationFormatDetails>>
+    fun getAllWithMedication(): Flow<List<DispensableUnitDetails>>
 
     /** Deletes the dispensable unit with [id]. Its scripts and dispensations cascade-delete. */
     @Query("DELETE FROM dispensable_units WHERE id = :id")

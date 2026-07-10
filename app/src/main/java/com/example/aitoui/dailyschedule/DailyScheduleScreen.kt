@@ -1,13 +1,16 @@
-package com.example.aitoui.medicationformat
+package com.example.aitoui.dailyschedule
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material.icons.Icons
@@ -18,6 +21,7 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -38,12 +42,12 @@ import com.example.aitoui.data.Medication
 import com.example.aitoui.ui.theme.AitouiTheme
 
 @Composable
-fun MedicationFormatRoot(
+fun DailyScheduleRoot(
     onBack: () -> Unit,
-    viewModel: MedicationFormatViewModel = viewModel(factory = MedicationFormatViewModel.Factory),
+    viewModel: DailyScheduleViewModel = viewModel(factory = DailyScheduleViewModel.Factory),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    MedicationFormatScreen(
+    DailyScheduleScreen(
         state = state,
         onAction = viewModel::onAction,
         onBack = onBack,
@@ -52,9 +56,9 @@ fun MedicationFormatRoot(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MedicationFormatScreen(
-    state: MedicationFormatState,
-    onAction: (MedicationFormatAction) -> Unit,
+fun DailyScheduleScreen(
+    state: DailyScheduleState,
+    onAction: (DailyScheduleAction) -> Unit,
     onBack: () -> Unit,
 ) {
     var medicationExpanded by remember { mutableStateOf(false) }
@@ -63,7 +67,7 @@ fun MedicationFormatScreen(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("Dispensable Unit") },
+                title = { Text("Daily Schedule") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
@@ -73,11 +77,8 @@ fun MedicationFormatScreen(
                     }
                 },
                 actions = {
-                    TextButton(
-                        onClick = { onAction(MedicationFormatAction.Save) },
-                        enabled = state.canSave,
-                    ) {
-                        Text("Save")
+                    TextButton(onClick = { onAction(DailyScheduleAction.Save) }) {
+                        Text("SAVE")
                     }
                 },
             )
@@ -87,16 +88,15 @@ fun MedicationFormatScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                text = "A Dispensable Unit is a particular packaging and presentation of a " +
-                    "medication. Typically a box or bottle of a capsule or tablet.",
+                text = "This is the number and type of tablets that you take every day.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+
             // Medication — dropdown of existing Medication records.
             ExposedDropdownMenuBox(
                 expanded = medicationExpanded,
@@ -124,7 +124,7 @@ fun MedicationFormatScreen(
                         DropdownMenuItem(
                             text = { Text("${medication.brandName} (${medication.activeIngredient})") },
                             onClick = {
-                                onAction(MedicationFormatAction.MedicationSelected(medication.id))
+                                onAction(DailyScheduleAction.MedicationSelected(medication.id))
                                 medicationExpanded = false
                             },
                         )
@@ -133,35 +133,69 @@ fun MedicationFormatScreen(
             }
 
             OutlinedTextField(
-                value = state.dosePerTablet,
-                onValueChange = { onAction(MedicationFormatAction.DosePerTabletChanged(it)) },
-                label = { Text("Dose per tablet") },
+                value = state.numberOfTablets,
+                onValueChange = { onAction(DailyScheduleAction.NumberOfTabletsChanged(it)) },
+                label = { Text("Number of tablets") },
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth(),
             )
-            OutlinedTextField(
-                value = state.tabletsPerUnit,
-                onValueChange = { onAction(MedicationFormatAction.TabletsPerUnitChanged(it)) },
-                label = { Text("Tablets per unit") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth(),
+            Button(
+                onClick = { onAction(DailyScheduleAction.Add) },
+                enabled = state.canAdd,
+            ) {
+                Text("ADD")
+            }
+
+            Text(
+                text = "Tablets taken daily:",
+                style = MaterialTheme.typography.titleMedium,
             )
+            OutlinedCard(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    items(state.tabletsTaken, key = { it.id }) { entry ->
+                        val selected = entry.id == state.selectedId
+                        Text(
+                            text = entry.label,
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onAction(DailyScheduleAction.RowSelected(entry.id)) }
+                                .background(
+                                    if (selected) MaterialTheme.colorScheme.primaryContainer
+                                    else MaterialTheme.colorScheme.surface
+                                )
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                        )
+                    }
+                }
+            }
+
+            Button(
+                onClick = { onAction(DailyScheduleAction.Delete) },
+                enabled = state.canDelete,
+            ) {
+                Text("DELETE")
+            }
         }
     }
 }
 
 @Preview(showBackground = true)
 @Composable
-private fun MedicationFormatScreenPreview() {
+private fun DailyScheduleScreenPreview() {
     AitouiTheme {
-        MedicationFormatScreen(
-            state = MedicationFormatState(
-                medications = listOf(Medication(1, "Panadol", "Paracetamol")),
-                selectedMedicationId = 1,
-                dosePerTablet = "500",
-                tabletsPerUnit = "24",
+        DailyScheduleScreen(
+            state = DailyScheduleState(
+                medications = listOf(
+                    Medication(1, "Panadol", "Paracetamol"),
+                    Medication(2, "Nurofen", "Ibuprofen"),
+                ),
+                tabletsTaken = listOf(
+                    DailyScheduleEntry(0, 1, "Panadol", "2"),
+                    DailyScheduleEntry(1, 2, "Nurofen", "0.5"),
+                ),
+                selectedId = 1,
             ),
             onAction = {},
             onBack = {},

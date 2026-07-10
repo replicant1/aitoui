@@ -6,8 +6,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.aitoui.AitouiApp
-import com.example.aitoui.data.MedicationFormatDetails
-import com.example.aitoui.data.MedicationFormatRepository
+import com.example.aitoui.data.DispensableUnitDetails
+import com.example.aitoui.data.DispensableUnitRepository
 import com.example.aitoui.data.Script
 import com.example.aitoui.data.ScriptRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,13 +20,13 @@ import kotlinx.coroutines.launch
 
 /** Form state for adding a Script. A script is for a single dispensable unit (many scripts → one unit). */
 data class AddScriptState(
-    val medicationFormats: List<MedicationFormatDetails> = emptyList(),
+    val dispensableUnits: List<DispensableUnitDetails> = emptyList(),
     val selectedFormatId: Long? = null,
     val repeats: String = "",
     val validToMillis: Long? = null,
 ) {
     val selectedFormatLabel: String
-        get() = medicationFormats.firstOrNull { it.formatId == selectedFormatId }?.label ?: ""
+        get() = dispensableUnits.firstOrNull { it.formatId == selectedFormatId }?.label ?: ""
 
     // Basic field validation.
     val formatValid: Boolean get() = selectedFormatId != null
@@ -38,7 +38,7 @@ data class AddScriptState(
 }
 
 sealed interface AddScriptAction {
-    data class MedicationFormatSelected(val id: Long) : AddScriptAction
+    data class DispensableUnitSelected(val id: Long) : AddScriptAction
     data class RepeatsChanged(val value: String) : AddScriptAction
     data class ValidToChanged(val millis: Long?) : AddScriptAction
     data object Save : AddScriptAction
@@ -46,7 +46,7 @@ sealed interface AddScriptAction {
 
 class AddScriptViewModel(
     private val scriptRepository: ScriptRepository,
-    medicationFormatRepository: MedicationFormatRepository,
+    dispensableUnitRepository: DispensableUnitRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AddScriptState())
@@ -54,12 +54,12 @@ class AddScriptViewModel(
 
     init {
         // Keep the dropdown's options in sync with the dispensable units.
-        medicationFormatRepository.formatsWithMedication
+        dispensableUnitRepository.formatsWithMedication
             .onEach { formats ->
                 _state.update { current ->
                     val stillExists = formats.any { it.formatId == current.selectedFormatId }
                     current.copy(
-                        medicationFormats = formats,
+                        dispensableUnits = formats,
                         selectedFormatId = current.selectedFormatId.takeIf { stillExists },
                     )
                 }
@@ -69,7 +69,7 @@ class AddScriptViewModel(
 
     fun onAction(action: AddScriptAction) {
         when (action) {
-            is AddScriptAction.MedicationFormatSelected ->
+            is AddScriptAction.DispensableUnitSelected ->
                 _state.update { it.copy(selectedFormatId = action.id) }
 
             is AddScriptAction.RepeatsChanged ->
@@ -95,7 +95,7 @@ class AddScriptViewModel(
             )
         }
         // Clear the form for the next entry (keep the loaded dispensable units).
-        _state.update { AddScriptState(medicationFormats = it.medicationFormats) }
+        _state.update { AddScriptState(dispensableUnits = it.dispensableUnits) }
     }
 
     private fun String.digitsOnly(): String = filter { it.isDigit() }
@@ -104,7 +104,7 @@ class AddScriptViewModel(
         val Factory = viewModelFactory {
             initializer {
                 val app = this[APPLICATION_KEY] as AitouiApp
-                AddScriptViewModel(app.scriptRepository, app.medicationFormatRepository)
+                AddScriptViewModel(app.scriptRepository, app.dispensableUnitRepository)
             }
         }
     }

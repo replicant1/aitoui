@@ -2,13 +2,13 @@ package com.example.aitoui.data
 
 import kotlinx.coroutines.flow.Flow
 
-class MedicationFormatRepository(private val dao: MedicationFormatDao) {
+class DispensableUnitRepository(private val dao: DispensableUnitDao) {
 
     /** Formats joined with their medication, for lists/dropdowns. */
-    val formatsWithMedication: Flow<List<MedicationFormatDetails>> = dao.getAllWithMedication()
+    val formatsWithMedication: Flow<List<DispensableUnitDetails>> = dao.getAllWithMedication()
 
     /** Inserts a format and returns its new id. */
-    suspend fun add(format: MedicationFormat): Long = dao.insert(format.toEntity())
+    suspend fun add(format: DispensableUnit): Long = dao.insert(format.toEntity())
 
     suspend fun deleteById(id: Long) = dao.deleteById(id)
 

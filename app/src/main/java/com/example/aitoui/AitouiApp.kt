@@ -6,7 +6,7 @@ import com.example.aitoui.data.AppDatabase
 import com.example.aitoui.data.DailyScheduleRepository
 import com.example.aitoui.data.DatabaseSeeder
 import com.example.aitoui.data.DispensationRepository
-import com.example.aitoui.data.MedicationFormatRepository
+import com.example.aitoui.data.DispensableUnitRepository
 import com.example.aitoui.data.MedicationRepository
 import com.example.aitoui.data.ScriptRepository
 import kotlinx.coroutines.CoroutineScope
@@ -33,8 +33,8 @@ class AitouiApp : Application() {
         MedicationRepository(database.medicationDao())
     }
 
-    val medicationFormatRepository: MedicationFormatRepository by lazy {
-        MedicationFormatRepository(database.medicationFormatDao())
+    val dispensableUnitRepository: DispensableUnitRepository by lazy {
+        DispensableUnitRepository(database.dispensableUnitDao())
     }
 
     val scriptRepository: ScriptRepository by lazy {
@@ -57,7 +57,7 @@ class AitouiApp : Application() {
             applicationScope.launch {
                 DatabaseSeeder.seedIfEmpty(
                     medicationRepository = medicationRepository,
-                    formatRepository = medicationFormatRepository,
+                    formatRepository = dispensableUnitRepository,
                     scriptRepository = scriptRepository,
                     dispensationRepository = dispensationRepository,
                     nowMillis = System.currentTimeMillis(),

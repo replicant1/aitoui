@@ -44,7 +44,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.aitoui.data.MedicationFormatDetails
+import com.example.aitoui.data.DispensableUnitDetails
 import com.example.aitoui.ui.theme.AitouiTheme
 
 @Composable
@@ -68,7 +68,7 @@ fun InventoryScreen(
     onBack: () -> Unit,
 ) {
     // Keep the last shown format so the panel still renders its details while sliding out.
-    var lastShown by remember { mutableStateOf<MedicationFormatDetails?>(null) }
+    var lastShown by remember { mutableStateOf<DispensableUnitDetails?>(null) }
     state.selectedFormat?.let { lastShown = it }
 
     Scaffold(
@@ -130,7 +130,7 @@ fun InventoryScreen(
 
 @Composable
 private fun MedicationRow(
-    format: MedicationFormatDetails,
+    format: DispensableUnitDetails,
     selected: Boolean,
     onClick: () -> Unit,
 ) {
@@ -160,7 +160,7 @@ private fun MedicationRow(
 
 @Composable
 private fun MedicationDetailSheet(
-    format: MedicationFormatDetails,
+    format: DispensableUnitDetails,
     onClose: () -> Unit,
 ) {
     Surface(
@@ -228,8 +228,8 @@ private fun InventoryScreenPreview() {
         InventoryScreen(
             state = InventoryState(
                 formats = listOf(
-                    MedicationFormatDetails(1, 1, "Panadol", "Paracetamol", "500", "24"),
-                    MedicationFormatDetails(2, 2, "Nurofen", "Ibuprofen", "200", "16"),
+                    DispensableUnitDetails(1, 1, "Panadol", "Paracetamol", "500", "24"),
+                    DispensableUnitDetails(2, 2, "Nurofen", "Ibuprofen", "200", "16"),
                 ),
                 selectedId = 1,
             ),

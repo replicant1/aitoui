@@ -8,14 +8,14 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.aitoui.data.DatabaseDumper
 import com.example.aitoui.data.DispensationRepository
-import com.example.aitoui.data.MedicationFormatRepository
+import com.example.aitoui.data.DispensableUnitRepository
 import com.example.aitoui.data.MedicationRepository
 import com.example.aitoui.data.ScriptRepository
 import kotlinx.coroutines.launch
 
 class MainViewModel(
     private val medicationRepository: MedicationRepository,
-    private val formatRepository: MedicationFormatRepository,
+    private val formatRepository: DispensableUnitRepository,
     private val scriptRepository: ScriptRepository,
     private val dispensationRepository: DispensationRepository,
 ) : ViewModel() {
@@ -44,7 +44,7 @@ class MainViewModel(
                 val app = this[APPLICATION_KEY] as AitouiApp
                 MainViewModel(
                     medicationRepository = app.medicationRepository,
-                    formatRepository = app.medicationFormatRepository,
+                    formatRepository = app.dispensableUnitRepository,
                     scriptRepository = app.scriptRepository,
                     dispensationRepository = app.dispensationRepository,
                 )

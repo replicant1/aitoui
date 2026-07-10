@@ -17,21 +17,21 @@ import androidx.room.PrimaryKey
     ],
     indices = [Index("medicationId")],
 )
-data class MedicationFormatEntity(
+data class DispensableUnitEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val medicationId: Long,
     val dosePerTablet: String,
     val tabletsPerUnit: String,
 )
 
-fun MedicationFormatEntity.toDomain(): MedicationFormat = MedicationFormat(
+fun DispensableUnitEntity.toDomain(): DispensableUnit = DispensableUnit(
     id = id,
     medicationId = medicationId,
     dosePerTablet = dosePerTablet,
     tabletsPerUnit = tabletsPerUnit,
 )
 
-fun MedicationFormat.toEntity(): MedicationFormatEntity = MedicationFormatEntity(
+fun DispensableUnit.toEntity(): DispensableUnitEntity = DispensableUnitEntity(
     id = id,
     medicationId = medicationId,
     dosePerTablet = dosePerTablet,

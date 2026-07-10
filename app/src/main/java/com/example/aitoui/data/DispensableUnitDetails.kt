@@ -1,10 +1,10 @@
 package com.example.aitoui.data
 
 /**
- * A [MedicationFormat] (dispensable unit) joined with its [Medication], for display in
+ * A [DispensableUnit] (dispensable unit) joined with its [Medication], for display in
  * lists/dropdowns where the brand name and active ingredient are needed alongside the dosage.
  */
-data class MedicationFormatDetails(
+data class DispensableUnitDetails(
     val formatId: Long,
     val medicationId: Long,
     val brandName: String,

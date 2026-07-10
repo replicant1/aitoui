@@ -1,4 +1,4 @@
-package com.example.aitoui.medicationformat
+package com.example.aitoui.dispensableunit
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
@@ -7,8 +7,8 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.aitoui.AitouiApp
 import com.example.aitoui.data.Medication
-import com.example.aitoui.data.MedicationFormat
-import com.example.aitoui.data.MedicationFormatRepository
+import com.example.aitoui.data.DispensableUnit
+import com.example.aitoui.data.DispensableUnitRepository
 import com.example.aitoui.data.MedicationRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,7 +19,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /** Form state for the Dispensable Unit entry screen. */
-data class MedicationFormatState(
+data class DispensableUnitState(
     val medications: List<Medication> = emptyList(),
     val selectedMedicationId: Long? = null,
     val dosePerTablet: String = "",
@@ -32,20 +32,20 @@ data class MedicationFormatState(
         get() = selectedMedicationId != null && dosePerTablet.isNotBlank() && tabletsPerUnit.isNotBlank()
 }
 
-sealed interface MedicationFormatAction {
-    data class MedicationSelected(val id: Long) : MedicationFormatAction
-    data class DosePerTabletChanged(val value: String) : MedicationFormatAction
-    data class TabletsPerUnitChanged(val value: String) : MedicationFormatAction
-    data object Save : MedicationFormatAction
+sealed interface DispensableUnitAction {
+    data class MedicationSelected(val id: Long) : DispensableUnitAction
+    data class DosePerTabletChanged(val value: String) : DispensableUnitAction
+    data class TabletsPerUnitChanged(val value: String) : DispensableUnitAction
+    data object Save : DispensableUnitAction
 }
 
-class MedicationFormatViewModel(
-    private val formatRepository: MedicationFormatRepository,
+class DispensableUnitViewModel(
+    private val formatRepository: DispensableUnitRepository,
     medicationRepository: MedicationRepository,
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(MedicationFormatState())
-    val state: StateFlow<MedicationFormatState> = _state.asStateFlow()
+    private val _state = MutableStateFlow(DispensableUnitState())
+    val state: StateFlow<DispensableUnitState> = _state.asStateFlow()
 
     init {
         // Keep the Medication dropdown's options in sync with the medications table.
@@ -62,18 +62,18 @@ class MedicationFormatViewModel(
             .launchIn(viewModelScope)
     }
 
-    fun onAction(action: MedicationFormatAction) {
+    fun onAction(action: DispensableUnitAction) {
         when (action) {
-            is MedicationFormatAction.MedicationSelected ->
+            is DispensableUnitAction.MedicationSelected ->
                 _state.update { it.copy(selectedMedicationId = action.id) }
 
-            is MedicationFormatAction.DosePerTabletChanged ->
+            is DispensableUnitAction.DosePerTabletChanged ->
                 _state.update { it.copy(dosePerTablet = action.value.digitsOnly()) }
 
-            is MedicationFormatAction.TabletsPerUnitChanged ->
+            is DispensableUnitAction.TabletsPerUnitChanged ->
                 _state.update { it.copy(tabletsPerUnit = action.value.digitsOnly()) }
 
-            MedicationFormatAction.Save -> save()
+            DispensableUnitAction.Save -> save()
         }
     }
 
@@ -82,7 +82,7 @@ class MedicationFormatViewModel(
         if (!current.canSave) return
         viewModelScope.launch {
             formatRepository.add(
-                MedicationFormat(
+                DispensableUnit(
                     medicationId = current.selectedMedicationId!!,
                     dosePerTablet = current.dosePerTablet,
                     tabletsPerUnit = current.tabletsPerUnit,
@@ -90,7 +90,7 @@ class MedicationFormatViewModel(
             )
         }
         // Clear the form for the next entry (keep the loaded medications).
-        _state.update { MedicationFormatState(medications = it.medications) }
+        _state.update { DispensableUnitState(medications = it.medications) }
     }
 
     private fun String.digitsOnly(): String = filter { it.isDigit() }
@@ -99,7 +99,7 @@ class MedicationFormatViewModel(
         val Factory = viewModelFactory {
             initializer {
                 val app = this[APPLICATION_KEY] as AitouiApp
-                MedicationFormatViewModel(app.medicationFormatRepository, app.medicationRepository)
+                DispensableUnitViewModel(app.dispensableUnitRepository, app.medicationRepository)
             }
         }
     }

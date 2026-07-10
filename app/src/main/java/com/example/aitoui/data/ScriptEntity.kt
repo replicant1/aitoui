@@ -9,7 +9,7 @@ import androidx.room.PrimaryKey
     tableName = "scripts",
     foreignKeys = [
         ForeignKey(
-            entity = MedicationFormatEntity::class,
+            entity = DispensableUnitEntity::class,
             parentColumns = ["id"],
             childColumns = ["dispensableUnitId"],
             onDelete = ForeignKey.CASCADE,

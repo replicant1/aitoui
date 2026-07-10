@@ -11,11 +11,11 @@ import com.example.aitoui.MainViewModel
 import com.example.aitoui.inventory.InventoryRoot
 import com.example.aitoui.medication.MedicationRoot
 import com.example.aitoui.medication.MedicationsRoot
-import com.example.aitoui.medicationformat.DispensableUnitsRoot
-import com.example.aitoui.medicationformat.MedicationFormatRoot
+import com.example.aitoui.dispensableunit.DispensableUnitsRoot
+import com.example.aitoui.dispensableunit.DispensableUnitRoot
 import com.example.aitoui.script.AddScriptRoot
 import com.example.aitoui.script.ScriptsRoot
-import com.example.aitoui.taketablets.TakeTabletsRoot
+import com.example.aitoui.dailyschedule.DailyScheduleRoot
 
 @Composable
 fun AppNavHost(navController: NavHostController = rememberNavController()) {
@@ -25,7 +25,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
             MainScreen(
                 onMedications = { navController.navigate(MedicationsRoute) },
                 onDispensableUnits = { navController.navigate(DispensableUnitsRoute) },
-                onTakeTablets = { navController.navigate(TakeTabletsRoute) },
+                onDailySchedule = { navController.navigate(DailyScheduleRoute) },
                 onInventory = { navController.navigate(InventoryRoute) },
                 onScripts = { navController.navigate(ScriptsRoute) },
                 onLog = { mainViewModel.logDatabase() },
@@ -42,19 +42,19 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
                 onAddMedication = { navController.navigate(MedicationRoute) },
             )
         }
-        composable<MedicationFormatRoute> {
-            MedicationFormatRoot(
+        composable<DispensableUnitRoute> {
+            DispensableUnitRoot(
                 onBack = { navController.popBackStack() }
             )
         }
         composable<DispensableUnitsRoute> {
             DispensableUnitsRoot(
                 onBack = { navController.popBackStack() },
-                onAddDispensableUnit = { navController.navigate(MedicationFormatRoute) },
+                onAddDispensableUnit = { navController.navigate(DispensableUnitRoute) },
             )
         }
-        composable<TakeTabletsRoute> {
-            TakeTabletsRoot(
+        composable<DailyScheduleRoute> {
+            DailyScheduleRoot(
                 onBack = { navController.popBackStack() }
             )
         }
