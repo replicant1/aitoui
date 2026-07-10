@@ -141,19 +141,23 @@ private fun MedicationRow(
 ) {
     val background =
         if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
+    // A single gap so the whitespace beside the thumbnail equals the whitespace below it. Rows with no
+    // thumbnail keep the supply lines tucked tight under the brand/dose block.
+    val gap = 12.dp
+    val hasThumbnail = item.unit.imagePath != null
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .background(background)
             .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(2.dp),
+        verticalArrangement = Arrangement.spacedBy(if (hasThumbnail) gap else 2.dp),
     ) {
         // Top block: the tablet photo, with the brand name and dose/pack size wrapped to its right,
         // and the total runway figure at the far right.
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(gap),
             verticalAlignment = Alignment.Top,
         ) {
             item.unit.imagePath?.let { imagePath ->
@@ -191,27 +195,29 @@ private fun MedicationRow(
         }
         // Bottom block: the two supply lines, full width, left-justified below the thumbnail.
         item.supply?.let { supply ->
-            Text(
-                text = if (supply.undispensedFills == 0) {
-                    "No scripts"
-                } else {
-                    "${supply.undispensedFills} scripts × " +
-                        "${supply.tabletsPerUnit} tabs = ${supply.undispensedTablets} tabs = " +
-                        humanizeDuration(supply.undispensedDays)
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                text = if (supply.inHandTablets == 0) {
-                    "None in hand"
-                } else {
-                    "In hand: ${supply.inHandTablets} tabs = " +
-                        humanizeDuration(supply.inHandDays)
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = if (supply.undispensedFills == 0) {
+                        "No scripts"
+                    } else {
+                        "${supply.undispensedFills} scripts × " +
+                            "${supply.tabletsPerUnit} tabs = ${supply.undispensedTablets} tabs = " +
+                            humanizeDuration(supply.undispensedDays)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = if (supply.inHandTablets == 0) {
+                        "None in hand"
+                    } else {
+                        "In hand: ${supply.inHandTablets} tabs = " +
+                            humanizeDuration(supply.inHandDays)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
