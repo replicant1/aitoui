@@ -3,6 +3,7 @@ package com.example.aitoui
 import android.app.Application
 import androidx.room.Room
 import com.example.aitoui.data.AppDatabase
+import com.example.aitoui.data.DailyScheduleRepository
 import com.example.aitoui.data.DatabaseSeeder
 import com.example.aitoui.data.DispensationRepository
 import com.example.aitoui.data.MedicationFormatRepository
@@ -42,6 +43,10 @@ class AitouiApp : Application() {
 
     val dispensationRepository: DispensationRepository by lazy {
         DispensationRepository(database.dispensationDao())
+    }
+
+    val dailyScheduleRepository: DailyScheduleRepository by lazy {
+        DailyScheduleRepository(database.dailyScheduleDao())
     }
 
     override fun onCreate() {

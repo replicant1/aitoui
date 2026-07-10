@@ -14,11 +14,11 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.Storage
-import androidx.compose.material.icons.filled.Vaccines
 import androidx.compose.material.icons.filled.Widgets
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -65,7 +65,7 @@ fun MainScreen(
     )
     // Everything else.
     val otherGroup = listOf(
-        MainMenuItem("Take Tablets", Icons.Filled.Vaccines, onTakeTablets),
+        MainMenuItem("Daily Schedule", Icons.Filled.CalendarMonth, onTakeTablets),
         MainMenuItem("Inventory", Icons.Filled.Inventory2, onInventory),
         MainMenuItem("Log", Icons.Filled.Storage, onLog),
     )
