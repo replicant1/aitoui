@@ -10,6 +10,9 @@ class DispensableUnitRepository(private val dao: DispensableUnitDao) {
     /** Inserts a format and returns its new id. */
     suspend fun add(format: DispensableUnit): Long = dao.insert(format.toEntity())
 
+    /** Sets or clears the tablet photo filename for the unit with [id]. */
+    suspend fun setImagePath(id: Long, imagePath: String?) = dao.setImagePath(id, imagePath)
+
     suspend fun deleteById(id: Long) = dao.deleteById(id)
 
     suspend fun count(): Int = dao.count()
