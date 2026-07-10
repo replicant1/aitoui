@@ -1,6 +1,6 @@
 # Database Schema
 
-**Database:** `aitoui.db` (Room) · **version:** 11 · **package:** `com.example.aitoui.data`
+**Database:** `aitoui.db` (Room) · **version:** 16 · **package:** `com.example.aitoui.data`
 
 The schema models prescriptions and pharmacy dispensing as a chain:
 
@@ -62,6 +62,16 @@ script's `number` values is its derived "dispensed" total.
 | `number` | INTEGER | not null | times dispensed (usually 1) |
 | `dispensedAtMillis` | INTEGER | not null | recorded at save time, epoch millis |
 
+### `daily_schedule`
+The daily medication schedule: how many tablets of each medication are taken every day. The Daily
+Schedule screen replaces the whole table on save.
+
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `id` | INTEGER | PK, auto-generated | |
+| `medicationId` | INTEGER | **FK → `medications.id`** (ON DELETE CASCADE), indexed | the medication taken |
+| `quantity` | REAL | not null | tablets taken per day (may be fractional, e.g. `0.5`) |
+
 ---
 
 ## Relationships
@@ -70,6 +80,7 @@ script's `number` values is its derived "dispensed" total.
 - `dispensable_units` **1 — N** `scripts` (`scripts.dispensableUnitId`) — many scripts per unit
 - `scripts` **1 — N** `dispensations` (`dispensations.scriptId`)
 - `dispensable_units` **1 — N** `dispensations` (`dispensations.dispensableUnitId`)
+- `medications` **1 — N** `daily_schedule` (`daily_schedule.medicationId`)
 
 All foreign keys use `ON DELETE CASCADE`.
 
@@ -113,10 +124,16 @@ classDiagram
         +Int number
         +Long dispensedAtMillis
     }
+    class daily_schedule {
+        +Long id «PK»
+        +Long medicationId «FK»
+        +Double quantity
+    }
     medications "1" *-- "0..*" dispensable_units : medicationId
     dispensable_units "1" *-- "0..*" scripts : dispensableUnitId
     scripts "1" *-- "0..*" dispensations : scriptId
     dispensable_units "1" *-- "0..*" dispensations : dispensableUnitId
+    medications "1" *-- "0..*" daily_schedule : medicationId
 ```
 
 </details>

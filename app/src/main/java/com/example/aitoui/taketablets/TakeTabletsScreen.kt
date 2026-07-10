@@ -67,7 +67,7 @@ fun TakeTabletsScreen(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("Take Tablets") },
+                title = { Text("Daily Schedule") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
@@ -91,6 +91,12 @@ fun TakeTabletsScreen(
                 .padding(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            Text(
+                text = "This is the number and type of tablets that you take every day.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
             // Medication — dropdown of existing Medication records.
             ExposedDropdownMenuBox(
                 expanded = medicationExpanded,
@@ -131,7 +137,7 @@ fun TakeTabletsScreen(
                 onValueChange = { onAction(TakeTabletsAction.NumberOfTabletsChanged(it)) },
                 label = { Text("Number of tablets") },
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth(),
             )
             Button(
@@ -142,7 +148,7 @@ fun TakeTabletsScreen(
             }
 
             Text(
-                text = "Tablets Taken:",
+                text = "Tablets taken daily:",
                 style = MaterialTheme.typography.titleMedium,
             )
             OutlinedCard(modifier = Modifier.fillMaxWidth().weight(1f)) {
@@ -186,8 +192,8 @@ private fun TakeTabletsScreenPreview() {
                     Medication(2, "Nurofen", "Ibuprofen"),
                 ),
                 tabletsTaken = listOf(
-                    TabletEntry(0, "Panadol", "2"),
-                    TabletEntry(1, "Nurofen", "1"),
+                    TabletEntry(0, 1, "Panadol", "2"),
+                    TabletEntry(1, 2, "Nurofen", "0.5"),
                 ),
                 selectedId = 1,
             ),
