@@ -1,15 +1,13 @@
 package com.example.aitoui.inventory
 
-import com.example.aitoui.data.Dispensation
 import com.example.aitoui.data.DispensableUnitDetails
 import com.example.aitoui.data.ScriptDetails
 import kotlin.math.floor
-import kotlin.math.max
 import kotlin.math.roundToInt
 
 /**
- * A dispensable unit's remaining supply, split into what has already been dispensed (on hand) and what
- * is still to come from undispensed script repeats. Each part is expressed as tablets and whole days.
+ * A dispensable unit's remaining supply, split into what is currently in hand and what is still to come
+ * from undispensed script repeats. Each part is expressed as tablets and whole days.
  */
 data class SupplyBreakdown(
     /** Remaining script fills for this unit: sum of (repeats + 1 - dispensed), floored at 0. */
@@ -19,13 +17,13 @@ data class SupplyBreakdown(
     val undispensedTablets: Int,
     /** floor([undispensedTablets] / dailyRate). */
     val undispensedDays: Int,
-    /** Tablets on hand from past dispensations (depleted by consumption to now). */
-    val dispensedTablets: Int,
-    /** floor([dispensedTablets] / dailyRate). */
-    val dispensedDays: Int,
+    /** Tablets currently in hand, taken directly from the `in_hand` table for this medication. */
+    val inHandTablets: Int,
+    /** floor(in-hand tablets / dailyRate). */
+    val inHandDays: Int,
 ) {
-    /** Total whole days before the medication runs out (dispensed + undispensed). */
-    val totalDays: Int get() = dispensedDays + undispensedDays
+    /** Total whole days before the medication runs out (in hand + undispensed). */
+    val totalDays: Int get() = inHandDays + undispensedDays
 }
 
 data class InventoryItem(
@@ -34,28 +32,21 @@ data class InventoryItem(
     val supply: SupplyBreakdown?,
 )
 
-private const val DAY_MILLIS = 86_400_000.0
-
 /**
  * Computes each dispensable unit's [SupplyBreakdown], keyed by unit `formatId`.
  *
- * Dispensed (on-hand) tablets come from replaying the unit's dispensations as a running balance that
- * depletes at the medication's daily rate up to [nowMillis], never below zero (supply that lapsed
- * before the next dispensation is gone). Undispensed tablets come from the unit's scripts' remaining
- * repeats (`repeats + 1 - dispensed`, since a script allows one more dispensation than its repeats
- * count) × tablets-per-unit. Days are `floor(tablets / rate)`; a unit whose
- * medication has no positive daily rate maps to `null`.
+ * In-hand tablets come straight from [inHandByMedication] (the `in_hand` table) for the unit's
+ * medication. Undispensed tablets come from the unit's scripts' remaining repeats
+ * (`repeats + 1 - dispensed`, since a script allows one more dispensation than its repeats count) ×
+ * tablets-per-unit. Days are `floor(tablets / rate)`; a unit whose medication has no positive daily
+ * rate maps to `null`.
  */
 fun computeSupply(
     units: List<DispensableUnitDetails>,
-    dispensations: List<Dispensation>,
     scripts: List<ScriptDetails>,
     dailyByMedication: Map<Long, Double>,
-    nowMillis: Long,
+    inHandByMedication: Map<Long, Double>,
 ): Map<Long, SupplyBreakdown?> {
-    val dispsByUnit = dispensations
-        .filter { it.dispensedAtMillis <= nowMillis }         // ignore future-dated dispensations
-        .groupBy { it.dispensableUnitId }
     val scriptsByUnit = scripts.groupBy { it.dispensableUnitId }
 
     val result = HashMap<Long, SupplyBreakdown?>()
@@ -67,17 +58,10 @@ fun computeSupply(
         }
         val tabletsPerUnit = unit.tabletsPerUnit.toIntOrNull() ?: 0
 
-        // On-hand: running balance of this unit's dispensations, depleted to now.
-        var stock = 0.0
-        var lastT: Long? = null
-        for (d in dispsByUnit[unit.formatId].orEmpty().sortedBy { it.dispensedAtMillis }) {
-            lastT?.let { stock = max(0.0, stock - (d.dispensedAtMillis - it) / DAY_MILLIS * rate) }
-            stock += d.number * tabletsPerUnit
-            lastT = d.dispensedAtMillis
-        }
-        lastT?.let { stock = max(0.0, stock - (nowMillis - it) / DAY_MILLIS * rate) }
-        val dispensedTablets = stock.roundToInt()
-        val dispensedDays = floor(stock / rate).toInt()
+        // In hand: the medication's current in-hand quantity, converted to whole days at the daily rate.
+        val inHandQuantity = (inHandByMedication[unit.medicationId] ?: 0.0).coerceAtLeast(0.0)
+        val inHandTablets = inHandQuantity.roundToInt()
+        val inHandDays = floor(inHandQuantity / rate).toInt()
 
         // Undispensed: remaining repeats across this unit's scripts.
         val undispensedFills = scriptsByUnit[unit.formatId].orEmpty()
@@ -90,20 +74,30 @@ fun computeSupply(
             tabletsPerUnit = tabletsPerUnit,
             undispensedTablets = undispensedTablets,
             undispensedDays = undispensedDays,
-            dispensedTablets = dispensedTablets,
-            dispensedDays = dispensedDays,
+            inHandTablets = inHandTablets,
+            inHandDays = inHandDays,
         )
     }
     return result
 }
 
 /**
- * Formats a whole-day supply figure in days or weeks — e.g. 5 → "5 days", 20 → "2 weeks", 90 →
- * "12 weeks". Weeks are used for 7 days or more; larger units (months/years) are not used.
+ * Formats a whole-day supply figure in the largest sensible calendrical unit — days, weeks, months or
+ * years — to one decimal place when the value is not whole. E.g. 5 → "5 days", 13 → "1.9 weeks", 45 →
+ * "1.5 months", 800 → "2.2 years". Approximate: a month is 30 days and a year is 365 days.
  */
 fun humanizeDuration(days: Int): String = when {
-    days >= 7 -> plural(days / 7, "week")
+    days >= 365 -> calendrical(days / 365.0, "year")
+    days >= 30 -> calendrical(days / 30.0, "month")
+    days >= 7 -> calendrical(days / 7.0, "week")
     else -> plural(days, "day")
+}
+
+/** Formats [value] to one decimal place (dropping a trailing ".0") with a pluralised [unit]. */
+private fun calendrical(value: Double, unit: String): String {
+    val tenths = (value * 10).roundToInt()
+    val number = if (tenths % 10 == 0) "${tenths / 10}" else "${tenths / 10}.${tenths % 10}"
+    return "$number $unit${if (tenths == 10) "" else "s"}"
 }
 
 private fun plural(n: Int, unit: String): String = "$n $unit${if (n == 1) "" else "s"}"

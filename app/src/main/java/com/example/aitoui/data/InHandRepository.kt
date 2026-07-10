@@ -1,6 +1,11 @@
 package com.example.aitoui.data
 
+import kotlinx.coroutines.flow.Flow
+
 class InHandRepository(private val dao: InHandDao) {
+
+    /** The current in-hand tablets (reactive), joined with medication brand names. */
+    val inHand: Flow<List<InHandDetails>> = dao.getAllWithMedicationFlow()
 
     /** The current in-hand tablets, joined with medication brand names. */
     suspend fun getAll(): List<InHandDetails> = dao.getAllWithMedication()
