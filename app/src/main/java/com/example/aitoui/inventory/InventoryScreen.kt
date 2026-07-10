@@ -67,9 +67,9 @@ fun InventoryScreen(
     onAction: (InventoryAction) -> Unit,
     onBack: () -> Unit,
 ) {
-    // Keep the last shown format so the panel still renders its details while sliding out.
-    var lastShown by remember { mutableStateOf<DispensableUnitDetails?>(null) }
-    state.selectedFormat?.let { lastShown = it }
+    // Keep the last shown item so the panel still renders its details while sliding out.
+    var lastShown by remember { mutableStateOf<InventoryItem?>(null) }
+    state.selectedItem?.let { lastShown = it }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -101,11 +101,11 @@ fun InventoryScreen(
             )
 
             LazyColumn(modifier = Modifier.weight(1f)) {
-                items(state.formats, key = { it.formatId }) { format ->
+                items(state.items, key = { it.unit.formatId }) { item ->
                     MedicationRow(
-                        format = format,
-                        selected = format.formatId == state.selectedId,
-                        onClick = { onAction(InventoryAction.FormatSelected(format.formatId)) },
+                        item = item,
+                        selected = item.unit.formatId == state.selectedId,
+                        onClick = { onAction(InventoryAction.FormatSelected(item.unit.formatId)) },
                     )
                     HorizontalDivider()
                 }
@@ -113,13 +113,13 @@ fun InventoryScreen(
 
             // The panel sits below the weighted list, so the list shrinks above it when shown.
             AnimatedVisibility(
-                visible = state.selectedFormat != null,
+                visible = state.selectedItem != null,
                 enter = slideInVertically { it } + expandVertically() + fadeIn(),
                 exit = slideOutVertically { it } + shrinkVertically() + fadeOut(),
             ) {
-                lastShown?.let { format ->
+                lastShown?.let { item ->
                     MedicationDetailSheet(
-                        format = format,
+                        item = item,
                         onClose = { onAction(InventoryAction.SheetDismissed) },
                     )
                 }
@@ -130,7 +130,7 @@ fun InventoryScreen(
 
 @Composable
 private fun MedicationRow(
-    format: DispensableUnitDetails,
+    item: InventoryItem,
     selected: Boolean,
     onClick: () -> Unit,
 ) {
@@ -146,23 +146,30 @@ private fun MedicationRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = format.brandName,
+            text = item.unit.brandName,
             style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier.weight(1f),
         )
         Text(
-            text = "${format.dosePerTablet}mg",
+            text = "${item.unit.dosePerTablet}mg",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = item.daysRemaining?.let { "$it days" } ?: "—",
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.primary,
         )
     }
 }
 
 @Composable
 private fun MedicationDetailSheet(
-    format: DispensableUnitDetails,
+    item: InventoryItem,
     onClose: () -> Unit,
 ) {
+    val format = item.unit
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
@@ -200,6 +207,7 @@ private fun MedicationDetailSheet(
             DetailRow("Active ingredient", format.activeIngredient)
             DetailRow("Dose per tablet", format.dosePerTablet)
             DetailRow("Tablets per unit", format.tabletsPerUnit)
+            DetailRow("Days remaining", item.daysRemaining?.let { "$it days" } ?: "—")
         }
     }
 }
@@ -227,9 +235,9 @@ private fun InventoryScreenPreview() {
     AitouiTheme {
         InventoryScreen(
             state = InventoryState(
-                formats = listOf(
-                    DispensableUnitDetails(1, 1, "Panadol", "Paracetamol", "500", "24"),
-                    DispensableUnitDetails(2, 2, "Nurofen", "Ibuprofen", "200", "16"),
+                items = listOf(
+                    InventoryItem(DispensableUnitDetails(1, 1, "Panadol", "Paracetamol", "500", "24"), daysRemaining = 12),
+                    InventoryItem(DispensableUnitDetails(2, 2, "Nurofen", "Ibuprofen", "200", "16"), daysRemaining = null),
                 ),
                 selectedId = 1,
             ),
