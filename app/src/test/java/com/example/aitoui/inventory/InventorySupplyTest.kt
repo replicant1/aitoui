@@ -29,6 +29,7 @@ class InventorySupplyTest {
         ScriptDetails(
             scriptId = 0,
             dispensableUnitId = unitId,
+            medicationId = 0,
             brandName = "Brand",
             activeIngredient = "Ingredient",
             dosePerTablet = "500",

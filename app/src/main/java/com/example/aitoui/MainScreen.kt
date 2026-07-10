@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BackHand
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Inventory2
@@ -53,6 +54,7 @@ fun MainScreen(
     onMedications: () -> Unit = {},
     onDispensableUnits: () -> Unit = {},
     onDailySchedule: () -> Unit = {},
+    onInHand: () -> Unit = {},
     onInventory: () -> Unit = {},
     onScripts: () -> Unit = {},
     onLog: () -> Unit = {},
@@ -66,6 +68,7 @@ fun MainScreen(
     // Everything else.
     val otherGroup = listOf(
         MainMenuItem("Daily Schedule", Icons.Filled.CalendarMonth, onDailySchedule),
+        MainMenuItem("In Hand", Icons.Filled.BackHand, onInHand),
         MainMenuItem("Inventory", Icons.Filled.Inventory2, onInventory),
         MainMenuItem("Log", Icons.Filled.Storage, onLog),
     )

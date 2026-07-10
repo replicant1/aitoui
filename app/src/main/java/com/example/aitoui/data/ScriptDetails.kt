@@ -8,6 +8,7 @@ package com.example.aitoui.data
 data class ScriptDetails(
     val scriptId: Long,
     val dispensableUnitId: Long,
+    val medicationId: Long,
     val brandName: String,
     val activeIngredient: String,
     val dosePerTablet: String,

@@ -127,7 +127,10 @@ fun ScriptsScreen(
             onDismissRequest = { onAction(ScriptsAction.CancelDispense) },
             title = { Text("Dispense one unit?") },
             text = {
-                Text("Record one dispensation of ${script.medicationLabel}? This increases its dispensed count by one.")
+                Text(
+                    "Record one dispensation of ${script.medicationLabel}. This adds " +
+                        "${script.tabletsPerUnit} tablets to your In Hand tally.",
+                )
             },
             confirmButton = {
                 TextButton(onClick = { onAction(ScriptsAction.ConfirmDispense) }) { Text("Dispense") }
@@ -288,9 +291,9 @@ private fun ScriptsScreenPreview() {
         ScriptsScreen(
             state = ScriptsState(
                 scripts = listOf(
-                    ScriptDetails(1, 1, "Panadol", "Paracetamol", "500", "24", dispensed = 2, repeats = 5),
-                    ScriptDetails(2, 2, "Amoxil", "Amoxicillin", "500", "20", dispensed = 1, repeats = 0),
-                    ScriptDetails(3, 3, "Ventolin", "Salbutamol", "100", "200", dispensed = 1, repeats = 3),
+                    ScriptDetails(1, 1, 1, "Panadol", "Paracetamol", "500", "24", dispensed = 2, repeats = 5),
+                    ScriptDetails(2, 2, 2, "Amoxil", "Amoxicillin", "500", "20", dispensed = 1, repeats = 0),
+                    ScriptDetails(3, 3, 3, "Ventolin", "Salbutamol", "100", "200", dispensed = 1, repeats = 3),
                 ),
             ),
             onAction = {},

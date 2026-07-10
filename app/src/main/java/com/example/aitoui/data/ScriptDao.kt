@@ -31,6 +31,7 @@ interface ScriptDao {
     @Query(
         """
         SELECT s.id AS scriptId, s.dispensableUnitId AS dispensableUnitId,
+               du.medicationId AS medicationId,
                m.brandName AS brandName, m.activeIngredient AS activeIngredient,
                du.dosePerTablet AS dosePerTablet, du.tabletsPerUnit AS tabletsPerUnit,
                COALESCE((SELECT SUM(d.number) FROM dispensations d WHERE d.scriptId = s.id), 0) AS dispensed,
