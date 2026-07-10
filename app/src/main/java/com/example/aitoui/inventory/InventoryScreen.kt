@@ -93,8 +93,9 @@ fun InventoryScreen(
                 .padding(innerPadding),
         ) {
             Text(
-                text = "The Inventory is the list of all medications you have had dispensed " +
-                    "but have not yet taken.",
+                text = "For each medication, the figure shows how long before you run out — the " +
+                    "time your supply will last, counting both what has already been dispensed and " +
+                    "the future dispensations still available on your scripts.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -143,20 +144,43 @@ private fun MedicationRow(
             .background(background)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.Top,
     ) {
-        Text(
-            text = item.unit.brandName,
-            style = MaterialTheme.typography.bodyLarge,
+        Column(
             modifier = Modifier.weight(1f),
-        )
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                text = item.unit.brandName,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+            )
+            item.supply?.let { supply ->
+                Text(
+                    text = if (supply.undispensedFills == 0) {
+                        "No scripts"
+                    } else {
+                        "${supply.undispensedFills} scripts × " +
+                            "${supply.tabletsPerUnit} tabs = ${supply.undispensedTablets} tabs = " +
+                            "${humanizeDuration(supply.undispensedDays)} supply"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = if (supply.dispensedTablets == 0) {
+                        "None dispensed"
+                    } else {
+                        "Dispensed: ${supply.dispensedTablets} tabs = " +
+                            "${humanizeDuration(supply.dispensedDays)} supply"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
         Text(
-            text = "${item.unit.dosePerTablet}mg",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            text = item.daysRemaining?.let { "$it days" } ?: "—",
+            text = item.supply?.let { humanizeDuration(it.totalDays) } ?: "—",
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.primary,
@@ -207,7 +231,7 @@ private fun MedicationDetailSheet(
             DetailRow("Active ingredient", format.activeIngredient)
             DetailRow("Dose per tablet", format.dosePerTablet)
             DetailRow("Tablets per unit", format.tabletsPerUnit)
-            DetailRow("Days remaining", item.daysRemaining?.let { "$it days" } ?: "—")
+            DetailRow("Runs out in", item.supply?.let { humanizeDuration(it.totalDays) } ?: "—")
         }
     }
 }
@@ -236,8 +260,17 @@ private fun InventoryScreenPreview() {
         InventoryScreen(
             state = InventoryState(
                 items = listOf(
-                    InventoryItem(DispensableUnitDetails(1, 1, "Panadol", "Paracetamol", "500", "24"), daysRemaining = 12),
-                    InventoryItem(DispensableUnitDetails(2, 2, "Nurofen", "Ibuprofen", "200", "16"), daysRemaining = null),
+                    InventoryItem(
+                        DispensableUnitDetails(1, 1, "Panadol", "Paracetamol", "500", "24"),
+                        supply = SupplyBreakdown(
+                            undispensedFills = 3, tabletsPerUnit = 24, undispensedTablets = 72,
+                            undispensedDays = 36, dispensedTablets = 48, dispensedDays = 24,
+                        ),
+                    ),
+                    InventoryItem(
+                        DispensableUnitDetails(2, 2, "Nurofen", "Ibuprofen", "200", "16"),
+                        supply = null,
+                    ),
                 ),
                 selectedId = 1,
             ),
