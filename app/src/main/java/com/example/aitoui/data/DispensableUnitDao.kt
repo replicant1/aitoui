@@ -18,13 +18,18 @@ interface DispensableUnitDao {
         """
         SELECT f.id AS formatId, f.medicationId AS medicationId,
                m.brandName AS brandName, m.activeIngredient AS activeIngredient,
-               f.dosePerTablet AS dosePerTablet, f.tabletsPerUnit AS tabletsPerUnit
+               f.dosePerTablet AS dosePerTablet, f.tabletsPerUnit AS tabletsPerUnit,
+               f.imagePath AS imagePath
         FROM dispensable_units f
         JOIN medications m ON m.id = f.medicationId
         ORDER BY m.brandName COLLATE NOCASE, f.dosePerTablet
         """
     )
     fun getAllWithMedication(): Flow<List<DispensableUnitDetails>>
+
+    /** Sets (or clears, with null) the tablet photo filename for the unit with [id]. */
+    @Query("UPDATE dispensable_units SET imagePath = :imagePath WHERE id = :id")
+    suspend fun setImagePath(id: Long, imagePath: String?)
 
     /** Deletes the dispensable unit with [id]. Its scripts and dispensations cascade-delete. */
     @Query("DELETE FROM dispensable_units WHERE id = :id")

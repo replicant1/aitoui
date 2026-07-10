@@ -39,12 +39,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.example.aitoui.data.DispensableUnitDetails
+import com.example.aitoui.image.ImageStore
 import com.example.aitoui.ui.theme.AitouiTheme
 
 @Composable
@@ -146,6 +150,17 @@ private fun MedicationRow(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.Top,
     ) {
+        item.unit.imagePath?.let { imagePath ->
+            val context = LocalContext.current
+            AsyncImage(
+                model = ImageStore.fileFor(context, imagePath),
+                contentDescription = "Tablet photo for ${item.unit.brandName}",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(6.dp)),
+            )
+        }
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(2.dp),
@@ -261,14 +276,14 @@ private fun InventoryScreenPreview() {
             state = InventoryState(
                 items = listOf(
                     InventoryItem(
-                        DispensableUnitDetails(1, 1, "Panadol", "Paracetamol", "500", "24"),
+                        DispensableUnitDetails(1, 1, "Panadol", "Paracetamol", "500", "24", null),
                         supply = SupplyBreakdown(
                             undispensedFills = 3, tabletsPerUnit = 24, undispensedTablets = 72,
                             undispensedDays = 36, dispensedTablets = 48, dispensedDays = 24,
                         ),
                     ),
                     InventoryItem(
-                        DispensableUnitDetails(2, 2, "Nurofen", "Ibuprofen", "200", "16"),
+                        DispensableUnitDetails(2, 2, "Nurofen", "Ibuprofen", "200", "16", null),
                         supply = null,
                     ),
                 ),

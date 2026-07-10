@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Temp folder the camera app writes full-res captures into (internal files dir). -->
+    <files-path name="captures" path="captures/" />
+    <!-- Saved tablet photos. -->
+    <files-path name="unit_images" path="unit_images/" />
+</paths>

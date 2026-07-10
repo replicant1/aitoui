@@ -20,6 +20,7 @@ class InventorySupplyTest {
             activeIngredient = "Ingredient$formatId",
             dosePerTablet = "500",
             tabletsPerUnit = tabletsPerUnit,
+            imagePath = null,
         )
 
     private fun disp(unitId: Long, number: Int, dayNo: Long) =

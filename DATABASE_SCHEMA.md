@@ -1,6 +1,6 @@
 # Database Schema
 
-**Database:** `aitoui.db` (Room) · **version:** 18 · **package:** `com.example.aitoui.data`
+**Database:** `aitoui.db` (Room) · **version:** 19 · **package:** `com.example.aitoui.data`
 
 The schema models prescriptions and pharmacy dispensing as a chain:
 
@@ -35,6 +35,7 @@ A specific format (dosage/packaging) of a medication — a dispensable unit.
 | `medicationId` | INTEGER | **FK → `medications.id`** (ON DELETE CASCADE), indexed | |
 | `dosePerTablet` | TEXT | not null | raw text (e.g. `"500"`) |
 | `tabletsPerUnit` | TEXT | not null | raw text |
+| `imagePath` | TEXT | nullable | filename of the unit's tablet photo in internal storage (`unit_images/`), or null |
 
 ### `scripts`
 A prescription — what a doctor writes and you take to the pharmacy. Each script is for one dispensable
@@ -124,6 +125,7 @@ classDiagram
         +Long medicationId «FK»
         +String dosePerTablet
         +String tabletsPerUnit
+        +String? imagePath
     }
     class scripts {
         +Long id «PK»

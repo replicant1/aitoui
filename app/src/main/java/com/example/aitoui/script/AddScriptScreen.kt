@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DatePicker
@@ -34,12 +36,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.example.aitoui.data.DispensableUnitDetails
+import com.example.aitoui.image.ImageStore
 import com.example.aitoui.ui.theme.AitouiTheme
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -130,9 +137,22 @@ fun AddScriptScreen(
                     expanded = typeExpanded,
                     onDismissRequest = { typeExpanded = false },
                 ) {
+                    val context = LocalContext.current
                     state.dispensableUnits.forEach { format ->
                         DropdownMenuItem(
                             text = { Text(format.label) },
+                            leadingIcon = format.imagePath?.let { imagePath ->
+                                {
+                                    AsyncImage(
+                                        model = ImageStore.fileFor(context, imagePath),
+                                        contentDescription = null,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .clip(RoundedCornerShape(6.dp)),
+                                    )
+                                }
+                            },
                             onClick = {
                                 onAction(AddScriptAction.DispensableUnitSelected(format.formatId))
                                 typeExpanded = false
@@ -246,7 +266,7 @@ private fun AddScriptScreenPreview() {
         AddScriptScreen(
             state = AddScriptState(
                 dispensableUnits = listOf(
-                    DispensableUnitDetails(1, 1, "Panadol", "Paracetamol", "500", "24"),
+                    DispensableUnitDetails(1, 1, "Panadol", "Paracetamol", "500", "24", null),
                 ),
                 selectedFormatId = 1,
                 serialNo = "SN-0001",
