@@ -9,6 +9,7 @@ import com.example.aitoui.AitouiApp
 import com.example.aitoui.data.DailyScheduleRepository
 import com.example.aitoui.data.DispensableUnitRepository
 import com.example.aitoui.data.DispensationRepository
+import com.example.aitoui.data.ScriptRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,6 +34,7 @@ class InventoryViewModel(
     dispensableUnitRepository: DispensableUnitRepository,
     dispensationRepository: DispensationRepository,
     dailyScheduleRepository: DailyScheduleRepository,
+    scriptRepository: ScriptRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(InventoryState())
@@ -43,18 +45,20 @@ class InventoryViewModel(
             dispensableUnitRepository.formatsWithMedication,
             dispensationRepository.dispensations,
             dailyScheduleRepository.dailySchedule,
-        ) { formats, dispensations, schedule ->
+            scriptRepository.scriptsWithDetails,
+        ) { formats, dispensations, schedule, scripts ->
             // A medication can have several schedule rows (e.g. AM + PM), so sum them per medication.
             val dailyByMedication = schedule
                 .groupBy { it.medicationId }
                 .mapValues { (_, rows) -> rows.sumOf { it.quantity } }
-            val days = computeDaysRemaining(
+            val supply = computeSupply(
                 units = formats,
                 dispensations = dispensations,
+                scripts = scripts,
                 dailyByMedication = dailyByMedication,
                 nowMillis = System.currentTimeMillis(),
             )
-            formats.map { InventoryItem(it, days[it.medicationId]) }
+            formats.map { InventoryItem(it, supply[it.formatId]) }
         }
             .onEach { items ->
                 _state.update { current ->
@@ -88,6 +92,7 @@ class InventoryViewModel(
                     dispensableUnitRepository = app.dispensableUnitRepository,
                     dispensationRepository = app.dispensationRepository,
                     dailyScheduleRepository = app.dailyScheduleRepository,
+                    scriptRepository = app.scriptRepository,
                 )
             }
         }
