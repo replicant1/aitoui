@@ -97,12 +97,10 @@ fun computeSupply(
 }
 
 /**
- * Formats a whole-day supply figure using the largest sensible calendrical unit — days, weeks, months
- * (~30 days) or years (365 days) — e.g. 5 → "5 days", 20 → "2 weeks", 90 → "3 months", 800 → "2 years".
+ * Formats a whole-day supply figure in days or weeks — e.g. 5 → "5 days", 20 → "2 weeks", 90 →
+ * "12 weeks". Weeks are used for 7 days or more; larger units (months/years) are not used.
  */
 fun humanizeDuration(days: Int): String = when {
-    days >= 365 -> plural(days / 365, "year")
-    days >= 30 -> plural(days / 30, "month")
     days >= 7 -> plural(days / 7, "week")
     else -> plural(days, "day")
 }
