@@ -22,6 +22,8 @@ import kotlinx.coroutines.launch
 data class AddScriptState(
     val dispensableUnits: List<DispensableUnitDetails> = emptyList(),
     val selectedFormatId: Long? = null,
+    val serialNo: String = "",
+    val dateOfIssue: Long? = null,
     val repeats: String = "",
     val validToMillis: Long? = null,
 ) {
@@ -30,15 +32,18 @@ data class AddScriptState(
 
     // Basic field validation.
     val formatValid: Boolean get() = selectedFormatId != null
+    val dateOfIssueValid: Boolean get() = dateOfIssue != null
     val repeatsValid: Boolean get() = repeats.toIntOrNull() != null
     val validToValid: Boolean get() = validToMillis != null
 
     val canSave: Boolean
-        get() = formatValid && repeatsValid && validToValid
+        get() = formatValid && dateOfIssueValid && repeatsValid && validToValid
 }
 
 sealed interface AddScriptAction {
     data class DispensableUnitSelected(val id: Long) : AddScriptAction
+    data class SerialNoChanged(val value: String) : AddScriptAction
+    data class DateOfIssueChanged(val millis: Long?) : AddScriptAction
     data class RepeatsChanged(val value: String) : AddScriptAction
     data class ValidToChanged(val millis: Long?) : AddScriptAction
     data object Save : AddScriptAction
@@ -72,6 +77,12 @@ class AddScriptViewModel(
             is AddScriptAction.DispensableUnitSelected ->
                 _state.update { it.copy(selectedFormatId = action.id) }
 
+            is AddScriptAction.SerialNoChanged ->
+                _state.update { it.copy(serialNo = action.value) }
+
+            is AddScriptAction.DateOfIssueChanged ->
+                _state.update { it.copy(dateOfIssue = action.millis) }
+
             is AddScriptAction.RepeatsChanged ->
                 _state.update { it.copy(repeats = action.value.digitsOnly()) }
 
@@ -89,6 +100,8 @@ class AddScriptViewModel(
             scriptRepository.add(
                 Script(
                     dispensableUnitId = current.selectedFormatId!!,
+                    serialNo = current.serialNo.trim(),
+                    dateOfIssue = current.dateOfIssue!!,
                     repeats = current.repeats.toInt(),
                     validToMillis = current.validToMillis!!,
                 )

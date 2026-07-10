@@ -1,5 +1,9 @@
 package com.example.aitoui.data
 
+import java.text.SimpleDateFormat
+import java.util.Locale
+import java.util.TimeZone
+
 /**
  * Seeds the database with a moderate amount of realistic dummy data so the app can be exercised
  * without manual entry. Intended for debug builds only (see [com.example.aitoui.AitouiApp]).
@@ -19,34 +23,52 @@ object DatabaseSeeder {
 
     /** brand, activeIngredient, dosePerTablet, tabletsPerUnit */
     private val MEDICATIONS = listOf(
-        MedicationSeed("Panadol", "Paracetamol", "500", "24"),
-        MedicationSeed("Nurofen", "Ibuprofen", "200", "24"),
-        MedicationSeed("Amoxil", "Amoxicillin", "500", "20"),
-        MedicationSeed("Augmentin", "Amoxicillin/Clavulanate", "875", "14"),
-        MedicationSeed("Ventolin", "Salbutamol", "100", "200"),
-        MedicationSeed("Lipitor", "Atorvastatin", "20", "30"),
-        MedicationSeed("Zoloft", "Sertraline", "50", "30"),
-        MedicationSeed("Nexium", "Esomeprazole", "40", "30"),
-        MedicationSeed("Lyrica", "Pregabalin", "75", "56"),
-        MedicationSeed("Diabex", "Metformin", "500", "100"),
-        MedicationSeed("Coumadin", "Warfarin", "5", "50"),
-        MedicationSeed("Cipramil", "Citalopram", "20", "28"),
+        MedicationSeed("Lithicarb", "Lithium Carbide", "250", "200"),
+        MedicationSeed("Tensig", "Atenolol", "50", "60"),
+        MedicationSeed("Dytrex", "Duloxetine", "60", "56"),
+        MedicationSeed("Mirtanza", "Mirtazapine", "45", "60"),
+        MedicationSeed("Prexum", "Perindopril Arginine", "5", "60"),
+        MedicationSeed("Lipitor", "Atorvastatin", "40", "60"),
+        MedicationSeed("Dithiazide", "Hydrochlorothiazide", "25", "30"),
+        MedicationSeed("Tamsulosin", "Tamsulosin Hydrochloride", "0.4", "30"),
     )
 
     /**
      * One script per medication format. Columns: brand (must match a MEDICATIONS entry), valid-for
-     * (days), dispensed (times dispensed so far). Every seeded script defaults to 5 repeats. The
-     * inventory shows the dispensed count per format.
+     * (days), dispensed (times dispensed so far), date-of-issue ("dd-MM-yyyy" text, parsed to millis),
+     * serial number and repeats. The inventory shows the dispensed count per format.
      */
     private val SCRIPTS = listOf(
-        ScriptSeed("Panadol", 180, 2),
-        ScriptSeed("Amoxil", 30, 1),
-        ScriptSeed("Augmentin", 30, 0),
-        ScriptSeed("Ventolin", 365, 1),
-        ScriptSeed("Lipitor", 365, 3),
-        ScriptSeed("Zoloft", 180, 6),
-        ScriptSeed("Nexium", 90, 1),
-        ScriptSeed("Diabex", 365, 4),
+        ScriptSeed("Prexum", 365, 2, "20-03-2026", "PH0201893", 5),
+        ScriptSeed("Mirtanza", 365, 0, "17-06-2026", "PW2048023", 2),
+        ScriptSeed("Tensig", 365, 0, "17-06-2026", "PW2048021", 5),
+        ScriptSeed("Dytrex", 365, 1, "17-06-2026", "PW2048022", 2),
+        ScriptSeed("Mirtanza", 365, 2, "20-03-2026", "PH0201894", 2),
+        ScriptSeed("Prexum", 365, 4, "26-04-2025", "PH0208390", 5),
+        ScriptSeed("Lipitor", 365, 3, "26-04-2025", "NT1017819", 5),
+        ScriptSeed("Tensig", 365, 5, "30-10-2025", "PH0201890", 5),
+        ScriptSeed("Lipitor", 365, 4, "30-10-2025", "PH0201891", 5),
+        ScriptSeed("Dithiazide", 365, 4, "04-11-2025", "PH0201889", 5),
+        ScriptSeed("Lithicarb", 365, 1, "01-07-2026", "PH0203782", 2),
+    )
+
+    /**
+     * How many tablets of each medication are taken per day (brand must match a MEDICATIONS entry).
+     * Fractional quantities are allowed, e.g. half a tablet a day.
+     */
+    private val DAILY_SCHEDULE = listOf(
+        // AM
+        DailyScheduleSeed("Dytrex", 2.0),
+        DailyScheduleSeed("Tamsulosin", 1.0),
+        DailyScheduleSeed("Prexum", 1.0),
+        DailyScheduleSeed("Lithicarb", 3.0),
+        DailyScheduleSeed("Dithiazide", 0.5),
+        DailyScheduleSeed("Tensig", 1.0),
+        // PM
+        DailyScheduleSeed("Tensig", 1.0),
+        DailyScheduleSeed("Mirtanza", 1.0),
+        DailyScheduleSeed("Lipitor", 1.0),
+        DailyScheduleSeed("Lithicarb", 3.0),
     )
 
     suspend fun seedIfEmpty(
@@ -54,12 +76,14 @@ object DatabaseSeeder {
         formatRepository: DispensableUnitRepository,
         scriptRepository: ScriptRepository,
         dispensationRepository: DispensationRepository,
+        dailyScheduleRepository: DailyScheduleRepository,
         nowMillis: Long,
     ) {
         if (medicationRepository.count() > 0) return // already seeded — never grow without bound
 
-        // One medication and one dispensable unit per seed entry; capture the unit id per brand.
+        // One medication and one dispensable unit per seed entry; capture the ids per brand.
         val unitIdByBrand = HashMap<String, Long>()
+        val medicationIdByBrand = HashMap<String, Long>()
         for (med in MEDICATIONS) {
             val medicationId = medicationRepository.add(
                 Medication(brandName = med.brand, activeIngredient = med.activeIngredient)
@@ -72,6 +96,7 @@ object DatabaseSeeder {
                 )
             )
             unitIdByBrand[med.brand] = unitId
+            medicationIdByBrand[med.brand] = medicationId
         }
 
         // Each seed script is for a single dispensable unit (many scripts → one unit).
@@ -80,6 +105,8 @@ object DatabaseSeeder {
             val scriptId = scriptRepository.add(
                 Script(
                     dispensableUnitId = unitId,
+                    serialNo = seed.serialNo,
+                    dateOfIssue = parseDate(seed.dateOfIssue),
                     repeats = seed.repeats,
                     validToMillis = nowMillis + seed.validForDays * DAY_MILLIS,
                 )
@@ -99,6 +126,14 @@ object DatabaseSeeder {
                 )
             }
         }
+
+        // Seed the daily medication schedule (tablets taken per day, per medication).
+        dailyScheduleRepository.save(
+            DAILY_SCHEDULE.mapNotNull { seed ->
+                val medicationId = medicationIdByBrand[seed.brand] ?: return@mapNotNull null
+                DailyScheduleItem(medicationId = medicationId, quantity = seed.quantity)
+            }
+        )
     }
 
     private data class MedicationSeed(
@@ -112,6 +147,21 @@ object DatabaseSeeder {
         val brand: String,
         val validForDays: Long,
         val dispensed: Int,
-        val repeats: Int = 5,
+        /** Date of issue in "dd-MM-yyyy" text form (parsed to epoch millis via [parseDate]). */
+        val dateOfIssue: String,
+        val serialNo: String,
+        val repeats: Int,
     )
+
+    private data class DailyScheduleSeed(
+        val brand: String,
+        val quantity: Double,
+    )
+
+    /** Parses a "dd-MM-yyyy" date string to UTC epoch millis at the start of that day. */
+    private fun parseDate(text: String): Long {
+        val formatter = SimpleDateFormat("dd-MM-yyyy", Locale.US)
+        formatter.timeZone = TimeZone.getTimeZone("UTC")
+        return requireNotNull(formatter.parse(text)) { "Invalid seed date: $text" }.time
+    }
 }

@@ -60,6 +60,7 @@ class AitouiApp : Application() {
                     formatRepository = dispensableUnitRepository,
                     scriptRepository = scriptRepository,
                     dispensationRepository = dispensationRepository,
+                    dailyScheduleRepository = dailyScheduleRepository,
                     nowMillis = System.currentTimeMillis(),
                 )
             }

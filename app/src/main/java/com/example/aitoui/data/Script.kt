@@ -7,6 +7,10 @@ package com.example.aitoui.data
 data class Script(
     val id: Long = 0,
     val dispensableUnitId: Long,
+    /** Prescription serial number as printed on the script. */
+    val serialNo: String,
+    /** Date the script was issued, as UTC epoch millis at the start of the day. */
+    val dateOfIssue: Long,
     val repeats: Int,
     val validToMillis: Long,
 )

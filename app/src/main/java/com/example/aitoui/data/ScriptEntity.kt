@@ -20,6 +20,8 @@ import androidx.room.PrimaryKey
 data class ScriptEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val dispensableUnitId: Long,
+    val serialNo: String,
+    val dateOfIssue: Long,
     val repeats: Int,
     val validToMillis: Long,
 )
@@ -27,6 +29,8 @@ data class ScriptEntity(
 fun ScriptEntity.toDomain(): Script = Script(
     id = id,
     dispensableUnitId = dispensableUnitId,
+    serialNo = serialNo,
+    dateOfIssue = dateOfIssue,
     repeats = repeats,
     validToMillis = validToMillis,
 )
@@ -34,6 +38,8 @@ fun ScriptEntity.toDomain(): Script = Script(
 fun Script.toEntity(): ScriptEntity = ScriptEntity(
     id = id,
     dispensableUnitId = dispensableUnitId,
+    serialNo = serialNo,
+    dateOfIssue = dateOfIssue,
     repeats = repeats,
     validToMillis = validToMillis,
 )
