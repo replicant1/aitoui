@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
@@ -33,12 +34,18 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.aitoui.data.Medication
+import coil.compose.AsyncImage
+import com.example.aitoui.data.DispensableUnitDetails
+import com.example.aitoui.image.ImageStore
 import com.example.aitoui.ui.theme.AitouiTheme
 
 @Composable
@@ -109,8 +116,8 @@ fun DailyScheduleScreen(
                     label = { Text("Medication") },
                     placeholder = { Text("Select a medication") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = medicationExpanded) },
-                    supportingText = if (state.medications.isEmpty()) {
-                        { Text("No medications yet — add one first") }
+                    supportingText = if (state.units.isEmpty()) {
+                        { Text("No dispensable units yet — add one first") }
                     } else null,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -120,11 +127,24 @@ fun DailyScheduleScreen(
                     expanded = medicationExpanded,
                     onDismissRequest = { medicationExpanded = false },
                 ) {
-                    state.medications.forEach { medication ->
+                    val context = LocalContext.current
+                    state.units.forEach { unit ->
                         DropdownMenuItem(
-                            text = { Text("${medication.brandName} (${medication.activeIngredient})") },
+                            leadingIcon = {
+                                unit.imagePath?.let { imagePath ->
+                                    AsyncImage(
+                                        model = ImageStore.fileFor(context, imagePath),
+                                        contentDescription = null,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .clip(RoundedCornerShape(6.dp)),
+                                    )
+                                }
+                            },
+                            text = { Text(unit.label) },
                             onClick = {
-                                onAction(DailyScheduleAction.MedicationSelected(medication.id))
+                                onAction(DailyScheduleAction.MedicationSelected(unit.formatId))
                                 medicationExpanded = false
                             },
                         )
@@ -187,9 +207,9 @@ private fun DailyScheduleScreenPreview() {
     AitouiTheme {
         DailyScheduleScreen(
             state = DailyScheduleState(
-                medications = listOf(
-                    Medication(1, "Panadol", "Paracetamol"),
-                    Medication(2, "Nurofen", "Ibuprofen"),
+                units = listOf(
+                    DispensableUnitDetails(1, 1, "Panadol", "Paracetamol", "500", "24", null),
+                    DispensableUnitDetails(2, 2, "Nurofen", "Ibuprofen", "200", "16", null),
                 ),
                 tabletsTaken = listOf(
                     DailyScheduleEntry(0, 1, "Panadol", "2"),
