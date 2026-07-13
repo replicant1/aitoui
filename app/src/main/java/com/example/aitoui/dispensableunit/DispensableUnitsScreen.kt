@@ -40,19 +40,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.aitoui.data.DispensableUnitDetails
 import com.example.aitoui.image.CameraCaptureScreen
+import com.example.aitoui.image.FullImageDialog
 import com.example.aitoui.image.ImageStore
 import com.example.aitoui.ui.theme.AitouiTheme
 
@@ -300,36 +298,6 @@ private fun TabletPhoto(
                 imageVector = Icons.Filled.PhotoCamera,
                 contentDescription = "Add tablet photo",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
-
-/** A full-screen viewer for a unit's hi-res photo; tap anywhere to dismiss. */
-@Composable
-private fun FullImageDialog(fileName: String, onDismiss: () -> Unit) {
-    val context = LocalContext.current
-    // Prefer the hi-res image; fall back to the thumbnail for photos taken before hi-res was stored.
-    val file = ImageStore.fullFileFor(context, fileName).takeIf { it.exists() }
-        ?: ImageStore.fileFor(context, fileName)
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.92f))
-                .clickable(onClick = onDismiss),
-            contentAlignment = Alignment.Center,
-        ) {
-            AsyncImage(
-                model = file,
-                contentDescription = "Full-size tablet photo",
-                contentScale = ContentScale.Fit,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
             )
         }
     }

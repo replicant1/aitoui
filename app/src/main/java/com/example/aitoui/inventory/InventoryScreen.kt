@@ -7,8 +7,10 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -49,6 +51,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.aitoui.data.DispensableUnitDetails
+import com.example.aitoui.image.FullImageDialog
 import com.example.aitoui.image.ImageStore
 import com.example.aitoui.ui.theme.AitouiTheme
 
@@ -78,6 +81,8 @@ fun InventoryScreen(
     // Keep the last shown item so the panel still renders its details while sliding out.
     var lastShown by remember { mutableStateOf<InventoryItem?>(null) }
     state.selectedItem?.let { lastShown = it }
+    // The filename of a photo being viewed full-screen (via long-press), if any.
+    var viewingFullImage by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -123,6 +128,7 @@ fun InventoryScreen(
                         item = item,
                         selected = item.unit.formatId == state.selectedId,
                         onClick = { onAction(InventoryAction.FormatSelected(item.unit.formatId)) },
+                        onLongPressImage = { path -> viewingFullImage = path },
                     )
                     HorizontalDivider()
                 }
@@ -143,13 +149,19 @@ fun InventoryScreen(
             }
         }
     }
+
+    viewingFullImage?.let { fileName ->
+        FullImageDialog(fileName = fileName, onDismiss = { viewingFullImage = null })
+    }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun MedicationRow(
     item: InventoryItem,
     selected: Boolean,
     onClick: () -> Unit,
+    onLongPressImage: (String) -> Unit,
 ) {
     val background =
         if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
@@ -180,7 +192,11 @@ private fun MedicationRow(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .size(44.dp)
-                        .clip(RoundedCornerShape(6.dp)),
+                        .clip(RoundedCornerShape(6.dp))
+                        .combinedClickable(
+                            onClick = onClick,
+                            onLongClick = { onLongPressImage(imagePath) },
+                        ),
                 )
             }
             Column(
