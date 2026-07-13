@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.HorizontalDivider
@@ -54,6 +55,7 @@ import com.example.aitoui.ui.theme.AitouiTheme
 @Composable
 fun InventoryRoot(
     onBack: () -> Unit,
+    onRunOutGraph: () -> Unit,
     viewModel: InventoryViewModel = viewModel(factory = InventoryViewModel.Factory),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -61,6 +63,7 @@ fun InventoryRoot(
         state = state,
         onAction = viewModel::onAction,
         onBack = onBack,
+        onRunOutGraph = onRunOutGraph,
     )
 }
 
@@ -70,6 +73,7 @@ fun InventoryScreen(
     state: InventoryState,
     onAction: (InventoryAction) -> Unit,
     onBack: () -> Unit,
+    onRunOutGraph: () -> Unit,
 ) {
     // Keep the last shown item so the panel still renders its details while sliding out.
     var lastShown by remember { mutableStateOf<InventoryItem?>(null) }
@@ -85,6 +89,14 @@ fun InventoryScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onRunOutGraph) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ShowChart,
+                            contentDescription = "Run-out graph",
                         )
                     }
                 },
@@ -310,6 +322,7 @@ private fun InventoryScreenPreview() {
             ),
             onAction = {},
             onBack = {},
+            onRunOutGraph = {},
         )
     }
 }

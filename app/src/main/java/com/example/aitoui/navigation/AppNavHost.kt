@@ -9,6 +9,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.aitoui.MainScreen
 import com.example.aitoui.MainViewModel
 import com.example.aitoui.inventory.InventoryRoot
+import com.example.aitoui.runout.RunOutGraphRoot
 import com.example.aitoui.medication.MedicationRoot
 import com.example.aitoui.medication.MedicationsRoot
 import com.example.aitoui.dispensableunit.DispensableUnitsRoot
@@ -67,6 +68,12 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
         }
         composable<InventoryRoute> {
             InventoryRoot(
+                onBack = { navController.popBackStack() },
+                onRunOutGraph = { navController.navigate(RunOutGraphRoute) },
+            )
+        }
+        composable<RunOutGraphRoute> {
+            RunOutGraphRoot(
                 onBack = { navController.popBackStack() }
             )
         }
