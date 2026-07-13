@@ -39,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -144,7 +145,7 @@ fun DailyScheduleScreen(
                                     )
                                 }
                             },
-                            text = { Text(unit.label) },
+                            text = { Text(unit.label, fontWeight = FontWeight.Normal) },
                             onClick = {
                                 onAction(DailyScheduleAction.MedicationSelected(unit.formatId))
                                 medicationExpanded = false
