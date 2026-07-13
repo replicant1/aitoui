@@ -43,13 +43,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.aitoui.data.DispensableUnitDetails
 import com.example.aitoui.image.ImageStore
 import com.example.aitoui.ui.theme.AitouiTheme
+import com.example.aitoui.ui.theme.ThumbnailShape
 
 @Composable
 fun DailyScheduleRoot(
@@ -141,7 +141,7 @@ fun DailyScheduleScreen(
                                         contentScale = ContentScale.Crop,
                                         modifier = Modifier
                                             .size(40.dp)
-                                            .clip(RoundedCornerShape(6.dp)),
+                                            .clip(ThumbnailShape),
                                     )
                                 }
                             },
@@ -201,7 +201,7 @@ fun DailyScheduleScreen(
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier
                                         .size(40.dp)
-                                        .clip(RoundedCornerShape(6.dp)),
+                                        .clip(ThumbnailShape),
                                 )
                             }
                             Text(

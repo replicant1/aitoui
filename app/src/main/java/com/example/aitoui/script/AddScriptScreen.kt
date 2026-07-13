@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DatePicker
@@ -48,6 +47,7 @@ import coil.compose.AsyncImage
 import com.example.aitoui.data.DispensableUnitDetails
 import com.example.aitoui.image.ImageStore
 import com.example.aitoui.ui.theme.AitouiTheme
+import com.example.aitoui.ui.theme.ThumbnailShape
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.TimeZone
@@ -149,7 +149,7 @@ fun AddScriptScreen(
                                         contentScale = ContentScale.Crop,
                                         modifier = Modifier
                                             .size(36.dp)
-                                            .clip(RoundedCornerShape(6.dp)),
+                                            .clip(ThumbnailShape),
                                     )
                                 }
                             },
