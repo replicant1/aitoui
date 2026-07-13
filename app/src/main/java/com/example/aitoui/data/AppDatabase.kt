@@ -11,8 +11,9 @@ import androidx.room.RoomDatabase
         DispensationEntity::class,
         DailyScheduleEntity::class,
         InHandEntity::class,
+        InHandDateEntity::class,
     ],
-    version = 20,
+    version = 21,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
