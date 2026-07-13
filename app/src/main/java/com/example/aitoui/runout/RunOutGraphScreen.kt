@@ -204,19 +204,24 @@ private fun RunOutChart(
     val yTitleToLabelGap = with(density) { 5.dp.toPx() }   // small: title's bottom sits close to the numbers
     val yLabelToAxisGap = with(density) { 5.dp.toPx() }
 
-    // Below the axis: a gap to the month labels, then a larger gap to the "Time" title.
+    // Below the axis: the month labels, then the "Time" title, with the draggable thumb overlaid on
+    // the title (the thumb is taller than the title, so it overhangs it slightly).
     val xTickToLabelGap = with(density) { 3.dp.toPx() }
     val xLabelToTitleGap = with(density) { 8.dp.toPx() }
     val xBottomMargin = with(density) { 4.dp.toPx() }
+    val thumbWidth = with(density) { 44.dp.toPx() }
+    val thumbHeight = with(density) { 22.dp.toPx() }
     val monthLabelHeight = textMeasurer.measure("Aug", labelStyle).size.height.toFloat()
     val xTitleHeight = textMeasurer.measure("Time", titleStyle).size.height.toFloat()
+    // How far the title/thumb band extends below the title's top (the thumb overhangs the title).
+    val xTitleBandBelow = maxOf(xTitleHeight, xTitleHeight / 2f + thumbHeight / 2f)
 
-    // Plot insets. The bottom inset is sized to exactly fit the month labels and title, so the plot
-    // stretches to the full canvas height rather than leaving empty space beneath the axis.
+    // Plot insets. The bottom inset is sized to exactly fit the month labels, the thumb and the title,
+    // so the plot stretches to fill the canvas rather than leaving empty space beneath the axis.
     val leftPad = yTitleInset + yTitleBand + yTitleToLabelGap + widestYLabelWidth + yLabelToAxisGap
     val rightPad = with(density) { 16.dp.toPx() }
     val topPad = with(density) { 16.dp.toPx() }
-    val bottomPad = xTickToLabelGap + monthLabelHeight + xLabelToTitleGap + xTitleHeight + xBottomMargin
+    val bottomPad = xTickToLabelGap + monthLabelHeight + xLabelToTitleGap + xTitleBandBelow + xBottomMargin
 
     fun fractionForX(x: Float, widthPx: Int): Float {
         val plotLeft = leftPad
@@ -299,33 +304,34 @@ private fun RunOutChart(
                 pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 10f)),
             )
 
-            // Draggable thumb straddling the X axis at the cursor. Translucent so the month labels
-            // beneath it stay readable, with a firmer outline so the handle itself is still clear.
-            val thumbW = with(density) { 44.dp.toPx() }
-            val thumbH = with(density) { 22.dp.toPx() }
-            val thumbLeft = (cursorX - thumbW / 2f).coerceIn(plotLeft - thumbW / 2f, plotRight - thumbW / 2f)
-            val thumbCorner = androidx.compose.ui.geometry.CornerRadius(6f, 6f)
-            drawRoundRect(
-                color = thumbColor.copy(alpha = 0.3f),
-                topLeft = Offset(thumbLeft, plotBottom - thumbH / 2f),
-                size = Size(thumbW, thumbH),
-                cornerRadius = thumbCorner,
-            )
-            drawRoundRect(
-                color = thumbColor.copy(alpha = 0.7f),
-                topLeft = Offset(thumbLeft, plotBottom - thumbH / 2f),
-                size = Size(thumbW, thumbH),
-                cornerRadius = thumbCorner,
-                style = Stroke(width = 2f),
-            )
-
-            // X-axis title, set well below the month labels.
+            // X-axis title, directly below the month labels.
+            val xTitleTop = xLabelTop + monthLabelHeight + xLabelToTitleGap
             drawAxisTitle(
                 textMeasurer,
                 "Time",
                 titleStyle,
                 centerX = (plotLeft + plotRight) / 2f,
-                top = xLabelTop + monthLabelHeight + xLabelToTitleGap,
+                top = xTitleTop,
+            )
+
+            // Draggable thumb, centred vertically on the "Time" label and drawn over it — translucent,
+            // so the label reads through — with a firmer outline so the handle stays clear.
+            val thumbTop = xTitleTop + xTitleHeight / 2f - thumbHeight / 2f
+            val thumbLeft =
+                (cursorX - thumbWidth / 2f).coerceIn(plotLeft - thumbWidth / 2f, plotRight - thumbWidth / 2f)
+            val thumbCorner = androidx.compose.ui.geometry.CornerRadius(6f, 6f)
+            drawRoundRect(
+                color = thumbColor.copy(alpha = 0.3f),
+                topLeft = Offset(thumbLeft, thumbTop),
+                size = Size(thumbWidth, thumbHeight),
+                cornerRadius = thumbCorner,
+            )
+            drawRoundRect(
+                color = thumbColor.copy(alpha = 0.7f),
+                topLeft = Offset(thumbLeft, thumbTop),
+                size = Size(thumbWidth, thumbHeight),
+                cornerRadius = thumbCorner,
+                style = Stroke(width = 2f),
             )
 
             // Y-axis title, rotated so its top-of-letters sits at yTitleInset (aligned to the text above)
