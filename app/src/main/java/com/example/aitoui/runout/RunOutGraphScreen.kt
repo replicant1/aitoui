@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -29,7 +28,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -47,25 +45,46 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.aitoui.inventory.humanizeDuration
 
-/** Distinct line colours, cycled by series index. Legend swatches use the same colour. */
-private val SeriesColors = listOf(
-    Color(0xFF1E88E5), // blue
-    Color(0xFFE53935), // red
-    Color(0xFF43A047), // green
-    Color(0xFFFB8C00), // orange
-    Color(0xFF8E24AA), // purple
-    Color(0xFF00ACC1), // cyan
-    Color(0xFFF4511E), // deep orange
-    Color(0xFF6D4C41), // brown
+/**
+ * A colourblind-accessible line style: colour, thickness and dash pattern. Series are told apart by all
+ * three, not colour alone, so viewers with colour-vision deficiency can still distinguish them. Colours
+ * are from the Okabe–Ito palette (designed for colourblind safety); widths stay slim (2–3.5dp) and the
+ * dash patterns are chosen to be plainly different from one another.
+ */
+data class SeriesStyle(
+    val color: Color,
+    /** Line thickness in dp. */
+    val widthDp: Float,
+    /** Dash on/off intervals in dp, or null for a solid line. */
+    val dashDp: List<Float>?,
+) {
+    fun strokeWidthPx(density: Density): Float = with(density) { widthDp.dp.toPx() }
+
+    fun pathEffect(density: Density): PathEffect? = dashDp?.let { intervals ->
+        PathEffect.dashPathEffect(FloatArray(intervals.size) { with(density) { intervals[it].dp.toPx() } })
+    }
+}
+
+// Colour + width + dash chosen together so each entry differs from its neighbours in more than one way.
+private val SeriesStyles = listOf(
+    SeriesStyle(Color(0xFF0072B2), 2.5f, null),                     // blue — solid
+    SeriesStyle(Color(0xFFD55E00), 3.0f, listOf(10f, 6f)),         // vermillion — dashed
+    SeriesStyle(Color(0xFF009E73), 2.5f, listOf(2f, 6f)),          // bluish green — dotted
+    SeriesStyle(Color(0xFFCC79A7), 3.0f, listOf(12f, 5f, 2f, 5f)), // reddish purple — dash-dot
+    SeriesStyle(Color(0xFFE69F00), 2.5f, listOf(18f, 8f)),         // orange — long dash
+    SeriesStyle(Color(0xFF56B4E9), 3.5f, listOf(10f, 6f)),         // sky blue — dashed (thicker)
+    SeriesStyle(Color(0xFF000000), 2.0f, listOf(2f, 6f)),          // black — dotted (thin)
+    SeriesStyle(Color(0xFFB8860B), 3.0f, null),                    // dark gold — solid
 )
 
-fun seriesColor(colorIndex: Int): Color = SeriesColors[colorIndex % SeriesColors.size]
+fun seriesStyle(colorIndex: Int): SeriesStyle = SeriesStyles[colorIndex % SeriesStyles.size]
 
 @Composable
 fun RunOutGraphRoot(
@@ -256,14 +275,17 @@ private fun RunOutChart(
             drawLine(axisColor, Offset(plotLeft, plotTop), Offset(plotLeft, plotBottom), strokeWidth = 3f)
             drawLine(axisColor, Offset(plotLeft, plotBottom), Offset(plotRight, plotBottom), strokeWidth = 3f)
 
-            // One declining line per series, from (now, total) to (run-out day, 0).
+            // One declining line per series, from (now, total) to (run-out day, 0), each drawn with its
+            // own colour, thickness and dash pattern so it reads without relying on colour alone.
             for (s in data.series) {
                 if (s.totalTablets <= 0) continue
+                val style = seriesStyle(s.colorIndex)
                 drawLine(
-                    color = seriesColor(s.colorIndex),
+                    color = style.color,
                     start = Offset(xForDay(0.0), yForTab(s.totalTablets.toDouble())),
                     end = Offset(xForDay(s.runOutDay), yForTab(0.0)),
-                    strokeWidth = 4f,
+                    strokeWidth = style.strokeWidthPx(this),
+                    pathEffect = style.pathEffect(this),
                 )
             }
 
@@ -342,12 +364,18 @@ private fun RunOutLegend(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(12.dp)
-                        .clip(RoundedCornerShape(2.dp)),
-                ) {
-                    Canvas(modifier = Modifier.fillMaxSize()) { drawRect(seriesColor(s.colorIndex)) }
+                // A sample line drawn exactly as this series appears on the graph (colour, thickness,
+                // dash), so the legend key does not depend on colour alone.
+                val style = seriesStyle(s.colorIndex)
+                Canvas(modifier = Modifier.size(width = 44.dp, height = 16.dp)) {
+                    val midY = size.height / 2f
+                    drawLine(
+                        color = style.color,
+                        start = Offset(0f, midY),
+                        end = Offset(size.width, midY),
+                        strokeWidth = style.strokeWidthPx(this),
+                        pathEffect = style.pathEffect(this),
+                    )
                 }
                 Text(
                     text = s.label,
