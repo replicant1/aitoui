@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
@@ -72,6 +73,8 @@ fun DailyScheduleScreen(
     onBack: () -> Unit,
 ) {
     var medicationExpanded by remember { mutableStateOf(false) }
+    // Shared width so ADD and DELETE are the same size (DELETE is the wider label).
+    val actionButtonWidth = 120.dp
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -166,6 +169,7 @@ fun DailyScheduleScreen(
             Button(
                 onClick = { onAction(DailyScheduleAction.Add) },
                 enabled = state.canAdd,
+                modifier = Modifier.width(actionButtonWidth),
             ) {
                 Text("ADD")
             }
@@ -190,7 +194,7 @@ fun DailyScheduleScreen(
                                     if (selected) MaterialTheme.colorScheme.primaryContainer
                                     else MaterialTheme.colorScheme.surface
                                 )
-                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                                .padding(horizontal = 16.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
@@ -216,6 +220,7 @@ fun DailyScheduleScreen(
             Button(
                 onClick = { onAction(DailyScheduleAction.Delete) },
                 enabled = state.canDelete,
+                modifier = Modifier.width(actionButtonWidth),
             ) {
                 Text("DELETE")
             }
