@@ -5,68 +5,105 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.media.ExifInterface
-import android.net.Uri
-import androidx.core.content.FileProvider
 import java.io.File
 import java.io.IOException
 import java.util.UUID
 
 /**
- * Stores one downscaled tablet photo per dispensable unit in internal storage. The camera app writes
- * a full-res capture into a temp file (via [newCaptureTarget]); [saveTabletPhoto] then downscales and
- * re-encodes it under `unit_images/`, returning the filename to persist on the dispensable unit.
+ * Stores two images per dispensable unit in internal storage, sharing one filename:
+ * a downscaled square **thumbnail** under `unit_images/` and the higher-resolution **full** image
+ * (also square, as framed in the in-app camera) under `unit_images_full/`. The camera captures a
+ * square JPEG into a temp file (see [newCaptureFile]); [saveTabletPhoto] centre-squares it (defensively),
+ * writes the hi-res copy, derives the thumbnail from it, and returns the shared filename to persist on
+ * the unit's `imagePath`.
  */
 object ImageStore {
 
     private const val CAPTURES_DIR = "captures"
-    private const val IMAGES_DIR = "unit_images"
-    private const val MAX_DIMENSION = 1024
-    private const val JPEG_QUALITY = 85
+    private const val THUMBS_DIR = "unit_images"
+    private const val FULL_DIR = "unit_images_full"
+    private const val MAX_THUMB = 1024
+    private const val MAX_FULL = 2048
+    private const val THUMB_QUALITY = 85
+    private const val FULL_QUALITY = 90
 
     private fun capturesDir(context: Context) = File(context.filesDir, CAPTURES_DIR).apply { mkdirs() }
-    private fun imagesDir(context: Context) = File(context.filesDir, IMAGES_DIR).apply { mkdirs() }
+    private fun thumbsDir(context: Context) = File(context.filesDir, THUMBS_DIR).apply { mkdirs() }
+    private fun fullDir(context: Context) = File(context.filesDir, FULL_DIR).apply { mkdirs() }
 
-    /** The saved photo file for [fileName], for display (e.g. with Coil). */
-    fun fileFor(context: Context, fileName: String): File = File(imagesDir(context), fileName)
+    /** The thumbnail file for [fileName], for list display (e.g. with Coil). */
+    fun fileFor(context: Context, fileName: String): File = File(thumbsDir(context), fileName)
 
-    /** A temp file for the camera to write a full-res capture into, plus a shareable FileProvider Uri. */
-    fun newCaptureTarget(context: Context): Pair<Uri, File> {
-        val file = File(capturesDir(context), "capture_${UUID.randomUUID()}.jpg")
-        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-        return uri to file
-    }
+    /** The hi-res file for [fileName], for the full-image viewer. */
+    fun fullFileFor(context: Context, fileName: String): File = File(fullDir(context), fileName)
+
+    /** A fresh temp file for the in-app camera to write a full-res capture into. */
+    fun newCaptureFile(context: Context): File =
+        File(capturesDir(context), "capture_${UUID.randomUUID()}.jpg")
 
     /**
-     * Downscales and re-encodes [source] into a stored JPEG under `unit_images/`, applying EXIF
-     * rotation, and deletes the temp [source]. Returns the stored filename. Do off the main thread.
+     * From a camera [source] JPEG, writes a hi-res square copy and a downscaled square thumbnail (both
+     * under the same returned filename), then deletes [source]. Returns the shared filename. Applies EXIF
+     * rotation and centre-squares defensively. Do off the main thread.
      */
     fun saveTabletPhoto(context: Context, source: File): String {
-        val decoded = decodeDownscaled(source)
-        val upright = applyExifRotation(source, decoded)
+        val upright = applyExifRotation(source, decodeDownscaled(source, MAX_FULL))
+        val square = centreSquare(upright)
         val name = "unit_${UUID.randomUUID()}.jpg"
-        fileFor(context, name).outputStream().use { out ->
-            upright.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, out)
+
+        fullFileFor(context, name).outputStream().use { out ->
+            square.compress(Bitmap.CompressFormat.JPEG, FULL_QUALITY, out)
         }
-        upright.recycle()
+        val thumb = scaledDown(square, MAX_THUMB)
+        fileFor(context, name).outputStream().use { out ->
+            thumb.compress(Bitmap.CompressFormat.JPEG, THUMB_QUALITY, out)
+        }
+
+        if (thumb != square) thumb.recycle()
+        square.recycle()
         source.delete()
         return name
     }
 
-    /** Deletes the stored photo [fileName], if any. */
+    /** Deletes both the thumbnail and hi-res files for [fileName], if any. */
     fun delete(context: Context, fileName: String?) {
-        if (fileName != null) fileFor(context, fileName).delete()
+        if (fileName != null) {
+            fileFor(context, fileName).delete()
+            fullFileFor(context, fileName).delete()
+        }
     }
 
-    private fun decodeDownscaled(file: File): Bitmap {
+    private fun decodeDownscaled(file: File, maxDimension: Int): Bitmap {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeFile(file.absolutePath, bounds)
         var sample = 1
-        while (bounds.outWidth / sample > MAX_DIMENSION || bounds.outHeight / sample > MAX_DIMENSION) {
+        while (bounds.outWidth / sample > maxDimension || bounds.outHeight / sample > maxDimension) {
             sample *= 2
         }
         val opts = BitmapFactory.Options().apply { inSampleSize = sample }
         return BitmapFactory.decodeFile(file.absolutePath, opts)
             ?: throw IOException("Could not decode image ${file.name}")
+    }
+
+    /** Crops [bitmap] to its largest centred square (a no-op if already square). */
+    private fun centreSquare(bitmap: Bitmap): Bitmap {
+        val side = minOf(bitmap.width, bitmap.height)
+        if (bitmap.width == side && bitmap.height == side) return bitmap
+        val cropped = Bitmap.createBitmap(
+            bitmap, (bitmap.width - side) / 2, (bitmap.height - side) / 2, side, side,
+        )
+        if (cropped != bitmap) bitmap.recycle()
+        return cropped
+    }
+
+    /** Scales [bitmap] down so its longest side is at most [maxDimension] (a no-op if already smaller). */
+    private fun scaledDown(bitmap: Bitmap, maxDimension: Int): Bitmap {
+        val longest = maxOf(bitmap.width, bitmap.height)
+        if (longest <= maxDimension) return bitmap
+        val scale = maxDimension.toFloat() / longest
+        return Bitmap.createScaledBitmap(
+            bitmap, (bitmap.width * scale).toInt(), (bitmap.height * scale).toInt(), true,
+        )
     }
 
     private fun applyExifRotation(file: File, bitmap: Bitmap): Bitmap {

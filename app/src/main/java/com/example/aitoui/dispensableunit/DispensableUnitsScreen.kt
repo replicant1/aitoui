@@ -1,9 +1,9 @@
 package com.example.aitoui.dispensableunit
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,18 +40,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.aitoui.data.DispensableUnitDetails
+import com.example.aitoui.image.CameraCaptureScreen
 import com.example.aitoui.image.ImageStore
 import com.example.aitoui.ui.theme.AitouiTheme
-import java.io.File
 
 @Composable
 fun DispensableUnitsRoot(
@@ -76,124 +79,126 @@ fun DispensableUnitsScreen(
     onBack: () -> Unit,
     onAddDispensableUnit: () -> Unit,
 ) {
-    val context = LocalContext.current
-
-    // The unit id and temp file for an in-flight camera capture, if any.
-    var pendingCapture by remember { mutableStateOf<Pair<Long, File>?>(null) }
     // The unit whose existing photo is being managed (retake/remove), if any.
     var managingPhotoUnitId by remember { mutableStateOf<Long?>(null) }
+    // The unit currently capturing a photo via the in-app camera, if any.
+    var capturingForUnitId by remember { mutableStateOf<Long?>(null) }
+    // The filename of a hi-res photo being viewed full-screen (via long-press), if any.
+    var viewingFullImage by remember { mutableStateOf<String?>(null) }
 
-    val cameraLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.TakePicture(),
-    ) { success ->
-        val capture = pendingCapture
-        pendingCapture = null
-        when {
-            success && capture != null -> onAction(DispensableUnitsAction.PhotoCaptured(capture.first, capture.second))
-            else -> capture?.second?.delete()   // cancelled/failed — drop the empty temp file
-        }
-    }
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            topBar = {
+                TopAppBar(
+                    title = { Text("Dispensable Units") },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                            )
+                        }
+                    },
+                )
+            },
+            floatingActionButton = {
+                FloatingActionButton(onClick = onAddDispensableUnit) {
+                    Icon(imageVector = Icons.Filled.Add, contentDescription = "Add dispensable unit")
+                }
+            },
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+            ) {
+                Text(
+                    text = "These are all the dispensable units — the specific formats (dose and pack " +
+                        "size) in which your medications come. Long-press a photo to view it full-size.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                )
 
-    fun startCapture(unitId: Long) {
-        val (uri, file) = ImageStore.newCaptureTarget(context)
-        pendingCapture = unitId to file
-        cameraLauncher.launch(uri)
-    }
-
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        topBar = {
-            TopAppBar(
-                title = { Text("Dispensable Units") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    items(state.units, key = { it.formatId }) { unit ->
+                        DispensableUnitRow(
+                            unit = unit,
+                            onDeleteClick = { onAction(DispensableUnitsAction.DeleteTapped(unit.formatId)) },
+                            onCaptureClick = { capturingForUnitId = unit.formatId },
+                            onManagePhotoClick = { managingPhotoUnitId = unit.formatId },
+                            onViewFullImage = { unit.imagePath?.let { path -> viewingFullImage = path } },
                         )
                     }
-                },
-            )
-        },
-        floatingActionButton = {
-            FloatingActionButton(onClick = onAddDispensableUnit) {
-                Icon(imageVector = Icons.Filled.Add, contentDescription = "Add dispensable unit")
-            }
-        },
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-        ) {
-            Text(
-                text = "These are all the dispensable units — the specific formats (dose and pack " +
-                    "size) in which your medications come.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            )
-
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                items(state.units, key = { it.formatId }) { unit ->
-                    DispensableUnitRow(
-                        unit = unit,
-                        onDeleteClick = { onAction(DispensableUnitsAction.DeleteTapped(unit.formatId)) },
-                        onCaptureClick = { startCapture(unit.formatId) },
-                        onManagePhotoClick = { managingPhotoUnitId = unit.formatId },
-                    )
                 }
             }
         }
-    }
 
-    // Confirm before deleting a dispensable unit.
-    state.pendingDeleteUnit?.let { unit ->
-        AlertDialog(
-            onDismissRequest = { onAction(DispensableUnitsAction.CancelDelete) },
-            title = { Text("Delete dispensable unit?") },
-            text = {
-                Text(
-                    "Delete ${unit.brandName} (${unit.dosePerTablet}mg)? This also removes its " +
-                        "scripts and dispensation history, and cannot be undone.",
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = { onAction(DispensableUnitsAction.ConfirmDelete) }) { Text("Delete") }
-            },
-            dismissButton = {
-                TextButton(onClick = { onAction(DispensableUnitsAction.CancelDelete) }) { Text("Cancel") }
-            },
-        )
-    }
-
-    // Manage an existing photo: retake (replaces it) or remove it.
-    managingPhotoUnitId?.let { unitId ->
-        val unit = state.units.firstOrNull { it.formatId == unitId }
-        if (unit == null) {
-            managingPhotoUnitId = null
-        } else {
+        // Confirm before deleting a dispensable unit.
+        state.pendingDeleteUnit?.let { unit ->
             AlertDialog(
-                onDismissRequest = { managingPhotoUnitId = null },
-                title = { Text("${unit.brandName} photo") },
-                text = { Text("Retake replaces the current photo. Remove clears it.") },
+                onDismissRequest = { onAction(DispensableUnitsAction.CancelDelete) },
+                title = { Text("Delete dispensable unit?") },
+                text = {
+                    Text(
+                        "Delete ${unit.brandName} (${unit.dosePerTablet}mg)? This also removes its " +
+                            "scripts and dispensation history, and cannot be undone.",
+                    )
+                },
                 confirmButton = {
-                    TextButton(onClick = {
-                        managingPhotoUnitId = null
-                        startCapture(unitId)
-                    }) { Text("Retake") }
+                    TextButton(onClick = { onAction(DispensableUnitsAction.ConfirmDelete) }) { Text("Delete") }
                 },
                 dismissButton = {
-                    TextButton(onClick = {
-                        managingPhotoUnitId = null
-                        onAction(DispensableUnitsAction.PhotoRemoved(unitId))
-                    }) { Text("Remove") }
+                    TextButton(onClick = { onAction(DispensableUnitsAction.CancelDelete) }) { Text("Cancel") }
                 },
             )
+        }
+
+        // Manage an existing photo: retake (replaces it) or remove it.
+        managingPhotoUnitId?.let { unitId ->
+            val unit = state.units.firstOrNull { it.formatId == unitId }
+            if (unit == null) {
+                managingPhotoUnitId = null
+            } else {
+                AlertDialog(
+                    onDismissRequest = { managingPhotoUnitId = null },
+                    title = { Text("${unit.brandName} photo") },
+                    text = { Text("Retake replaces the current photo. Remove clears it.") },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            managingPhotoUnitId = null
+                            capturingForUnitId = unitId
+                        }) { Text("Retake") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = {
+                            managingPhotoUnitId = null
+                            onAction(DispensableUnitsAction.PhotoRemoved(unitId))
+                        }) { Text("Remove") }
+                    },
+                )
+            }
+        }
+
+        // In-app camera — full-screen overlay while capturing.
+        capturingForUnitId?.let { unitId ->
+            CameraCaptureScreen(
+                onCaptured = { file ->
+                    onAction(DispensableUnitsAction.PhotoCaptured(unitId, file))
+                    capturingForUnitId = null
+                },
+                onCancel = { capturingForUnitId = null },
+            )
+        }
+
+        // Full-resolution photo viewer (long-press).
+        viewingFullImage?.let { fileName ->
+            FullImageDialog(fileName = fileName, onDismiss = { viewingFullImage = null })
         }
     }
 }
@@ -209,6 +214,7 @@ private fun DispensableUnitRow(
     onDeleteClick: () -> Unit,
     onCaptureClick: () -> Unit,
     onManagePhotoClick: () -> Unit,
+    onViewFullImage: () -> Unit,
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -220,6 +226,7 @@ private fun DispensableUnitRow(
                 contentDescription = "Tablet photo for ${unit.brandName}",
                 onCaptureClick = onCaptureClick,
                 onManagePhotoClick = onManagePhotoClick,
+                onViewFullImage = onViewFullImage,
                 modifier = Modifier.padding(start = 12.dp, top = 12.dp, bottom = 12.dp),
             )
             Column(
@@ -255,14 +262,17 @@ private fun DispensableUnitRow(
 
 /**
  * A ~56dp square showing the unit's tablet photo, or a camera button placeholder when there is none.
- * Tapping the photo opens the retake/remove dialog; tapping the placeholder starts a capture.
+ * Tapping the photo opens the retake/remove dialog; long-pressing views it full-size; tapping the
+ * placeholder starts a capture.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun TabletPhoto(
     imagePath: String?,
     contentDescription: String,
     onCaptureClick: () -> Unit,
     onManagePhotoClick: () -> Unit,
+    onViewFullImage: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val shape = RoundedCornerShape(8.dp)
@@ -275,7 +285,7 @@ private fun TabletPhoto(
             modifier = modifier
                 .size(56.dp)
                 .clip(shape)
-                .clickable(onClick = onManagePhotoClick),
+                .combinedClickable(onClick = onManagePhotoClick, onLongClick = onViewFullImage),
         )
     } else {
         Box(
@@ -290,6 +300,36 @@ private fun TabletPhoto(
                 imageVector = Icons.Filled.PhotoCamera,
                 contentDescription = "Add tablet photo",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+/** A full-screen viewer for a unit's hi-res photo; tap anywhere to dismiss. */
+@Composable
+private fun FullImageDialog(fileName: String, onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    // Prefer the hi-res image; fall back to the thumbnail for photos taken before hi-res was stored.
+    val file = ImageStore.fullFileFor(context, fileName).takeIf { it.exists() }
+        ?: ImageStore.fileFor(context, fileName)
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.92f))
+                .clickable(onClick = onDismiss),
+            contentAlignment = Alignment.Center,
+        ) {
+            AsyncImage(
+                model = file,
+                contentDescription = "Full-size tablet photo",
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
             )
         }
     }
