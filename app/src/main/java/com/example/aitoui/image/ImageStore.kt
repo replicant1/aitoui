@@ -8,6 +8,13 @@ import android.media.ExifInterface
 import java.io.File
 import java.io.IOException
 import java.util.UUID
+import kotlin.math.roundToInt
+
+/**
+ * A square crop within a square image, as fractions in 0..1: [left] and [top] give the crop's
+ * top-left corner and [size] its side length. The default selects the whole image.
+ */
+data class SquareCrop(val left: Float = 0f, val top: Float = 0f, val size: Float = 1f)
 
 /**
  * Stores two images per dispensable unit in internal storage, sharing one filename:
@@ -42,24 +49,32 @@ object ImageStore {
         File(capturesDir(context), "capture_${UUID.randomUUID()}.jpg")
 
     /**
-     * From a camera [source] JPEG, writes a hi-res square copy and a downscaled square thumbnail (both
-     * under the same returned filename), then deletes [source]. Returns the shared filename. Applies EXIF
-     * rotation and centre-squares defensively. Do off the main thread.
+     * From a camera [source] JPEG, writes the hi-res square capture and a downscaled thumbnail of the
+     * [crop] region within it (both under the same returned filename), then deletes [source]. Returns the
+     * shared filename. Applies EXIF rotation and centre-squares defensively. Do off the main thread.
      */
-    fun saveTabletPhoto(context: Context, source: File): String {
-        val upright = applyExifRotation(source, decodeDownscaled(source, MAX_FULL))
-        val square = centreSquare(upright)
+    fun saveTabletPhoto(context: Context, source: File, crop: SquareCrop = SquareCrop()): String {
+        val square = centreSquare(applyExifRotation(source, decodeDownscaled(source, MAX_FULL)))
         val name = "unit_${UUID.randomUUID()}.jpg"
 
+        // Hi-res = the whole captured square.
         fullFileFor(context, name).outputStream().use { out ->
             square.compress(Bitmap.CompressFormat.JPEG, FULL_QUALITY, out)
         }
-        val thumb = scaledDown(square, MAX_THUMB)
+
+        // Thumbnail = the crop region, downscaled.
+        val w = square.width
+        val side = (crop.size * w).roundToInt().coerceIn(1, w)
+        val x = (crop.left * w).roundToInt().coerceIn(0, w - side)
+        val y = (crop.top * w).roundToInt().coerceIn(0, w - side)
+        val cropped = Bitmap.createBitmap(square, x, y, side, side)
+        val thumb = scaledDown(cropped, MAX_THUMB)
         fileFor(context, name).outputStream().use { out ->
             thumb.compress(Bitmap.CompressFormat.JPEG, THUMB_QUALITY, out)
         }
 
-        if (thumb != square) thumb.recycle()
+        if (thumb != cropped) thumb.recycle()
+        if (cropped != square) cropped.recycle()
         square.recycle()
         source.delete()
         return name

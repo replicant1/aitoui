@@ -186,8 +186,8 @@ fun DispensableUnitsScreen(
         // In-app camera — full-screen overlay while capturing.
         capturingForUnitId?.let { unitId ->
             CameraCaptureScreen(
-                onCaptured = { file ->
-                    onAction(DispensableUnitsAction.PhotoCaptured(unitId, file))
+                onCaptured = { file, crop ->
+                    onAction(DispensableUnitsAction.PhotoCaptured(unitId, file, crop))
                     capturingForUnitId = null
                 },
                 onCancel = { capturingForUnitId = null },

@@ -10,6 +10,7 @@ import com.example.aitoui.AitouiApp
 import com.example.aitoui.data.DispensableUnitDetails
 import com.example.aitoui.data.DispensableUnitRepository
 import com.example.aitoui.image.ImageStore
+import com.example.aitoui.image.SquareCrop
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -40,10 +41,11 @@ sealed interface DispensableUnitsAction {
     data object CancelDelete : DispensableUnitsAction
 
     /**
-     * The camera returned a full-res capture in [source] for the unit with [id]. The image is
-     * downscaled and stored, any previous photo is discarded, and the filename is persisted.
+     * The camera returned a full-res capture in [source] for the unit with [id], cropped to [crop].
+     * The hi-res image and the cropped thumbnail are stored, any previous photo is discarded, and the
+     * filename is persisted.
      */
-    data class PhotoCaptured(val id: Long, val source: File) : DispensableUnitsAction
+    data class PhotoCaptured(val id: Long, val source: File, val crop: SquareCrop) : DispensableUnitsAction
     /** Remove the tablet photo from the unit with [id]. */
     data class PhotoRemoved(val id: Long) : DispensableUnitsAction
 }
@@ -83,7 +85,7 @@ class DispensableUnitsViewModel(
 
             DispensableUnitsAction.ConfirmDelete -> deleteUnit()
 
-            is DispensableUnitsAction.PhotoCaptured -> savePhoto(action.id, action.source)
+            is DispensableUnitsAction.PhotoCaptured -> savePhoto(action.id, action.source, action.crop)
 
             is DispensableUnitsAction.PhotoRemoved -> removePhoto(action.id)
         }
@@ -99,12 +101,12 @@ class DispensableUnitsViewModel(
         }
     }
 
-    /** Stores the downscaled capture, discards any prior photo, and persists the new filename. */
-    private fun savePhoto(id: Long, source: File) {
+    /** Stores the hi-res capture and cropped thumbnail, discards any prior photo, persists the name. */
+    private fun savePhoto(id: Long, source: File, crop: SquareCrop) {
         val previous = _state.value.units.firstOrNull { it.formatId == id }?.imagePath
         viewModelScope.launch {
             val fileName = withContext(Dispatchers.IO) {
-                ImageStore.saveTabletPhoto(appContext, source)
+                ImageStore.saveTabletPhoto(appContext, source, crop)
             }
             repository.setImagePath(id, fileName)
             ImageStore.delete(appContext, previous)

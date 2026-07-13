@@ -6,7 +6,9 @@ import android.util.Rational
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
@@ -14,55 +16,82 @@ import androidx.camera.core.UseCaseGroup
 import androidx.camera.core.ViewPort
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.FlashAuto
+import androidx.compose.material.icons.filled.FlashOff
+import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import coil.compose.AsyncImage
+import kotlinx.coroutines.delay
 import java.io.File
+import kotlin.math.roundToInt
 
 /**
- * A full-screen in-app camera. A square viewfinder is bound to a 1:1 [ViewPort], so what is framed in
- * the square is exactly what is captured and what the thumbnail will clip. On capture, a square JPEG is
- * written to a temp file and returned via [onCaptured]; [onCancel] backs out.
+ * A full-screen in-app camera with two phases. First, a square viewfinder (bound to a 1:1 [ViewPort])
+ * with a flash toggle and tap-to-focus; the shutter freezes a square photo. Then a crop overlay — a
+ * draggable, corner-resizable square over the frozen photo — lets the user pick the thumbnail region.
+ * On OK, the temp file and the chosen [SquareCrop] are returned via [onCaptured]. The hi-res image is
+ * the whole square; the thumbnail is the crop.
  */
 @Composable
 fun CameraCaptureScreen(
-    onCaptured: (File) -> Unit,
+    onCaptured: (File, SquareCrop) -> Unit,
     onCancel: () -> Unit,
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val density = LocalDensity.current
 
     var hasPermission by remember {
         mutableStateOf(
@@ -77,42 +106,61 @@ fun CameraCaptureScreen(
         if (!granted) onCancel()
     }
 
-    BackHandler(onBack = onCancel)
+    var capturedFile by remember { mutableStateOf<File?>(null) }
+
+    fun cancelAll() {
+        capturedFile?.delete()
+        onCancel()
+    }
+    BackHandler { if (capturedFile != null) { capturedFile?.delete(); capturedFile = null } else onCancel() }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
-            // Consume taps so nothing behind this full-screen overlay can be touched.
             .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {},
     ) {
         if (hasPermission) {
+            val previewView = remember { PreviewView(context).apply { scaleType = PreviewView.ScaleType.FILL_CENTER } }
             val imageCapture = remember {
-                ImageCapture.Builder()
-                    .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-                    .build()
+                ImageCapture.Builder().setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY).build()
             }
+            var camera by remember { mutableStateOf<Camera?>(null) }
             var capturing by remember { mutableStateOf(false) }
+
+            val flashModes = listOf(ImageCapture.FLASH_MODE_OFF, ImageCapture.FLASH_MODE_AUTO, ImageCapture.FLASH_MODE_ON)
+            var flashIndex by remember { mutableIntStateOf(0) }
+
+            var focusPoint by remember { mutableStateOf<Offset?>(null) }
+            LaunchedEffect(focusPoint) { if (focusPoint != null) { delay(700); focusPoint = null } }
+
+            // Square viewfinder / cropping area.
+            var boxSizePx by remember { mutableFloatStateOf(0f) }
+            var cropCenter by remember { mutableStateOf(Offset.Zero) }
+            var cropRadius by remember { mutableFloatStateOf(0f) }
+            LaunchedEffect(capturedFile) {
+                if (capturedFile != null && boxSizePx > 0f) {
+                    cropRadius = boxSizePx * 0.32f
+                    cropCenter = Offset(boxSizePx / 2f, boxSizePx / 2f)
+                }
+            }
 
             Column(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                // Square viewfinder — the exact area that becomes the hi-res image and thumbnail.
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(1f)
-                        .clip(RoundedCornerShape(8.dp)),
+                        .clip(RoundedCornerShape(8.dp))
+                        .onSizeChanged { boxSizePx = it.width.toFloat() },
                 ) {
                     AndroidView(
                         modifier = Modifier.fillMaxSize(),
-                        factory = { ctx ->
-                            val previewView = PreviewView(ctx).apply {
-                                scaleType = PreviewView.ScaleType.FILL_CENTER
-                            }
-                            val providerFuture = ProcessCameraProvider.getInstance(ctx)
+                        factory = {
+                            val providerFuture = ProcessCameraProvider.getInstance(context)
                             providerFuture.addListener({
                                 val provider = providerFuture.get()
                                 val preview = Preview.Builder().build().also {
@@ -120,76 +168,207 @@ fun CameraCaptureScreen(
                                 }
                                 val rotation = previewView.display?.rotation ?: 0
                                 imageCapture.targetRotation = rotation
+                                imageCapture.flashMode = flashModes[flashIndex]
                                 val viewPort = ViewPort.Builder(Rational(1, 1), rotation)
-                                    .setScaleType(ViewPort.FILL_CENTER)
-                                    .build()
+                                    .setScaleType(ViewPort.FILL_CENTER).build()
                                 val group = UseCaseGroup.Builder()
-                                    .addUseCase(preview)
-                                    .addUseCase(imageCapture)
-                                    .setViewPort(viewPort)
-                                    .build()
+                                    .addUseCase(preview).addUseCase(imageCapture).setViewPort(viewPort).build()
                                 provider.unbindAll()
-                                provider.bindToLifecycle(
+                                camera = provider.bindToLifecycle(
                                     lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, group,
                                 )
-                            }, ContextCompat.getMainExecutor(ctx))
+                            }, ContextCompat.getMainExecutor(context))
                             previewView
                         },
                     )
-                    // Template border showing the crop boundary.
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .border(2.dp, Color.White.copy(alpha = 0.85f), RoundedCornerShape(8.dp)),
-                    )
+
+                    if (capturedFile == null) {
+                        // Preview phase: tap-to-focus + template border.
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .border(2.dp, Color.White.copy(alpha = 0.85f), RoundedCornerShape(8.dp))
+                                .pointerInput(Unit) {
+                                    detectTapGestures { pos ->
+                                        camera?.let { cam ->
+                                            val pt = previewView.meteringPointFactory.createPoint(pos.x, pos.y)
+                                            cam.cameraControl.startFocusAndMetering(
+                                                FocusMeteringAction.Builder(pt).build(),
+                                            )
+                                            focusPoint = pos
+                                        }
+                                    }
+                                },
+                        )
+                        focusPoint?.let { p ->
+                            val ring = 64.dp
+                            Box(
+                                modifier = Modifier
+                                    .offset {
+                                        val r = ring.toPx()
+                                        IntOffset((p.x - r / 2f).roundToInt(), (p.y - r / 2f).roundToInt())
+                                    }
+                                    .size(ring)
+                                    .border(2.dp, Color.Yellow, CircleShape),
+                            )
+                        }
+                    } else {
+                        // Crop phase: frozen photo + adjustable crop square.
+                        AsyncImage(
+                            model = capturedFile,
+                            contentDescription = "Captured photo",
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                        val minR = boxSizePx * 0.1f
+                        Canvas(modifier = Modifier.fillMaxSize()) {
+                            val l = cropCenter.x - cropRadius
+                            val t = cropCenter.y - cropRadius
+                            val s = cropRadius * 2f
+                            val w = size.width
+                            val h = size.height
+                            val dim = Color.Black.copy(alpha = 0.5f)
+                            drawRect(dim, Offset(0f, 0f), Size(w, t))
+                            drawRect(dim, Offset(0f, t + s), Size(w, h - (t + s)))
+                            drawRect(dim, Offset(0f, t), Size(l, s))
+                            drawRect(dim, Offset(l + s, t), Size(w - (l + s), s))
+                            drawRect(Color.White, Offset(l, t), Size(s, s), style = Stroke(width = 2.dp.toPx()))
+                        }
+                        // Move the whole square.
+                        Box(
+                            modifier = Modifier
+                                .offset { IntOffset((cropCenter.x - cropRadius).roundToInt(), (cropCenter.y - cropRadius).roundToInt()) }
+                                .size(with(density) { (cropRadius * 2f).toDp() })
+                                .pointerInput(Unit) {
+                                    detectDragGestures { _, drag ->
+                                        cropCenter = Offset(
+                                            (cropCenter.x + drag.x).coerceIn(cropRadius, boxSizePx - cropRadius),
+                                            (cropCenter.y + drag.y).coerceIn(cropRadius, boxSizePx - cropRadius),
+                                        )
+                                    }
+                                },
+                        )
+                        // Four corner resize handles.
+                        val handle = 30.dp
+                        listOf(-1 to -1, 1 to -1, -1 to 1, 1 to 1).forEach { (sx, sy) ->
+                            Box(
+                                modifier = Modifier
+                                    .offset {
+                                        val hp = handle.toPx()
+                                        IntOffset(
+                                            (cropCenter.x + sx * cropRadius - hp / 2f).roundToInt(),
+                                            (cropCenter.y + sy * cropRadius - hp / 2f).roundToInt(),
+                                        )
+                                    }
+                                    .size(handle)
+                                    .clip(CircleShape)
+                                    .background(Color.White)
+                                    .border(1.dp, Color.Gray, CircleShape)
+                                    .pointerInput(Unit) {
+                                        detectDragGestures { _, drag ->
+                                            val dr = (sx * drag.x + sy * drag.y) / 2f
+                                            val nr = (cropRadius + dr).coerceIn(minR, boxSizePx / 2f)
+                                            cropRadius = nr
+                                            cropCenter = Offset(
+                                                cropCenter.x.coerceIn(nr, boxSizePx - nr),
+                                                cropCenter.y.coerceIn(nr, boxSizePx - nr),
+                                            )
+                                        }
+                                    },
+                            )
+                        }
+                    }
                 }
 
-                Text(
-                    text = "Frame the tablet inside the square",
-                    color = Color.White,
-                    modifier = Modifier.padding(top = 24.dp),
-                )
+                if (capturedFile == null) {
+                    Text(
+                        text = "Frame the tablet, tap to focus",
+                        color = Color.White,
+                        modifier = Modifier.padding(top = 20.dp),
+                    )
+                    // Shutter.
+                    IconButton(
+                        onClick = {
+                            if (capturing) return@IconButton
+                            capturing = true
+                            val file = ImageStore.newCaptureFile(context)
+                            imageCapture.flashMode = flashModes[flashIndex]
+                            imageCapture.takePicture(
+                                ImageCapture.OutputFileOptions.Builder(file).build(),
+                                ContextCompat.getMainExecutor(context),
+                                object : ImageCapture.OnImageSavedCallback {
+                                    override fun onImageSaved(result: ImageCapture.OutputFileResults) {
+                                        capturing = false
+                                        capturedFile = file
+                                    }
 
-                // Shutter button.
+                                    override fun onError(exc: ImageCaptureException) {
+                                        file.delete()
+                                        capturing = false
+                                    }
+                                },
+                            )
+                        },
+                        modifier = Modifier
+                            .padding(top = 16.dp)
+                            .size(80.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.25f)),
+                    ) {
+                        Box(modifier = Modifier.size(60.dp).clip(CircleShape).background(Color.White))
+                    }
+                } else {
+                    Text(
+                        text = "Drag or resize the square, then tap OK",
+                        color = Color.White,
+                        modifier = Modifier.padding(top = 20.dp),
+                    )
+                    Row(
+                        modifier = Modifier.padding(top = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(24.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        TextButton(onClick = { capturedFile?.delete(); capturedFile = null }) {
+                            Text("Retake", color = Color.White)
+                        }
+                        Button(onClick = {
+                            val file = capturedFile ?: return@Button
+                            val l = ((cropCenter.x - cropRadius) / boxSizePx).coerceIn(0f, 1f)
+                            val t = ((cropCenter.y - cropRadius) / boxSizePx).coerceIn(0f, 1f)
+                            val s = (cropRadius * 2f / boxSizePx).coerceIn(0f, 1f)
+                            capturedFile = null
+                            onCaptured(file, SquareCrop(l, t, s))
+                        }) {
+                            Icon(imageVector = Icons.Filled.Check, contentDescription = null)
+                            Text("OK", modifier = Modifier.padding(start = 6.dp))
+                        }
+                    }
+                }
+            }
+
+            // Flash toggle (preview phase only), top-end.
+            if (capturedFile == null) {
                 IconButton(
                     onClick = {
-                        if (capturing) return@IconButton
-                        capturing = true
-                        val file = ImageStore.newCaptureFile(context)
-                        imageCapture.takePicture(
-                            ImageCapture.OutputFileOptions.Builder(file).build(),
-                            ContextCompat.getMainExecutor(context),
-                            object : ImageCapture.OnImageSavedCallback {
-                                override fun onImageSaved(result: ImageCapture.OutputFileResults) {
-                                    onCaptured(file)
-                                }
-
-                                override fun onError(exc: ImageCaptureException) {
-                                    file.delete()
-                                    capturing = false
-                                }
-                            },
-                        )
+                        flashIndex = (flashIndex + 1) % flashModes.size
+                        imageCapture.flashMode = flashModes[flashIndex]
                     },
-                    modifier = Modifier
-                        .padding(top = 24.dp)
-                        .size(80.dp)
-                        .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.25f)),
+                    modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(60.dp)
-                            .clip(CircleShape)
-                            .background(Color.White),
+                    Icon(
+                        imageVector = when (flashModes[flashIndex]) {
+                            ImageCapture.FLASH_MODE_ON -> Icons.Filled.FlashOn
+                            ImageCapture.FLASH_MODE_AUTO -> Icons.Filled.FlashAuto
+                            else -> Icons.Filled.FlashOff
+                        },
+                        contentDescription = "Flash",
+                        tint = Color.White,
                     )
                 }
             }
         } else {
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(32.dp),
+                modifier = Modifier.fillMaxSize().padding(32.dp),
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
@@ -207,10 +386,8 @@ fun CameraCaptureScreen(
 
         // Close (cancel) button.
         IconButton(
-            onClick = onCancel,
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(8.dp),
+            onClick = { cancelAll() },
+            modifier = Modifier.align(Alignment.TopStart).padding(8.dp),
         ) {
             Icon(imageVector = Icons.Filled.Close, contentDescription = "Cancel", tint = Color.White)
         }
