@@ -70,7 +70,8 @@ fun MainScreen(
         MainMenuItem("Daily Schedule", Icons.Filled.CalendarMonth, onDailySchedule),
         MainMenuItem("In Hand", Icons.Filled.BackHand, onInHand),
         MainMenuItem("Inventory", Icons.Filled.Inventory2, onInventory),
-        MainMenuItem("Log", Icons.Filled.Storage, onLog),
+        // Temporarily hidden — "Log" is a debugging tool. Restore this item to bring it back.
+        // MainMenuItem("Log", Icons.Filled.Storage, onLog),
     )
 
     Scaffold(
