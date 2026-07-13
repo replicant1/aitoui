@@ -28,6 +28,9 @@ object InHandRoute
 object InventoryRoute
 
 @Serializable
+object RunOutGraphRoute
+
+@Serializable
 object ScriptRoute
 
 @Serializable
