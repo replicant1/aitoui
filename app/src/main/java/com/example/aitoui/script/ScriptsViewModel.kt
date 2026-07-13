@@ -19,9 +19,18 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+/** Sort order for the scripts list. */
+enum class SortOrder(val label: String) {
+    NewestFirst("Newest first"),
+    OldestFirst("Oldest first"),
+    BrandName("Brand name"),
+}
+
 /** State for the Scripts list screen — one [ScriptDetails] per row in the scripts table. */
 data class ScriptsState(
     val scripts: List<ScriptDetails> = emptyList(),
+    /** How [scripts] is ordered. */
+    val sortOrder: SortOrder = SortOrder.NewestFirst,
     /** Script awaiting the user's confirmation to dispense one unit, if any. */
     val pendingDispenseScriptId: Long? = null,
     /** Script whose dispensed count has exceeded its repeats (no dispensations left), if tapped. */
@@ -54,6 +63,8 @@ sealed interface ScriptsAction {
     data object ConfirmDelete : ScriptsAction
     /** Dismiss the delete confirmation without deleting. */
     data object CancelDelete : ScriptsAction
+    /** Change how the list is sorted. */
+    data class SortOrderChanged(val order: SortOrder) : ScriptsAction
 }
 
 class ScriptsViewModel(
@@ -65,13 +76,17 @@ class ScriptsViewModel(
     private val _state = MutableStateFlow(ScriptsState())
     val state: StateFlow<ScriptsState> = _state.asStateFlow()
 
+    /** The scripts as delivered by the repository, before applying the chosen sort order. */
+    private var rawScripts: List<ScriptDetails> = emptyList()
+
     init {
         scriptRepository.scriptsWithDetails
             .onEach { scripts ->
+                rawScripts = scripts
                 _state.update { current ->
                     // Drop any open dialog whose script no longer exists.
                     current.copy(
-                        scripts = scripts,
+                        scripts = sortScripts(scripts, current.sortOrder),
                         pendingDispenseScriptId = current.pendingDispenseScriptId
                             ?.takeIf { id -> scripts.any { it.scriptId == id } },
                         maxedOutScriptId = current.maxedOutScriptId
@@ -112,8 +127,19 @@ class ScriptsViewModel(
                 _state.update { it.copy(pendingDeleteScriptId = null) }
 
             ScriptsAction.ConfirmDelete -> deleteScript()
+
+            is ScriptsAction.SortOrderChanged -> _state.update {
+                it.copy(sortOrder = action.order, scripts = sortScripts(rawScripts, action.order))
+            }
         }
     }
+
+    private fun sortScripts(scripts: List<ScriptDetails>, order: SortOrder): List<ScriptDetails> =
+        when (order) {
+            SortOrder.NewestFirst -> scripts.sortedByDescending { it.dateOfIssue }
+            SortOrder.OldestFirst -> scripts.sortedBy { it.dateOfIssue }
+            SortOrder.BrandName -> scripts.sortedBy { it.brandName.lowercase() }
+        }
 
     /** Deletes the pending script (its dispensations cascade). The list updates reactively. */
     private fun deleteScript() {
