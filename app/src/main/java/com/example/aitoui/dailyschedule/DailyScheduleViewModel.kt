@@ -8,8 +8,8 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.aitoui.AitouiApp
 import com.example.aitoui.data.DailyScheduleItem
 import com.example.aitoui.data.DailyScheduleRepository
-import com.example.aitoui.data.Medication
-import com.example.aitoui.data.MedicationRepository
+import com.example.aitoui.data.DispensableUnitDetails
+import com.example.aitoui.data.DispensableUnitRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -31,23 +31,29 @@ data class DailyScheduleEntry(
 
 /** Screen state for the Daily Schedule screen. */
 data class DailyScheduleState(
-    val medications: List<Medication> = emptyList(),
-    val selectedMedicationId: Long? = null,
+    /** Dispensable units offered in the medication dropdown, each with its photo and dose. */
+    val units: List<DispensableUnitDetails> = emptyList(),
+    /** The chosen unit's formatId, if any. */
+    val selectedUnitId: Long? = null,
     val numberOfTablets: String = "",
     val tabletsTaken: List<DailyScheduleEntry> = emptyList(),
     val selectedId: Long? = null,
 ) {
+    val selectedUnit: DispensableUnitDetails?
+        get() = units.firstOrNull { it.formatId == selectedUnitId }
+
+    /** Text shown in the closed dropdown, e.g. "Panadol (500mg)". */
     val selectedMedicationName: String
-        get() = medications.firstOrNull { it.id == selectedMedicationId }?.brandName ?: ""
+        get() = selectedUnit?.label ?: ""
 
     val canAdd: Boolean
-        get() = selectedMedicationId != null && (numberOfTablets.toDoubleOrNull() ?: 0.0) > 0.0
+        get() = selectedUnit != null && (numberOfTablets.toDoubleOrNull() ?: 0.0) > 0.0
     val canDelete: Boolean get() = selectedId != null
 }
 
 /** User intents emitted by the Daily Schedule screen. */
 sealed interface DailyScheduleAction {
-    data class MedicationSelected(val id: Long) : DailyScheduleAction
+    data class MedicationSelected(val formatId: Long) : DailyScheduleAction
     data class NumberOfTabletsChanged(val value: String) : DailyScheduleAction
     data object Add : DailyScheduleAction
     data class RowSelected(val id: Long) : DailyScheduleAction
@@ -56,7 +62,7 @@ sealed interface DailyScheduleAction {
 }
 
 class DailyScheduleViewModel(
-    medicationRepository: MedicationRepository,
+    dispensableUnitRepository: DispensableUnitRepository,
     private val dailyScheduleRepository: DailyScheduleRepository,
 ) : ViewModel() {
 
@@ -83,13 +89,13 @@ class DailyScheduleViewModel(
             }
         }
 
-        medicationRepository.medications
-            .onEach { meds ->
+        dispensableUnitRepository.formatsWithMedication
+            .onEach { units ->
                 _state.update { current ->
-                    val stillExists = meds.any { it.id == current.selectedMedicationId }
+                    val stillExists = units.any { it.formatId == current.selectedUnitId }
                     current.copy(
-                        medications = meds,
-                        selectedMedicationId = current.selectedMedicationId.takeIf { stillExists },
+                        units = units,
+                        selectedUnitId = current.selectedUnitId.takeIf { stillExists },
                     )
                 }
             }
@@ -99,24 +105,23 @@ class DailyScheduleViewModel(
     fun onAction(action: DailyScheduleAction) {
         when (action) {
             is DailyScheduleAction.MedicationSelected ->
-                _state.update { it.copy(selectedMedicationId = action.id) }
+                _state.update { it.copy(selectedUnitId = action.formatId) }
 
             is DailyScheduleAction.NumberOfTabletsChanged ->
                 _state.update { it.copy(numberOfTablets = action.value.decimalOnly()) }
 
             DailyScheduleAction.Add -> _state.update { current ->
                 if (!current.canAdd) return@update current
-                val medication = current.medications.firstOrNull { it.id == current.selectedMedicationId }
-                    ?: return@update current
+                val unit = current.selectedUnit ?: return@update current
                 val entry = DailyScheduleEntry(
                     id = nextId++,
-                    medicationId = medication.id,
-                    brand = medication.brandName,
+                    medicationId = unit.medicationId,
+                    brand = unit.brandName,
                     number = current.numberOfTablets,
                 )
                 // Append the new row and clear the inputs.
                 current.copy(
-                    selectedMedicationId = null,
+                    selectedUnitId = null,
                     numberOfTablets = "",
                     tabletsTaken = current.tabletsTaken + entry,
                 )
@@ -162,7 +167,7 @@ class DailyScheduleViewModel(
         val Factory = viewModelFactory {
             initializer {
                 val app = this[APPLICATION_KEY] as AitouiApp
-                DailyScheduleViewModel(app.medicationRepository, app.dailyScheduleRepository)
+                DailyScheduleViewModel(app.dispensableUnitRepository, app.dailyScheduleRepository)
             }
         }
     }
