@@ -69,4 +69,27 @@ val Typography = Typography(
         lineHeight = 20.sp,
         letterSpacing = 0.1.sp,
     ),
+    // Smaller roles used across the app (previously undefined, so they fell back to
+    // the default font). Metrics follow the M3 scale; family is IBM Plex Sans.
+    bodySmall = TextStyle(
+        fontFamily = IBMPlexSans,
+        fontWeight = FontWeight.Normal,
+        fontSize = 12.sp,
+        lineHeight = 16.sp,
+        letterSpacing = 0.4.sp,
+    ),
+    labelMedium = TextStyle(
+        fontFamily = IBMPlexSans,
+        fontWeight = FontWeight.Medium,
+        fontSize = 12.sp,
+        lineHeight = 16.sp,
+        letterSpacing = 0.5.sp,
+    ),
+    labelSmall = TextStyle(
+        fontFamily = IBMPlexSans,
+        fontWeight = FontWeight.Medium,
+        fontSize = 11.sp,
+        lineHeight = 16.sp,
+        letterSpacing = 0.5.sp,
+    ),
 )
