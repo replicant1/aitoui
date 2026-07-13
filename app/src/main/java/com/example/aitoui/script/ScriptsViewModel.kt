@@ -21,8 +21,7 @@ import kotlinx.coroutines.launch
 
 /** Sort order for the scripts list. */
 enum class SortOrder(val label: String) {
-    NewestFirst("Newest first"),
-    OldestFirst("Oldest first"),
+    IssueDate("Issue date"),
     BrandName("Brand name"),
 }
 
@@ -30,7 +29,7 @@ enum class SortOrder(val label: String) {
 data class ScriptsState(
     val scripts: List<ScriptDetails> = emptyList(),
     /** How [scripts] is ordered. */
-    val sortOrder: SortOrder = SortOrder.NewestFirst,
+    val sortOrder: SortOrder = SortOrder.IssueDate,
     /** Script awaiting the user's confirmation to dispense one unit, if any. */
     val pendingDispenseScriptId: Long? = null,
     /** Script whose dispensed count has exceeded its repeats (no dispensations left), if tapped. */
@@ -136,8 +135,7 @@ class ScriptsViewModel(
 
     private fun sortScripts(scripts: List<ScriptDetails>, order: SortOrder): List<ScriptDetails> =
         when (order) {
-            SortOrder.NewestFirst -> scripts.sortedByDescending { it.dateOfIssue }
-            SortOrder.OldestFirst -> scripts.sortedBy { it.dateOfIssue }
+            SortOrder.IssueDate -> scripts.sortedBy { it.dateOfIssue }
             SortOrder.BrandName -> scripts.sortedBy { it.brandName.lowercase() }
         }
 
