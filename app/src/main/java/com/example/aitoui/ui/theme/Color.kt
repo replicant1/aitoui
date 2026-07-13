@@ -58,3 +58,11 @@ val md_dark_outlineVariant = Color(0xFF43474E)
 // Semantic content colours (use sparingly for status, e.g. stock levels), not part of the M3 roles.
 val StatusSuccess = Color(0xFF2E7D52)
 val StatusWarning = Color(0xFF8A6100)
+
+// Script "prescription pad" card — a deliberately fixed paper look, the same in light and dark:
+// a yellow band, white cells, black ink. Named so the card's palette lives in one place rather
+// than as scattered Color.White / Color.Black / Color.Gray literals.
+val ScriptCardBand = Color(0xFFFFF176)
+val ScriptCardSurface = Color(0xFFFFFFFF)
+val ScriptCardInk = Color(0xFF000000)
+val ScriptCardCaption = Color(0xFF888888)

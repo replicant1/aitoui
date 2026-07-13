@@ -45,7 +45,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -57,9 +56,11 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.TimeZone
 import com.example.aitoui.ui.theme.AitouiTheme
+import com.example.aitoui.ui.theme.ScriptCardBand
+import com.example.aitoui.ui.theme.ScriptCardCaption
+import com.example.aitoui.ui.theme.ScriptCardInk
+import com.example.aitoui.ui.theme.ScriptCardSurface
 
-/** The yellow band across the top of each script "card". */
-private val CardYellow = Color(0xFFFFF176)
 
 @Composable
 fun ScriptsRoot(
@@ -239,7 +240,7 @@ private fun ScriptCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = ScriptCardSurface),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -247,7 +248,7 @@ private fun ScriptCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(CardYellow),
+                    .background(ScriptCardBand),
                 verticalAlignment = Alignment.Top,
             ) {
                 Column(
@@ -259,26 +260,26 @@ private fun ScriptCard(
                         text = "${script.brandName} (${script.activeIngredient})",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = Color.Black,
+                        color = ScriptCardInk,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
                         text = "${script.dosePerTablet}mg × Qty ${script.tabletsPerUnit}",
                         style = MaterialTheme.typography.bodyLarge,
-                        color = Color.Black.copy(alpha = 0.6f),
+                        color = ScriptCardInk.copy(alpha = 0.6f),
                     )
                 }
                 IconButton(onClick = onDeleteClick) {
                     Icon(
                         imageVector = Icons.Filled.Close,
                         contentDescription = "Delete script",
-                        tint = Color.Black,
+                        tint = ScriptCardInk,
                     )
                 }
             }
 
-            HorizontalDivider(thickness = 1.dp, color = Color.Black)
+            HorizontalDivider(thickness = 1.dp, color = ScriptCardInk)
 
             // Two white cells, split by a vertical divider.
             Row(
@@ -292,7 +293,7 @@ private fun ScriptCard(
                     value = script.dispensed.toString(),
                     onClick = onDispensedClick,
                 )
-                VerticalDivider(thickness = 1.dp, color = Color.Black)
+                VerticalDivider(thickness = 1.dp, color = ScriptCardInk)
                 ScriptCardCell(
                     modifier = Modifier.weight(1f),
                     caption = "Repeats",
@@ -300,16 +301,16 @@ private fun ScriptCard(
                 )
             }
 
-            HorizontalDivider(thickness = 1.dp, color = Color.Black)
+            HorizontalDivider(thickness = 1.dp, color = ScriptCardInk)
 
             // Yellow footer: the script's date of issue, left-justified.
             Text(
                 text = "Issued: ${formatIssueDate(script.dateOfIssue)}",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.Black,
+                color = ScriptCardInk,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(CardYellow)
+                    .background(ScriptCardBand)
                     .padding(horizontal = 16.dp, vertical = 8.dp),
             )
         }
@@ -332,7 +333,7 @@ private fun ScriptCardCell(
 ) {
     Column(
         modifier = modifier
-            .background(Color.White)
+            .background(ScriptCardSurface)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -341,13 +342,13 @@ private fun ScriptCardCell(
         Text(
             text = caption,
             style = MaterialTheme.typography.labelSmall,
-            color = Color.Gray,
+            color = ScriptCardCaption,
         )
         Text(
             text = value,
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
-            color = Color.Black,
+            color = ScriptCardInk,
         )
     }
 }
