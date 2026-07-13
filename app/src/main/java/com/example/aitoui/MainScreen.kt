@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,7 +23,6 @@ import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Widgets
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -113,14 +111,9 @@ fun MainScreen(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            items(prescribingGroup) { item ->
-                MainMenuButton(label = item.label, icon = item.icon, onClick = item.onClick)
-            }
-            // Full-width divider separating the two groups.
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-            }
-            items(otherGroup) { item ->
+            // Two columns: the prescribing group down the left, everything else down the right.
+            // The grid fills row by row, so interleave the groups to place each down its own column.
+            items(prescribingGroup.zip(otherGroup).flatMap { (left, right) -> listOf(left, right) }) { item ->
                 MainMenuButton(label = item.label, icon = item.icon, onClick = item.onClick)
             }
         }
