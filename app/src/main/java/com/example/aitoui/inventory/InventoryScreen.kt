@@ -54,6 +54,7 @@ import com.example.aitoui.data.DispensableUnitDetails
 import com.example.aitoui.image.FullImageDialog
 import com.example.aitoui.image.ImageStore
 import com.example.aitoui.ui.theme.AitouiTheme
+import com.example.aitoui.ui.theme.ThumbnailShape
 
 @Composable
 fun InventoryRoot(
@@ -192,7 +193,7 @@ private fun MedicationRow(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .size(44.dp)
-                        .clip(RoundedCornerShape(6.dp))
+                        .clip(ThumbnailShape)
                         .combinedClickable(
                             onClick = onClick,
                             onLongClick = { onLongPressImage(imagePath) },
