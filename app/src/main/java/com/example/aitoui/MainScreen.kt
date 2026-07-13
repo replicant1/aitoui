@@ -1,5 +1,6 @@
 package com.example.aitoui
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -69,6 +70,20 @@ fun MainScreen(
         // MainMenuItem("Log", Icons.Filled.Storage, onLog),
     )
 
+    // Deep-blue brand bar in light mode; in dark mode the full-width primary reads too bright, so
+    // use the subdued dark-blue primaryContainer instead (keeps the blue identity, easier on the eye).
+    val darkTheme = isSystemInDarkTheme()
+    val barContainer = if (darkTheme) {
+        MaterialTheme.colorScheme.primaryContainer
+    } else {
+        MaterialTheme.colorScheme.primary
+    }
+    val barContent = if (darkTheme) {
+        MaterialTheme.colorScheme.onPrimaryContainer
+    } else {
+        MaterialTheme.colorScheme.onPrimary
+    }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
@@ -82,8 +97,8 @@ fun MainScreen(
                     )
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    containerColor = barContainer,
+                    titleContentColor = barContent,
                 ),
             )
         },
