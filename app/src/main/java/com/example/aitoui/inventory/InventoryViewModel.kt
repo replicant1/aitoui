@@ -10,6 +10,7 @@ import com.example.aitoui.data.DailyScheduleRepository
 import com.example.aitoui.data.DispensableUnitRepository
 import com.example.aitoui.data.InHandRepository
 import com.example.aitoui.data.ScriptRepository
+import com.example.aitoui.data.inHandDaysElapsed
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -46,7 +47,8 @@ class InventoryViewModel(
             inHandRepository.inHand,
             dailyScheduleRepository.dailySchedule,
             scriptRepository.scriptsWithDetails,
-        ) { formats, inHand, schedule, scripts ->
+            inHandRepository.gatheredDate,
+        ) { formats, inHand, schedule, scripts, gatheredDate ->
             // A medication can have several schedule rows (e.g. AM + PM), so sum them per medication.
             val dailyByMedication = schedule
                 .groupBy { it.medicationId }
@@ -58,6 +60,7 @@ class InventoryViewModel(
                 scripts = scripts,
                 dailyByMedication = dailyByMedication,
                 inHandByMedication = inHandByMedication,
+                daysSinceGathered = inHandDaysElapsed(gatheredDate, System.currentTimeMillis()),
             )
             formats.map { InventoryItem(it, supply[it.formatId]) }
         }

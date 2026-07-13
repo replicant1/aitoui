@@ -10,6 +10,7 @@ import com.example.aitoui.data.DailyScheduleRepository
 import com.example.aitoui.data.DispensableUnitRepository
 import com.example.aitoui.data.InHandRepository
 import com.example.aitoui.data.ScriptRepository
+import com.example.aitoui.data.inHandDaysElapsed
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -31,13 +32,18 @@ class RunOutGraphViewModel(
         inHandRepository.inHand,
         dailyScheduleRepository.dailySchedule,
         scriptRepository.scriptsWithDetails,
-    ) { formats, inHand, schedule, scripts ->
+        inHandRepository.gatheredDate,
+    ) { formats, inHand, schedule, scripts, gatheredDate ->
         // A medication can have several schedule rows (e.g. AM + PM), so sum them per medication.
         val dailyByMedication = schedule
             .groupBy { it.medicationId }
             .mapValues { (_, rows) -> rows.sumOf { it.quantity } }
         val inHandByMedication = inHand.associate { it.medicationId to it.quantity }
-        computeRunOutGraph(formats, scripts, dailyByMedication, inHandByMedication, System.currentTimeMillis())
+        val now = System.currentTimeMillis()
+        computeRunOutGraph(
+            formats, scripts, dailyByMedication, inHandByMedication, now,
+            daysSinceGathered = inHandDaysElapsed(gatheredDate, now),
+        )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), RunOutGraphData())
 
     companion object {

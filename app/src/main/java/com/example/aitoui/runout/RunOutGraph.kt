@@ -74,13 +74,16 @@ fun computeRunOutGraph(
     dailyByMedication: Map<Long, Double>,
     inHandByMedication: Map<Long, Double>,
     nowMillis: Long = 0L,
+    daysSinceGathered: Double = 0.0,
 ): RunOutGraphData {
     val scriptsByUnit = scripts.groupBy { it.dispensableUnitId }
     val series = units.mapNotNull { unit ->
         val rate = dailyByMedication[unit.medicationId] ?: 0.0
         if (rate <= 0.0) return@mapNotNull null            // no schedule → cannot project a run-out
         val tabletsPerUnit = unit.tabletsPerUnit.toIntOrNull() ?: 0
-        val inHand = (inHandByMedication[unit.medicationId] ?: 0.0).coerceAtLeast(0.0).roundToInt()
+        // The in-hand figure was gathered [daysSinceGathered] days ago; decay it at the daily rate.
+        val inHand = ((inHandByMedication[unit.medicationId] ?: 0.0) - rate * daysSinceGathered)
+            .coerceAtLeast(0.0).roundToInt()
         val fills = scriptsByUnit[unit.formatId].orEmpty()
             .sumOf { (it.repeats + 1 - it.dispensed).coerceAtLeast(0) }
         RunOutSeries(

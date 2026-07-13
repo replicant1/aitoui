@@ -47,6 +47,32 @@ class RunOutGraphTest {
     }
 
     @Test
+    fun `in-hand decays by the days since it was gathered, leaving fills intact`() {
+        val data = computeRunOutGraph(
+            units = listOf(unit(1, 1, "10")),
+            scripts = listOf(script(unitId = 1, dispensed = 2, repeats = 5)),  // 4 fills * 10 = 40
+            dailyByMedication = mapOf(1L to 5.0),
+            inHandByMedication = mapOf(1L to 20.0),   // 20 in hand, gathered 2 days ago
+            daysSinceGathered = 2.0,                   // 2 * 5 = 10 consumed -> 10 in hand now
+        )
+        val s = data.series.single()
+        assertEquals(50, s.totalTablets)              // 10 in hand + 40 fills
+    }
+
+    @Test
+    fun `in-hand decay floors at zero`() {
+        val data = computeRunOutGraph(
+            units = listOf(unit(1, 1, "10")),
+            scripts = emptyList(),
+            dailyByMedication = mapOf(1L to 5.0),
+            inHandByMedication = mapOf(1L to 20.0),
+            daysSinceGathered = 10.0,                  // would consume 50 -> clamps to 0
+        )
+        val s = data.series.single()
+        assertEquals(0, s.totalTablets)
+    }
+
+    @Test
     fun `units with no schedule are omitted`() {
         val data = computeRunOutGraph(
             units = listOf(unit(1, 1, "10"), unit(2, 2, "10")),

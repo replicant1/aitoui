@@ -17,6 +17,8 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.Calendar
+import java.util.TimeZone
 
 /** A single row in the in-hand list. */
 data class InHandEntry(
@@ -137,13 +139,27 @@ class InHandViewModel(
         }
     }
 
-    /** Persists the current list to the in_hand table (replacing its contents). */
+    /**
+     * Persists the current list to the in_hand table (replacing its contents) and records today as the
+     * date the figures were gathered.
+     */
     private fun save() {
         val items = _state.value.tabletsInHand.mapNotNull { entry ->
             val quantity = entry.number.toDoubleOrNull() ?: return@mapNotNull null
             InHandItem(medicationId = entry.medicationId, quantity = quantity)
         }
-        viewModelScope.launch { inHandRepository.save(items) }
+        viewModelScope.launch { inHandRepository.save(items, todayStartOfDayUtcMillis()) }
+    }
+
+    /** Now, normalised to the start of the day in UTC — the project's convention for stored dates. */
+    private fun todayStartOfDayUtcMillis(): Long {
+        val cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+        cal.timeInMillis = System.currentTimeMillis()
+        cal.set(Calendar.HOUR_OF_DAY, 0)
+        cal.set(Calendar.MINUTE, 0)
+        cal.set(Calendar.SECOND, 0)
+        cal.set(Calendar.MILLISECOND, 0)
+        return cal.timeInMillis
     }
 
     /** Keeps digits and a single decimal point, e.g. so "0.5" is accepted but "0.5.2" is not. */

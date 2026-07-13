@@ -2,6 +2,7 @@ package com.example.aitoui.data
 
 import androidx.room.Dao
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
@@ -43,11 +44,23 @@ interface InHandDao {
     @Query("UPDATE in_hand SET quantity = quantity + :delta WHERE medicationId = :medicationId")
     suspend fun incrementQuantity(medicationId: Long, delta: Double): Int
 
-    /** Replaces the entire table with [entities] atomically. */
+    /** Overwrites the single [in_hand_date] row with the date the figures were gathered. */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun setDate(entity: InHandDateEntity)
+
+    /** The gathered date (UTC epoch millis at start of day), or null if nothing has been saved yet. */
+    @Query("SELECT gatheredAtMillis FROM in_hand_date WHERE id = 0")
+    fun getDateFlow(): Flow<Long?>
+
+    /**
+     * Replaces the entire in-hand list with [entities] and stamps [gatheredAtMillis] as the date the
+     * figures were gathered — atomically, so the list and its date can never diverge.
+     */
     @Transaction
-    suspend fun replaceAll(entities: List<InHandEntity>) {
+    suspend fun replaceAll(entities: List<InHandEntity>, gatheredAtMillis: Long) {
         clear()
         insertAll(entities)
+        setDate(InHandDateEntity(gatheredAtMillis = gatheredAtMillis))
     }
 
     /** Adds [quantity] tablets of [medicationId] to the in-hand total (increment, or insert if new). */

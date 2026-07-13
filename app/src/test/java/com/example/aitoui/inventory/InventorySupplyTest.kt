@@ -119,6 +119,36 @@ class InventorySupplyTest {
         assertNull(r[1])
     }
 
+    // --- in-hand decay since the figures were gathered ---
+
+    @Test
+    fun `in-hand decays at the daily rate over the days since it was gathered`() {
+        val r = computeSupply(
+            units = listOf(unit(1, 1, "10")),
+            scripts = emptyList(),
+            dailyByMedication = mapOf(1L to 5.0),
+            inHandByMedication = mapOf(1L to 80.0),       // gathered 80 tablets
+            daysSinceGathered = 4.0,                       // 4 days * 5/day = 20 consumed
+        )
+        assertEquals(60, r[1]?.inHandTablets)             // 80 - 20
+        assertEquals(12, r[1]?.inHandDays)                // 60 / 5
+    }
+
+    @Test
+    fun `in-hand decay floors at zero and does not touch undispensed fills`() {
+        val r = computeSupply(
+            units = listOf(unit(1, 1, "10")),
+            scripts = listOf(script(unitId = 1, dispensed = 0, repeats = 5)),  // 6 fills * 10 = 60
+            dailyByMedication = mapOf(1L to 5.0),
+            inHandByMedication = mapOf(1L to 40.0),       // gathered 40 tablets
+            daysSinceGathered = 20.0,                      // would consume 100 -> clamps in-hand to 0
+        )
+        assertEquals(0, r[1]?.inHandTablets)              // never negative
+        assertEquals(0, r[1]?.inHandDays)
+        assertEquals(60, r[1]?.undispensedTablets)        // fills untouched by the decay
+        assertEquals(12, r[1]?.totalDays)                 // 0 in-hand days + 12 undispensed days
+    }
+
     // --- undispensed (future) supply from script repeats ---
 
     @Test

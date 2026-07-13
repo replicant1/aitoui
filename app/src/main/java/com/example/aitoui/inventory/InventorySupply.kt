@@ -46,6 +46,7 @@ fun computeSupply(
     scripts: List<ScriptDetails>,
     dailyByMedication: Map<Long, Double>,
     inHandByMedication: Map<Long, Double>,
+    daysSinceGathered: Double = 0.0,
 ): Map<Long, SupplyBreakdown?> {
     val scriptsByUnit = scripts.groupBy { it.dispensableUnitId }
 
@@ -58,8 +59,10 @@ fun computeSupply(
         }
         val tabletsPerUnit = unit.tabletsPerUnit.toIntOrNull() ?: 0
 
-        // In hand: the medication's current in-hand quantity, converted to whole days at the daily rate.
-        val inHandQuantity = (inHandByMedication[unit.medicationId] ?: 0.0).coerceAtLeast(0.0)
+        // In hand: the medication's in-hand quantity, decayed at the daily rate over the days since it was
+        // gathered, then converted to whole days at the daily rate.
+        val inHandQuantity = ((inHandByMedication[unit.medicationId] ?: 0.0) - rate * daysSinceGathered)
+            .coerceAtLeast(0.0)
         val inHandTablets = inHandQuantity.roundToInt()
         val inHandDays = floor(inHandQuantity / rate).toInt()
 
