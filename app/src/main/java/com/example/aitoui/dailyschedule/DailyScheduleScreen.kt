@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -33,6 +34,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
@@ -172,12 +174,14 @@ fun DailyScheduleScreen(
                 style = MaterialTheme.typography.titleMedium,
             )
             OutlinedCard(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                val context = LocalContext.current
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(state.tabletsTaken, key = { it.id }) { entry ->
                         val selected = entry.id == state.selectedId
-                        Text(
-                            text = entry.label,
-                            style = MaterialTheme.typography.bodyLarge,
+                        // Dose and photo come from the medication's dispensable unit, looked up live.
+                        val unit = state.units.firstOrNull { it.medicationId == entry.medicationId }
+                        val dose = unit?.dosePerTablet?.let { " ($it" + "mg)" } ?: ""
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { onAction(DailyScheduleAction.RowSelected(entry.id)) }
@@ -186,7 +190,24 @@ fun DailyScheduleScreen(
                                     else MaterialTheme.colorScheme.surface
                                 )
                                 .padding(horizontal = 16.dp, vertical = 12.dp),
-                        )
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            unit?.imagePath?.let { imagePath ->
+                                AsyncImage(
+                                    model = ImageStore.fileFor(context, imagePath),
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(RoundedCornerShape(6.dp)),
+                                )
+                            }
+                            Text(
+                                text = "${entry.brand}$dose × ${entry.number}",
+                                style = MaterialTheme.typography.bodyLarge,
+                            )
+                        }
                     }
                 }
             }
