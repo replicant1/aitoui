@@ -71,12 +71,25 @@ object DatabaseSeeder {
         DailyScheduleSeed("Lithicarb", 3.0),
     )
 
+    /** Tablets currently in hand per medication (brand must match a MEDICATIONS entry). */
+    private val IN_HAND = listOf(
+        InHandSeed("Lipitor", 120.0),
+        InHandSeed("Dytrex", 56.0),
+        InHandSeed("Tamsulosin", 45.0),
+        InHandSeed("Mirtanza", 180.0),
+        InHandSeed("Dithiazide", 19.0),
+        InHandSeed("Tensig", 120.0),
+        InHandSeed("Prexum", 44.0),
+        InHandSeed("Lithicarb", 154.0),
+    )
+
     suspend fun seedIfEmpty(
         medicationRepository: MedicationRepository,
         formatRepository: DispensableUnitRepository,
         scriptRepository: ScriptRepository,
         dispensationRepository: DispensationRepository,
         dailyScheduleRepository: DailyScheduleRepository,
+        inHandRepository: InHandRepository,
         nowMillis: Long,
     ) {
         if (medicationRepository.count() > 0) return // already seeded — never grow without bound
@@ -134,6 +147,14 @@ object DatabaseSeeder {
                 DailyScheduleItem(medicationId = medicationId, quantity = seed.quantity)
             }
         )
+
+        // Seed the tablets currently in hand, per medication.
+        inHandRepository.save(
+            IN_HAND.mapNotNull { seed ->
+                val medicationId = medicationIdByBrand[seed.brand] ?: return@mapNotNull null
+                InHandItem(medicationId = medicationId, quantity = seed.quantity)
+            }
+        )
     }
 
     private data class MedicationSeed(
@@ -154,6 +175,11 @@ object DatabaseSeeder {
     )
 
     private data class DailyScheduleSeed(
+        val brand: String,
+        val quantity: Double,
+    )
+
+    private data class InHandSeed(
         val brand: String,
         val quantity: Double,
     )

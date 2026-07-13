@@ -1,6 +1,6 @@
 # Database Schema
 
-**Database:** `aitoui.db` (Room) · **version:** 19 · **package:** `com.example.aitoui.data`
+**Database:** `aitoui.db` (Room) · **version:** 20 · **package:** `com.example.aitoui.data`
 
 The schema models prescriptions and pharmacy dispensing as a chain:
 

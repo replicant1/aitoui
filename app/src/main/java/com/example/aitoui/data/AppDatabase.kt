@@ -12,7 +12,7 @@ import androidx.room.RoomDatabase
         DailyScheduleEntity::class,
         InHandEntity::class,
     ],
-    version = 19,
+    version = 20,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {

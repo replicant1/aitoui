@@ -66,6 +66,7 @@ class AitouiApp : Application() {
                     scriptRepository = scriptRepository,
                     dispensationRepository = dispensationRepository,
                     dailyScheduleRepository = dailyScheduleRepository,
+                    inHandRepository = inHandRepository,
                     nowMillis = System.currentTimeMillis(),
                 )
             }
