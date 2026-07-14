@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.aitoui.AitouiApp
+import com.example.aitoui.data.DispensableUnitDetails
+import com.example.aitoui.data.DispensableUnitRepository
 import com.example.aitoui.data.InHandItem
 import com.example.aitoui.data.InHandRepository
 import com.example.aitoui.data.Medication
@@ -34,6 +36,8 @@ data class InHandEntry(
 /** Screen state for the In Hand screen. */
 data class InHandState(
     val medications: List<Medication> = emptyList(),
+    /** Dispensable units keyed by medication, used to show each list row's photo and dose. */
+    val units: List<DispensableUnitDetails> = emptyList(),
     val selectedMedicationId: Long? = null,
     val numberOfTablets: String = "",
     val tabletsInHand: List<InHandEntry> = emptyList(),
@@ -59,6 +63,7 @@ sealed interface InHandAction {
 
 class InHandViewModel(
     medicationRepository: MedicationRepository,
+    dispensableUnitRepository: DispensableUnitRepository,
     private val inHandRepository: InHandRepository,
 ) : ViewModel() {
 
@@ -95,6 +100,11 @@ class InHandViewModel(
                     )
                 }
             }
+            .launchIn(viewModelScope)
+
+        // Keep the dispensable units on hand so each list row can show its photo and dose.
+        dispensableUnitRepository.formatsWithMedication
+            .onEach { units -> _state.update { it.copy(units = units) } }
             .launchIn(viewModelScope)
     }
 
@@ -178,7 +188,11 @@ class InHandViewModel(
         val Factory = viewModelFactory {
             initializer {
                 val app = this[APPLICATION_KEY] as AitouiApp
-                InHandViewModel(app.medicationRepository, app.inHandRepository)
+                InHandViewModel(
+                    app.medicationRepository,
+                    app.dispensableUnitRepository,
+                    app.inHandRepository,
+                )
             }
         }
     }
