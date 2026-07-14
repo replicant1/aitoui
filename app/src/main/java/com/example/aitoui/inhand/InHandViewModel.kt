@@ -42,6 +42,8 @@ data class InHandState(
     val numberOfTablets: String = "",
     val tabletsInHand: List<InHandEntry> = emptyList(),
     val selectedId: Long? = null,
+    /** When the persisted in-hand figures were gathered (UTC start-of-day millis), or null if never saved. */
+    val gatheredDate: Long? = null,
 ) {
     val selectedMedicationName: String
         get() = medications.firstOrNull { it.id == selectedMedicationId }?.brandName ?: ""
@@ -105,6 +107,11 @@ class InHandViewModel(
         // Keep the dispensable units on hand so each list row can show its photo and dose.
         dispensableUnitRepository.formatsWithMedication
             .onEach { units -> _state.update { it.copy(units = units) } }
+            .launchIn(viewModelScope)
+
+        // Track the date the persisted figures were gathered, for the list title.
+        inHandRepository.gatheredDate
+            .onEach { date -> _state.update { it.copy(gatheredDate = date) } }
             .launchIn(viewModelScope)
     }
 
