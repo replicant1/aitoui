@@ -1,5 +1,10 @@
 package com.example.aitoui
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -17,34 +22,48 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BackHand
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Medication
-import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Widgets
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import com.example.aitoui.backup.DownloadsBackupStore
 import com.example.aitoui.ui.theme.AitouiTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
     modifier: Modifier = Modifier,
+    state: MainState = MainState(),
+    onAction: (MainAction) -> Unit = {},
     onMedications: () -> Unit = {},
     onDispensableUnits: () -> Unit = {},
     onDailySchedule: () -> Unit = {},
@@ -53,19 +72,63 @@ fun MainScreen(
     onScripts: () -> Unit = {},
     onLog: () -> Unit = {},
 ) {
-    // The scripts / dispensable units / medications group.
+    val context = LocalContext.current
+
+    // On API 24-28, Downloads access needs a runtime storage permission; request it, then dispatch.
+    var pendingAction by remember { mutableStateOf<MainAction?>(null) }
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        val action = pendingAction
+        pendingAction = null
+        if (granted && action != null) onAction(action)
+    }
+    fun dispatchWithStorage(action: MainAction) {
+        val needsPermission = DownloadsBackupStore.needsLegacyPermission() &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) !=
+            PackageManager.PERMISSION_GRANTED
+        if (needsPermission) {
+            pendingAction = action
+            permissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        } else {
+            onAction(action)
+        }
+    }
+
+    // Load uses the Storage Access Framework: the user picks a pxtx.zip (from anywhere, including one copied
+    // from another device), so no broad storage permission is needed.
+    val loadPickerLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri != null) onAction(MainAction.LoadFilePicked(uri.toString()))
+    }
+
+    // A completed restore has swapped the database files; restart the process so Room opens the new DB.
+    LaunchedEffect(state.restoreComplete) {
+        if (state.restoreComplete) {
+            context.packageManager.getLaunchIntentForPackage(context.packageName)?.let { intent ->
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                context.startActivity(intent)
+            }
+            Runtime.getRuntime().exit(0)
+        }
+    }
+
+    // The scripts / dispensable units / medications group, plus Save down the left column.
     val prescribingGroup = listOf(
         MainMenuItem("Scripts", Icons.Filled.Description, onScripts),
         MainMenuItem("Dispensable Units", Icons.Filled.Widgets, onDispensableUnits),
         MainMenuItem("Medications", Icons.Filled.Medication, onMedications),
+        MainMenuItem("Save", Icons.Filled.Save) { dispatchWithStorage(MainAction.SaveTapped) },
     )
-    // Everything else.
+    // Everything else, plus Load down the right column (paired with Save on the bottom row).
     val otherGroup = listOf(
         MainMenuItem("Daily Schedule", Icons.Filled.CalendarMonth, onDailySchedule),
         MainMenuItem("In Hand", Icons.Filled.BackHand, onInHand),
         MainMenuItem("Inventory", Icons.Filled.Inventory2, onInventory),
-        // Temporarily hidden — "Log" is a debugging tool. Restore this item to bring it back.
-        // MainMenuItem("Log", Icons.Filled.Storage, onLog),
+        MainMenuItem("Load", Icons.Filled.FolderOpen) {
+            loadPickerLauncher.launch(arrayOf("*/*"))
+        },
     )
 
     // Deep-blue brand bar in light mode; in dark mode the full-width primary reads too bright, so
@@ -117,6 +180,58 @@ fun MainScreen(
                 MainMenuButton(label = item.label, icon = item.icon, onClick = item.onClick)
             }
         }
+    }
+
+    // --- Backup Save/Load dialogs ---
+
+    if (state.busy) {
+        AlertDialog(
+            onDismissRequest = {},
+            title = { Text("Working…") },
+            text = { CircularProgressIndicator() },
+            confirmButton = {},
+        )
+    }
+
+    if (state.pendingLoadUri != null) {
+        AlertDialog(
+            onDismissRequest = { onAction(MainAction.CancelLoad) },
+            title = { Text("Load backup?") },
+            text = {
+                Text(
+                    "This replaces all current data and images with the selected backup. It cannot be " +
+                        "undone, and the app will restart.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { onAction(MainAction.ConfirmLoad) }) { Text("Load") }
+            },
+            dismissButton = {
+                TextButton(onClick = { onAction(MainAction.CancelLoad) }) { Text("Cancel") }
+            },
+        )
+    }
+
+    state.message?.let { message ->
+        AlertDialog(
+            onDismissRequest = { onAction(MainAction.DismissMessage) },
+            title = { Text("Backup saved") },
+            text = { Text(message) },
+            confirmButton = {
+                TextButton(onClick = { onAction(MainAction.DismissMessage) }) { Text("OK") }
+            },
+        )
+    }
+
+    state.error?.let { error ->
+        AlertDialog(
+            onDismissRequest = { onAction(MainAction.DismissMessage) },
+            title = { Text("Couldn't load backup") },
+            text = { Text(error) },
+            confirmButton = {
+                TextButton(onClick = { onAction(MainAction.DismissMessage) }) { Text("OK") }
+            },
+        )
     }
 }
 

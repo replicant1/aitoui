@@ -5,6 +5,15 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera.any" android:required="false" />
 
+    <!-- Backup/restore reads & writes pxtx.zip in public Downloads. On API 29+ this uses MediaStore
+         (no permission needed); the legacy permissions cover API 24-28 only. -->
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
+
     <application
         android:name=".AitouiApp"
         android:allowBackup="true"
