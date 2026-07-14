@@ -21,15 +21,7 @@ import kotlinx.coroutines.flow.update
 
 data class InventoryState(
     val items: List<InventoryItem> = emptyList(),
-    val selectedId: Long? = null,
-) {
-    val selectedItem: InventoryItem? get() = items.firstOrNull { it.unit.formatId == selectedId }
-}
-
-sealed interface InventoryAction {
-    data class FormatSelected(val id: Long) : InventoryAction
-    data object SheetDismissed : InventoryAction
-}
+)
 
 class InventoryViewModel(
     dispensableUnitRepository: DispensableUnitRepository,
@@ -64,28 +56,8 @@ class InventoryViewModel(
             )
             formats.map { InventoryItem(it, supply[it.formatId]) }
         }
-            .onEach { items ->
-                _state.update { current ->
-                    // Drop selection if the selected item no longer exists.
-                    val stillThere = items.any { it.unit.formatId == current.selectedId }
-                    current.copy(
-                        items = items,
-                        selectedId = current.selectedId.takeIf { stillThere },
-                    )
-                }
-            }
+            .onEach { items -> _state.update { it.copy(items = items) } }
             .launchIn(viewModelScope)
-    }
-
-    fun onAction(action: InventoryAction) {
-        when (action) {
-            is InventoryAction.FormatSelected -> _state.update {
-                // Re-tapping the selected row closes the sheet.
-                it.copy(selectedId = if (it.selectedId == action.id) null else action.id)
-            }
-
-            InventoryAction.SheetDismissed -> _state.update { it.copy(selectedId = null) }
-        }
     }
 
     companion object {
