@@ -1,6 +1,8 @@
 package com.example.aitoui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -24,7 +26,10 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
     NavHost(navController = navController, startDestination = MainRoute) {
         composable<MainRoute> {
             val mainViewModel: MainViewModel = viewModel(factory = MainViewModel.Factory)
+            val mainState by mainViewModel.state.collectAsStateWithLifecycle()
             MainScreen(
+                state = mainState,
+                onAction = mainViewModel::onAction,
                 onMedications = { navController.navigate(MedicationsRoute) },
                 onDispensableUnits = { navController.navigate(DispensableUnitsRoute) },
                 onDailySchedule = { navController.navigate(DailyScheduleRoute) },

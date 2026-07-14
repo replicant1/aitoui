@@ -54,6 +54,25 @@ class AitouiApp : Application() {
         InHandRepository(database.inHandDao())
     }
 
+    /** The on-disk name of the Room database (see [Room.databaseBuilder] above). */
+    val databaseName: String get() = "aitoui.db"
+
+    /**
+     * Merges the write-ahead log into the main database file so a backup taken by copying just the `.db`
+     * file is complete and consistent. Call before writing a backup.
+     */
+    fun checkpointDatabase() {
+        database.query("PRAGMA wal_checkpoint(TRUNCATE)", null).use { it.moveToFirst() }
+    }
+
+    /**
+     * Closes the Room database so its files can be replaced during a restore. The app process is
+     * restarted immediately afterwards, so the lazy singleton is never reopened in this process.
+     */
+    fun closeDatabase() {
+        if (database.isOpen) database.close()
+    }
+
     override fun onCreate() {
         super.onCreate()
         // Debug-only: auto-populate the DB with dummy data on first run so the app can be exercised
