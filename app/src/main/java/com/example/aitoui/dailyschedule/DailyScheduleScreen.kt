@@ -1,7 +1,6 @@
 package com.example.aitoui.dailyschedule
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -49,6 +48,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.aitoui.data.DispensableUnitDetails
 import com.example.aitoui.image.ImageStore
+import com.example.aitoui.ui.selectableRow
 import com.example.aitoui.ui.theme.AitouiTheme
 import com.example.aitoui.ui.theme.ThumbnailShape
 
@@ -195,7 +195,9 @@ fun DailyScheduleScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { onAction(DailyScheduleAction.RowSelected(entry.id)) }
+                                .selectableRow(selected = selected) {
+                                    onAction(DailyScheduleAction.RowSelected(entry.id))
+                                }
                                 .background(
                                     if (selected) MaterialTheme.colorScheme.primaryContainer
                                     else MaterialTheme.colorScheme.surface
