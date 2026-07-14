@@ -52,6 +52,10 @@ import com.example.aitoui.data.Medication
 import com.example.aitoui.image.ImageStore
 import com.example.aitoui.ui.theme.AitouiTheme
 import com.example.aitoui.ui.theme.ThumbnailShape
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 @Composable
 fun InHandRoot(
@@ -178,8 +182,10 @@ fun InHandScreen(
                 Text("ADD")
             }
 
+            // Once saved, the title records the date the figures were gathered.
             Text(
-                text = "Tablets in hand:",
+                text = state.gatheredDate?.let { "Tablets in hand as of ${formatInHandDate(it)}:" }
+                    ?: "Tablets in hand:",
                 style = MaterialTheme.typography.titleMedium,
             )
             OutlinedCard(modifier = Modifier.fillMaxWidth().weight(1f)) {
@@ -232,6 +238,13 @@ fun InHandScreen(
     }
 }
 
+/** Formats a gathered-date (UTC start-of-day millis) as dd/MM/yyyy, matching how scripts show dates. */
+private fun formatInHandDate(millis: Long): String {
+    val formatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+    formatter.timeZone = TimeZone.getTimeZone("UTC")
+    return formatter.format(Date(millis))
+}
+
 @Preview(showBackground = true)
 @Composable
 private fun InHandScreenPreview() {
@@ -251,6 +264,7 @@ private fun InHandScreenPreview() {
                     InHandEntry(1, 2, "Nurofen", "16"),
                 ),
                 selectedId = 1,
+                gatheredDate = 1_700_000_000_000L,
             ),
             onAction = {},
             onBack = {},
