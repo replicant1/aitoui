@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.example.aitoui.backup.DownloadsBackupStore
 import com.example.aitoui.data.DATABASE_SCHEMA_VERSION
+import com.example.aitoui.ui.heading
 import com.example.aitoui.ui.theme.AitouiTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -151,6 +152,7 @@ fun MainScreen(
                 title = {
                     Text(
                         text = "PxTx",
+                        modifier = Modifier.heading(),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 4.sp,

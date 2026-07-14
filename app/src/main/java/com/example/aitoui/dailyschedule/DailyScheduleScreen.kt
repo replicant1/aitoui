@@ -48,6 +48,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.aitoui.data.DispensableUnitDetails
 import com.example.aitoui.image.ImageStore
+import com.example.aitoui.ui.heading
 import com.example.aitoui.ui.selectableRow
 import com.example.aitoui.ui.theme.AitouiTheme
 import com.example.aitoui.ui.theme.ThumbnailShape
@@ -80,7 +81,7 @@ fun DailyScheduleScreen(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("Daily Schedule") },
+                title = { Text("Daily Schedule", modifier = Modifier.heading()) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
@@ -182,6 +183,7 @@ fun DailyScheduleScreen(
             Text(
                 text = if (totalTablets > 0.0) "Tablets taken daily ($totalLabel):"
                 else "Tablets taken daily:",
+                modifier = Modifier.heading(),
                 style = MaterialTheme.typography.titleMedium,
             )
             OutlinedCard(modifier = Modifier.fillMaxWidth().weight(1f)) {

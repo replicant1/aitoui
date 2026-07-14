@@ -40,6 +40,7 @@ import coil.compose.AsyncImage
 import com.example.aitoui.data.DispensableUnitDetails
 import com.example.aitoui.image.FullImageDialog
 import com.example.aitoui.image.ImageStore
+import com.example.aitoui.ui.heading
 import com.example.aitoui.ui.theme.AitouiTheme
 import com.example.aitoui.ui.theme.ThumbnailShape
 
@@ -71,7 +72,7 @@ fun InventoryScreen(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("Inventory") },
+                title = { Text("Inventory", modifier = Modifier.heading()) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(

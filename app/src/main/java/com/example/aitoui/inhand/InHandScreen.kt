@@ -49,6 +49,7 @@ import coil.compose.AsyncImage
 import com.example.aitoui.data.DispensableUnitDetails
 import com.example.aitoui.data.Medication
 import com.example.aitoui.image.ImageStore
+import com.example.aitoui.ui.heading
 import com.example.aitoui.ui.selectableRow
 import com.example.aitoui.ui.theme.AitouiTheme
 import com.example.aitoui.ui.theme.ThumbnailShape
@@ -85,7 +86,7 @@ fun InHandScreen(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("In Hand") },
+                title = { Text("In Hand", modifier = Modifier.heading()) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
@@ -186,6 +187,7 @@ fun InHandScreen(
             Text(
                 text = state.gatheredDate?.let { "Tablets in hand as of ${formatInHandDate(it)}:" }
                     ?: "Tablets in hand:",
+                modifier = Modifier.heading(),
                 style = MaterialTheme.typography.titleMedium,
             )
             OutlinedCard(modifier = Modifier.fillMaxWidth().weight(1f)) {
