@@ -9,14 +9,12 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BackHand
@@ -56,6 +54,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.example.aitoui.backup.DownloadsBackupStore
+import com.example.aitoui.data.DATABASE_SCHEMA_VERSION
 import com.example.aitoui.ui.theme.AitouiTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -164,21 +163,35 @@ fun MainScreen(
             )
         },
     ) { innerPadding ->
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
-            // Extra top padding vertically separates the grid from the title bar.
-            contentPadding = PaddingValues(start = 16.dp, top = 32.dp, end = 16.dp, bottom = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(innerPadding)
+                // Extra top padding vertically separates the grid from the title bar.
+                .padding(start = 16.dp, top = 32.dp, end = 16.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // Two columns: the prescribing group down the left, everything else down the right.
-            // The grid fills row by row, so interleave the groups to place each down its own column.
-            items(prescribingGroup.zip(otherGroup).flatMap { (left, right) -> listOf(left, right) }) { item ->
-                MainMenuButton(label = item.label, icon = item.icon, onClick = item.onClick)
+            // The 2x4 grid fills all space above the version line: four equal-height rows, each a pair
+            // (prescribing item on the left, everything-else item on the right).
+            prescribingGroup.zip(otherGroup).forEach { (left, right) ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    MainMenuButton(left.label, left.icon, left.onClick, Modifier.weight(1f).fillMaxHeight())
+                    MainMenuButton(right.label, right.icon, right.onClick, Modifier.weight(1f).fillMaxHeight())
+                }
             }
+
+            Text(
+                text = "App version:${BuildConfig.VERSION_NAME} — DB version:$DATABASE_SCHEMA_VERSION",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
 
@@ -247,12 +260,11 @@ private fun MainMenuButton(
     label: String,
     icon: ImageVector,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     OutlinedButton(
         onClick = onClick,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(100.dp),
+        modifier = modifier,
         shape = RoundedCornerShape(16.dp),
         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 12.dp),
     ) {
