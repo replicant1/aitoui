@@ -65,7 +65,7 @@ import kotlin.math.roundToInt
 
 @Composable
 fun ScanScriptRoot(
-    onScanned: (ScanResult) -> Unit,
+    onScanned: (ParsedScript) -> Unit,
     onEnterManually: () -> Unit,
     onBack: () -> Unit,
     viewModel: ScanScriptViewModel = viewModel(factory = ScanScriptViewModel.Factory),

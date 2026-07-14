@@ -15,5 +15,12 @@ val MIGRATION_21_22 = object : Migration(21, 22) {
     }
 }
 
+/** v23 added [ScriptEntity.serialNo2] — a second serial slot (e.g. eRx token alongside the PBS number). */
+val MIGRATION_22_23 = object : Migration(22, 23) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE scripts ADD COLUMN serialNo2 TEXT NOT NULL DEFAULT ''")
+    }
+}
+
 /** All migrations, in order — spread into `addMigrations(*ALL_MIGRATIONS)`. */
-val ALL_MIGRATIONS = arrayOf(MIGRATION_21_22)
+val ALL_MIGRATIONS = arrayOf(MIGRATION_21_22, MIGRATION_22_23)

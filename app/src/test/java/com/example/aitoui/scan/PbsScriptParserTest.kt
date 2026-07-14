@@ -44,7 +44,8 @@ class PbsScriptParserTest {
     fun `parses the PB038 sample`() {
         val r = PbsScriptParser.parse(sample)
 
-        assertEquals("1TV4J832WYJHBHY3D8", r.serialNo)
+        assertEquals("PW2048021", r.serialNo)                    // PBS number in slot 1
+        assertEquals("1TV4J832WYJHBHY3D8", r.serialNo2)          // eRx token in slot 2
         assertEquals(date("17/06/2026"), r.dateOfIssueMillis)
         assertEquals(date("17/06/2027"), r.validToMillis)
         assertEquals(5, r.repeats)
@@ -65,8 +66,67 @@ class PbsScriptParserTest {
     }
 
     @Test
-    fun `ignores the reference number and keeps the mixed alphanumeric eRx token`() {
-        assertEquals("1TV4J832WYJHBHY3D8", PbsScriptParser.parse(sample).serialNo)
+    fun `puts the PBS number in slot 1 and the eRx token in slot 2, ignoring the reference number`() {
+        val r = PbsScriptParser.parse(sample)
+        // "eRx> 208861" is a short digits-only reference number — not a serial, so it is dropped.
+        assertEquals("PW2048021", r.serialNo)
+        assertEquals("1TV4J832WYJHBHY3D8", r.serialNo2)
+    }
+
+    @Test
+    fun `leaves slot 1 empty and keeps the eRx token in slot 2 when there is no PBS number`() {
+        val noPbsNumber = sample.filterNot { it.text.startsWith("PW2048021") }
+        val r = PbsScriptParser.parse(noPbsNumber)
+        assertNull(r.serialNo)
+        assertEquals("1TV4J832WYJHBHY3D8", r.serialNo2)
+    }
+
+    /**
+     * The exact ML Kit OCR of a real Dytrex PB038 (captured on-device). The item strength OCR'd as "6OMG"
+     * (letter O for 0) and the eRx token didn't OCR at all — the two failures that left brand/active/dose/
+     * tablets/serial blank before the fix. Kept verbatim as a regression fixture.
+     */
+    private val dytrexSample = listOf(
+        OcrLine("ROSEVILLE", 751, 26, 1556, 192),
+        OcrLine("PHARMACY", 732, 155, 1602, 325),
+        OcrLine("PW2048022", 1452, 320, 2148, 420),
+        OcrLine("-PBS/RPBS", 1098, 360, 1332, 426),
+        OcrLine("Operc 2473-38751 -8 1 to", 683, 575, 1386, 662),
+        OcrLine("06/2029", 980, 652, 1184, 700),               // Medicare expiry (mm/yyyy) — ignored
+        OcrLine("2939926-MD", 1754, 581, 2087, 631),
+        OcrLine("eRx>", 936, 774, 1110, 839),                  // label only — token didn't OCR
+        OcrLine("MR RODNEY BAILEY", 836, 911, 1423, 963),
+        OcrLine("208861", 1936, 920, 2118, 967),               // reference number — not the serial
+        OcrLine("Original prescription transcription", 581, 1262, 1124, 1304),
+        OcrLine("(item, strength, quantity, directions and deferred supply if applicable)", 582, 1300, 1689, 1348),
+        OcrLine("DYTREX EC CAPSULES 6OMG (DULOXETINE) *Qty 56**", 605, 1443, 2197, 1515),
+        OcrLine("Swallow whole TWO capsules in the morning as directed", 623, 1521, 2016, 1601),
+        OcrLine("Dr Samantha Ting", 1358, 1757, 1764, 1803),
+        OcrLine("2 Repeats Left", 606, 1765, 1001, 1825),
+        OcrLine("Rpt No H5189", 2106, 1751, 2427, 1810),
+        OcrLine("17/06/2026", 671, 2060, 966, 2117),           // date of issue
+        OcrLine("No.p92IW", 1087, 2030, 1362, 2088),
+        OcrLine("1", 1715, 2159, 1739, 2200),
+        OcrLine("2", 1384, 2166, 1411, 2204),                  // repeats value, in the repeats column
+        OcrLine("Valid to 17/06/2027", 786, 2458, 1343, 2522),
+        OcrLine("20/062", 1624, 2756, 1841, 2818),             // partial date — must be ignored
+        OcrLine("PBO38.2008", 2646, 3949, 2862, 4013),         // form code — not a PBS prescription number
+    )
+
+    @Test
+    fun `parses a real Dytrex scan despite the 6OMG misread and missing eRx token`() {
+        val r = PbsScriptParser.parse(dytrexSample)
+
+        assertEquals("PW2048022", r.serialNo)                    // PBS number
+        assertNull(r.serialNo2)                                  // eRx token didn't OCR on this form
+        assertEquals("DYTREX", r.brand)
+        assertEquals("DULOXETINE", r.activeIngredient)
+        assertEquals("60", r.dosePerTablet)                    // "6O" repaired to "60"
+        assertEquals("56", r.tabletsPerUnit)
+        assertEquals(date("17/06/2026"), r.dateOfIssueMillis)
+        assertEquals(date("17/06/2027"), r.validToMillis)
+        assertEquals(2, r.repeats)
+        assertEquals("Swallow whole TWO capsules in the morning as directed", r.instructions)
     }
 
     @Test

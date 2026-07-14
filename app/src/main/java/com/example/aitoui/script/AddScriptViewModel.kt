@@ -9,58 +9,114 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.toRoute
 import com.example.aitoui.AitouiApp
 import com.example.aitoui.data.Dispensation
+import com.example.aitoui.data.DispensableUnit
 import com.example.aitoui.data.DispensableUnitDetails
 import com.example.aitoui.data.DispensableUnitRepository
 import com.example.aitoui.data.DispensationRepository
+import com.example.aitoui.data.FuzzyMatcher
+import com.example.aitoui.data.Medication
+import com.example.aitoui.data.MedicationRepository
 import com.example.aitoui.data.Script
 import com.example.aitoui.data.ScriptRepository
 import com.example.aitoui.navigation.ScriptRoute
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** Form state for adding a Script. A script is for a single dispensable unit (many scripts → one unit). */
+/**
+ * Form state for adding a Script. The medication and dispensable unit are entered as raw fields (brand,
+ * active ingredient, mg/tablet, tablets/unit) — pre-filled from a PB038 scan where available — and resolved
+ * to existing-or-new `medications` / `dispensable_units` rows on Save via [medicationStep]/[dispensableUnitStep].
+ */
 data class AddScriptState(
-    val dispensableUnits: List<DispensableUnitDetails> = emptyList(),
-    val selectedFormatId: Long? = null,
+    val brandName: String = "",
+    val activeIngredient: String = "",
+    val dosePerTablet: String = "",
+    val tabletsPerUnit: String = "",
     val serialNo: String = "",
+    val serialNo2: String = "",
     val dateOfIssue: Long? = null,
     val repeats: String = "",
     val validToMillis: Long? = null,
     val instructions: String = "",
     /** "No. of times already dispensed" from a scanned form; applied as a dispensation on save. */
     val priorDispensed: Int = 0,
+    /** Non-null while the medication-resolution dialog is shown. */
+    val medicationStep: MedicationResolution? = null,
+    /** Non-null while the dispensable-unit-resolution dialog is shown. */
+    val dispensableUnitStep: DispensableUnitResolution? = null,
+    /** True while the "serial number already used" error dialog is shown; blocks the save. */
+    val duplicateSerial: Boolean = false,
 ) {
-    val selectedFormatLabel: String
-        get() = dispensableUnits.firstOrNull { it.formatId == selectedFormatId }?.label ?: ""
-
-    // Basic field validation.
-    val formatValid: Boolean get() = selectedFormatId != null
-    val dateOfIssueValid: Boolean get() = dateOfIssue != null
-    val repeatsValid: Boolean get() = repeats.toIntOrNull() != null
-    val validToValid: Boolean get() = validToMillis != null
+    private val brandValid get() = brandName.isNotBlank()
+    private val activeValid get() = activeIngredient.isNotBlank()
+    private val doseValid get() = dosePerTablet.isNotBlank()
+    private val tabletsValid get() = tabletsPerUnit.isNotBlank()
+    private val dateOfIssueValid get() = dateOfIssue != null
+    private val repeatsValid get() = repeats.toIntOrNull() != null
+    private val validToValid get() = validToMillis != null
 
     val canSave: Boolean
-        get() = formatValid && dateOfIssueValid && repeatsValid && validToValid
+        get() = brandValid && activeValid && doseValid && tabletsValid &&
+            dateOfIssueValid && repeatsValid && validToValid
+}
+
+/** Medication-resolution dialog: existing candidates to pick, and whether creating a new one is refused. */
+data class MedicationResolution(
+    val exact: List<Medication>,
+    val similar: List<Medication>,
+    val blocked: Boolean,
+) {
+    val candidates: List<Medication> get() = exact + similar
+}
+
+/** Dispensable-unit-resolution dialog for the [resolvedMedication]: its existing dispensable units + blocked flag. */
+data class DispensableUnitResolution(
+    val resolvedMedication: ResolvedMedication,
+    val candidates: List<DispensableUnitDetails>,
+    val blocked: Boolean,
+)
+
+/** Either an existing medication id, or a new medication to create from (brand, active). */
+sealed interface ResolvedMedication {
+    data class Existing(val id: Long) : ResolvedMedication
+    data class New(val brandName: String, val activeIngredient: String) : ResolvedMedication
 }
 
 sealed interface AddScriptAction {
-    data class DispensableUnitSelected(val id: Long) : AddScriptAction
+    data class BrandNameChanged(val value: String) : AddScriptAction
+    data class ActiveIngredientChanged(val value: String) : AddScriptAction
+    data class DosePerTabletChanged(val value: String) : AddScriptAction
+    data class TabletsPerUnitChanged(val value: String) : AddScriptAction
     data class SerialNoChanged(val value: String) : AddScriptAction
+    data class SerialNo2Changed(val value: String) : AddScriptAction
     data class DateOfIssueChanged(val millis: Long?) : AddScriptAction
     data class RepeatsChanged(val value: String) : AddScriptAction
     data class ValidToChanged(val millis: Long?) : AddScriptAction
     data class InstructionsChanged(val value: String) : AddScriptAction
     data object Save : AddScriptAction
+
+    // Medication-resolution dialog.
+    data class PickMedication(val id: Long) : AddScriptAction
+    data object CreateMedication : AddScriptAction
+
+    // Dispensable-unit-resolution dialog.
+    data class PickDispensableUnit(val id: Long) : AddScriptAction
+    data object CreateDispensableUnit : AddScriptAction
+
+    data object CancelResolution : AddScriptAction
+
+    // "Serial number already used" error dialog.
+    data object DismissDuplicateSerial : AddScriptAction
 }
 
 class AddScriptViewModel(
     private val scriptRepository: ScriptRepository,
-    dispensableUnitRepository: DispensableUnitRepository,
+    private val medicationRepository: MedicationRepository,
+    private val dispensableUnitRepository: DispensableUnitRepository,
     private val dispensationRepository: DispensationRepository,
     prefill: ScriptRoute,
 ) : ViewModel() {
@@ -68,8 +124,12 @@ class AddScriptViewModel(
     // Seed the form from a scanned PB038 (or all-null args for manual entry).
     private val _state = MutableStateFlow(
         AddScriptState(
-            selectedFormatId = prefill.selectedFormatId,
+            brandName = prefill.brandName.orEmpty(),
+            activeIngredient = prefill.activeIngredient.orEmpty(),
+            dosePerTablet = prefill.dosePerTablet.orEmpty(),
+            tabletsPerUnit = prefill.tabletsPerUnit.orEmpty(),
             serialNo = prefill.serialNo.orEmpty(),
+            serialNo2 = prefill.serialNo2.orEmpty(),
             dateOfIssue = prefill.dateOfIssueMillis,
             repeats = prefill.repeats?.toString() ?: "",
             validToMillis = prefill.validToMillis,
@@ -79,77 +139,164 @@ class AddScriptViewModel(
     )
     val state: StateFlow<AddScriptState> = _state.asStateFlow()
 
-    init {
-        // Keep the dropdown's options in sync with the dispensable units.
-        dispensableUnitRepository.formatsWithMedication
-            .onEach { formats ->
-                _state.update { current ->
-                    val stillExists = formats.any { it.formatId == current.selectedFormatId }
-                    current.copy(
-                        dispensableUnits = formats,
-                        selectedFormatId = current.selectedFormatId.takeIf { stillExists },
-                    )
-                }
-            }
-            .launchIn(viewModelScope)
-    }
-
     fun onAction(action: AddScriptAction) {
         when (action) {
-            is AddScriptAction.DispensableUnitSelected ->
-                _state.update { it.copy(selectedFormatId = action.id) }
-
-            is AddScriptAction.SerialNoChanged ->
-                _state.update { it.copy(serialNo = action.value) }
-
-            is AddScriptAction.DateOfIssueChanged ->
-                _state.update { it.copy(dateOfIssue = action.millis) }
-
-            is AddScriptAction.RepeatsChanged ->
-                _state.update { it.copy(repeats = action.value.digitsOnly()) }
-
-            is AddScriptAction.ValidToChanged ->
-                _state.update { it.copy(validToMillis = action.millis) }
-
-            is AddScriptAction.InstructionsChanged ->
-                _state.update { it.copy(instructions = action.value) }
+            is AddScriptAction.BrandNameChanged -> _state.update { it.copy(brandName = action.value) }
+            is AddScriptAction.ActiveIngredientChanged -> _state.update { it.copy(activeIngredient = action.value) }
+            is AddScriptAction.DosePerTabletChanged -> _state.update { it.copy(dosePerTablet = action.value) }
+            is AddScriptAction.TabletsPerUnitChanged -> _state.update { it.copy(tabletsPerUnit = action.value.digitsOnly()) }
+            is AddScriptAction.SerialNoChanged -> _state.update { it.copy(serialNo = action.value) }
+            is AddScriptAction.SerialNo2Changed -> _state.update { it.copy(serialNo2 = action.value) }
+            is AddScriptAction.DateOfIssueChanged -> _state.update { it.copy(dateOfIssue = action.millis) }
+            is AddScriptAction.RepeatsChanged -> _state.update { it.copy(repeats = action.value.digitsOnly()) }
+            is AddScriptAction.ValidToChanged -> _state.update { it.copy(validToMillis = action.millis) }
+            is AddScriptAction.InstructionsChanged -> _state.update { it.copy(instructions = action.value) }
 
             AddScriptAction.Save -> save()
+
+            is AddScriptAction.PickMedication ->
+                onMedicationResolved(ResolvedMedication.Existing(action.id))
+
+            AddScriptAction.CreateMedication -> {
+                val step = _state.value.medicationStep ?: return
+                if (step.blocked) return
+                val s = _state.value
+                onMedicationResolved(ResolvedMedication.New(s.brandName.trim(), s.activeIngredient.trim()))
+            }
+
+            is AddScriptAction.PickDispensableUnit -> {
+                val step = _state.value.dispensableUnitStep ?: return
+                _state.update { it.copy(dispensableUnitStep = null) }
+                viewModelScope.launch { persist(step.resolvedMedication, ChosenUnit.Existing(action.id)) }
+            }
+
+            AddScriptAction.CreateDispensableUnit -> {
+                val step = _state.value.dispensableUnitStep ?: return
+                if (step.blocked) return
+                _state.update { it.copy(dispensableUnitStep = null) }
+                viewModelScope.launch { persist(step.resolvedMedication, ChosenUnit.New) }
+            }
+
+            AddScriptAction.CancelResolution ->
+                _state.update { it.copy(medicationStep = null, dispensableUnitStep = null) }
+
+            AddScriptAction.DismissDuplicateSerial ->
+                _state.update { it.copy(duplicateSerial = false) }
         }
     }
 
+    /**
+     * Save entry point. The very first check is serial-number uniqueness: no two scripts may share a serial
+     * number, so a clash shows a blocking error and stops here. Otherwise the medication/dispensable-unit
+     * resolution begins. A blank serial is treated as "no serial" and is not subject to the uniqueness rule.
+     */
     private fun save() {
-        val current = _state.value
-        if (!current.canSave) return
-        val unitId = current.selectedFormatId!!
-        val issue = current.dateOfIssue!!
-        val prior = current.priorDispensed
+        val s = _state.value
+        if (!s.canSave) return
+        val serials = listOf(s.serialNo, s.serialNo2).map { it.trim() }.filter { it.isNotEmpty() }
+        if (serials.isEmpty()) {
+            resolveMedication()
+            return
+        }
         viewModelScope.launch {
-            val scriptId = scriptRepository.add(
-                Script(
-                    dispensableUnitId = unitId,
-                    serialNo = current.serialNo.trim(),
-                    dateOfIssue = issue,
-                    repeats = current.repeats.toInt(),
-                    validToMillis = current.validToMillis!!,
-                    instructions = current.instructions.trim(),
-                )
-            )
-            // Record any already-dispensed count as a dispensation directly (no In-Hand change),
-            // so the app's derived dispensed count reflects the scanned form.
-            if (prior > 0) {
-                dispensationRepository.add(
-                    Dispensation(
-                        scriptId = scriptId,
-                        dispensableUnitId = unitId,
-                        number = prior,
-                        dispensedAtMillis = issue,
-                    )
-                )
+            if (scriptRepository.anySerialInUse(serials)) {
+                _state.update { it.copy(duplicateSerial = true) }
+            } else {
+                resolveMedication()
             }
         }
-        // Clear the form for the next entry (keep the loaded dispensable units).
-        _state.update { AddScriptState(dispensableUnits = it.dispensableUnits) }
+    }
+
+    /** Step 1: match the entered brand/active against existing medications. */
+    private fun resolveMedication() {
+        val s = _state.value
+        if (!s.canSave) return
+        viewModelScope.launch {
+            val existing = medicationRepository.medications.first()
+            val m = FuzzyMatcher.classifyMedications(s.brandName.trim(), s.activeIngredient.trim(), existing)
+            if (m.hasCandidates) {
+                _state.update { it.copy(medicationStep = MedicationResolution(m.exact, m.similar, m.blocked)) }
+            } else {
+                onMedicationResolved(ResolvedMedication.New(s.brandName.trim(), s.activeIngredient.trim()))
+            }
+        }
+    }
+
+    /** Step 2: with the medication resolved, match the entered dose/pack against its dispensable units. */
+    private fun onMedicationResolved(resolved: ResolvedMedication) {
+        _state.update { it.copy(medicationStep = null) }
+        val s = _state.value
+        viewModelScope.launch {
+            when (resolved) {
+                is ResolvedMedication.Existing -> {
+                    val units = dispensableUnitRepository.formatsWithMedication.first()
+                    val du = FuzzyMatcher.classifyDispensableUnits(
+                        resolved.id, s.dosePerTablet.trim(), s.tabletsPerUnit.trim(), units,
+                    )
+                    if (du.hasCandidates) {
+                        _state.update {
+                            it.copy(dispensableUnitStep = DispensableUnitResolution(resolved, du.candidates, du.blocked))
+                        }
+                    } else {
+                        persist(resolved, ChosenUnit.New)
+                    }
+                }
+                // A brand-new medication has no existing dispensable units — create one.
+                is ResolvedMedication.New -> persist(resolved, ChosenUnit.New)
+            }
+        }
+    }
+
+    /** Either an existing dispensable-unit id, or a request to create a new one. */
+    private sealed interface ChosenUnit {
+        data class Existing(val id: Long) : ChosenUnit
+        data object New : ChosenUnit
+    }
+
+    /** Step 3: create the medication / dispensable unit as needed, then insert the script (+ prior dispensation). */
+    private suspend fun persist(resolvedMedication: ResolvedMedication, chosenUnit: ChosenUnit) {
+        val s = _state.value
+        val medicationId = when (resolvedMedication) {
+            is ResolvedMedication.Existing -> resolvedMedication.id
+            is ResolvedMedication.New -> medicationRepository.add(
+                Medication(
+                    brandName = resolvedMedication.brandName,
+                    activeIngredient = resolvedMedication.activeIngredient,
+                ),
+            )
+        }
+        val dispensableUnitId = when (chosenUnit) {
+            is ChosenUnit.Existing -> chosenUnit.id
+            ChosenUnit.New -> dispensableUnitRepository.add(
+                DispensableUnit(
+                    medicationId = medicationId,
+                    dosePerTablet = s.dosePerTablet.trim(),
+                    tabletsPerUnit = s.tabletsPerUnit.trim(),
+                ),
+            )
+        }
+        val scriptId = scriptRepository.add(
+            Script(
+                dispensableUnitId = dispensableUnitId,
+                serialNo = s.serialNo.trim(),
+                serialNo2 = s.serialNo2.trim(),
+                dateOfIssue = s.dateOfIssue!!,
+                repeats = s.repeats.toInt(),
+                validToMillis = s.validToMillis!!,
+                instructions = s.instructions.trim(),
+            ),
+        )
+        if (s.priorDispensed > 0) {
+            dispensationRepository.add(
+                Dispensation(
+                    scriptId = scriptId,
+                    dispensableUnitId = dispensableUnitId,
+                    number = s.priorDispensed,
+                    dispensedAtMillis = s.dateOfIssue,
+                ),
+            )
+        }
+        _state.update { AddScriptState() }   // clear the form for the next entry
     }
 
     private fun String.digitsOnly(): String = filter { it.isDigit() }
@@ -160,6 +307,7 @@ class AddScriptViewModel(
                 val app = this[APPLICATION_KEY] as AitouiApp
                 AddScriptViewModel(
                     app.scriptRepository,
+                    app.medicationRepository,
                     app.dispensableUnitRepository,
                     app.dispensationRepository,
                     createSavedStateHandle().toRoute<ScriptRoute>(),

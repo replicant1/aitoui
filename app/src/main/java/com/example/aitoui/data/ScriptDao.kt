@@ -28,6 +28,13 @@ interface ScriptDao {
     @Query("SELECT * FROM scripts WHERE id = :id")
     suspend fun getById(id: Long): ScriptEntity?
 
+    /**
+     * How many existing scripts carry any of [serials] in *either* serial slot — used to enforce serial
+     * uniqueness on save (a clash on either slot, in either direction, counts). Pass only non-blank serials.
+     */
+    @Query("SELECT COUNT(*) FROM scripts WHERE serialNo IN (:serials) OR serialNo2 IN (:serials)")
+    suspend fun countMatchingSerials(serials: List<String>): Int
+
     @Query(
         """
         SELECT s.id AS scriptId, s.dispensableUnitId AS dispensableUnitId,

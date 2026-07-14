@@ -40,8 +40,12 @@ object ScanScriptRoute
  */
 @Serializable
 data class ScriptRoute(
-    val selectedFormatId: Long? = null,
+    val brandName: String? = null,
+    val activeIngredient: String? = null,
+    val dosePerTablet: String? = null,
+    val tabletsPerUnit: String? = null,
     val serialNo: String? = null,
+    val serialNo2: String? = null,
     val dateOfIssueMillis: Long? = null,
     val validToMillis: Long? = null,
     val repeats: Int? = null,

@@ -8,7 +8,6 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.aitoui.AitouiApp
-import com.example.aitoui.data.DispensableUnitRepository
 import com.google.android.gms.tasks.Tasks
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
@@ -17,7 +16,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -29,39 +27,31 @@ data class ScanState(
     val error: String? = null,
 )
 
-/** The outcome of a scan: the parsed fields plus the id of the auto-matched dispensable unit, if any. */
-data class ScanResult(
-    val parsed: ParsedScript,
-    val matchedFormatId: Long?,
-)
-
 class ScanScriptViewModel(
     private val app: Application,
-    private val dispensableUnitRepository: DispensableUnitRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ScanState())
     val state: StateFlow<ScanState> = _state.asStateFlow()
 
-    /** One-shot: set when a scan succeeds, cleared by the screen once it has navigated on. */
-    private val _result = MutableStateFlow<ScanResult?>(null)
-    val result: StateFlow<ScanResult?> = _result.asStateFlow()
+    /** One-shot: the parsed fields once a scan succeeds; cleared by the screen after it navigates on. */
+    private val _result = MutableStateFlow<ParsedScript?>(null)
+    val result: StateFlow<ParsedScript?> = _result.asStateFlow()
 
-    /** Runs OCR on the captured [file], parses the PB038 fields, and matches the medication. */
+    /** Runs OCR on the captured [file] and parses the PB038 fields. */
     fun scan(file: File) {
         if (_state.value.busy) return
         _state.update { it.copy(busy = true, error = null) }
         viewModelScope.launch {
             val outcome = runCatching {
                 val lines = withContext(Dispatchers.IO) { recognise(file) }
-                val parsed = PbsScriptParser.parse(lines)
-                ScanResult(parsed, matchFormat(parsed))
+                PbsScriptParser.parse(lines)
             }
             file.delete()
             outcome.fold(
-                onSuccess = { res ->
+                onSuccess = { parsed ->
                     _state.update { it.copy(busy = false) }
-                    _result.value = res
+                    _result.value = parsed
                 },
                 onFailure = { e ->
                     _state.update { it.copy(busy = false, error = "Couldn't read the form: ${e.message}") }
@@ -86,21 +76,11 @@ class ScanScriptViewModel(
             }
     }
 
-    /** Matches the parsed brand + dose + pack size to an existing dispensable unit, or null. */
-    private suspend fun matchFormat(p: ParsedScript): Long? {
-        val brand = p.brand ?: return null
-        return dispensableUnitRepository.formatsWithMedication.first().firstOrNull { unit ->
-            unit.brandName.equals(brand, ignoreCase = true) &&
-                (p.dosePerTablet == null || unit.dosePerTablet == p.dosePerTablet) &&
-                (p.tabletsPerUnit == null || unit.tabletsPerUnit == p.tabletsPerUnit)
-        }?.formatId
-    }
-
     companion object {
         val Factory = viewModelFactory {
             initializer {
                 val app = this[APPLICATION_KEY] as AitouiApp
-                ScanScriptViewModel(app, app.dispensableUnitRepository)
+                ScanScriptViewModel(app)
             }
         }
     }
