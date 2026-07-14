@@ -17,10 +17,15 @@ object PbsScriptParser {
 
     private val FULL_DATE = Regex("""\b(\d{2}/\d{2}/\d{4})\b""")
     private val VALID_TO = Regex("""(?i)valid\s*to\s*(\d{2}/\d{2}/\d{4})""")
-    // The eRx token: printed as "eRx: <TOKEN>", an 8+ char run of uppercase letters and digits.
+    // The prescription/repeat-authorisation number printed top-of-form, e.g. "PW2048022" — two uppercase
+    // letters then 6+ digits. This is the reliable per-script serial (matches the app's seed serials).
+    private val PBS_NUMBER = Regex("""\b([A-Z]{2}\d{6,})\b""")
+    // The eRx token: printed as "eRx: <TOKEN>", an 8+ char run of uppercase letters and digits. A fallback
+    // serial — on many forms the token is a barcode and doesn't OCR, so it's tried only after [PBS_NUMBER].
     private val ERX_TOKEN = Regex("""(?i)eRx\s*[:>]?\s*([0-9A-Z]{8,})""")
-    // Item transcription, e.g. "TENSIG TABLETS 50MG BLISTER (ATENOLOL) **Qty 60**".
-    private val ITEM = Regex("""(?i)^(.+?)\s+(\d+(?:\.\d+)?)\s*MG\b.*?\(([^)]+)\).*?Qty\s*\**\s*(\d+)""")
+    // Item transcription, e.g. "TENSIG TABLETS 50MG BLISTER (ATENOLOL) **Qty 60**". The strength and quantity
+    // allow O/o (a common OCR misread of the digit 0, e.g. "6OMG" for 60mg); [normaliseDigits] repairs them.
+    private val ITEM = Regex("""(?i)^(.+?)\s+(\d[\dOo]*(?:[.,]\d+)?)\s*MG\b.*?\(([^)]+)\).*?Qty\s*\**\s*([\dOo]+)""")
     private val DIRECTIONS = Regex("""(?i)^(take|apply|use|instil|inhale|inject|insert|dissolve|chew|spray|swallow)\b.*""")
 
     fun parse(lines: List<OcrLine>): ParsedScript {
@@ -34,24 +39,35 @@ object PbsScriptParser {
         val instructions = lines.map { it.text.trim() }.firstOrNull { DIRECTIONS.matches(it) }
 
         return ParsedScript(
-            serialNo = erxToken(lines),
+            // Two interchangeable serial slots: the PBS number and the eRx token (either may be absent).
+            serialNo = pbsNumber(lines),
+            serialNo2 = erxToken(lines),
             dateOfIssueMillis = issue,
             validToMillis = validTo ?: issue?.let { plusTwelveMonths(it) },
             repeats = intNear(repeatsLabel, ints),
             priorDispensed = intNear(dispensedLabel, ints),
             brand = item?.second?.groupValues?.get(1)?.let { brandOf(it) },
             activeIngredient = item?.second?.groupValues?.get(3)?.trim(),
-            dosePerTablet = item?.second?.groupValues?.get(2),
-            tabletsPerUnit = item?.second?.groupValues?.get(4),
+            dosePerTablet = item?.second?.groupValues?.get(2)?.let { normaliseDigits(it) },
+            tabletsPerUnit = item?.second?.groupValues?.get(4)?.let { normaliseDigits(it) },
             instructions = instructions,
         )
     }
+
+    /** The top-most "PWnnnnnnn"/"PHnnnnnnn"-style prescription number — the reliable per-script serial. */
+    private fun pbsNumber(lines: List<OcrLine>): String? =
+        lines.mapNotNull { line -> PBS_NUMBER.find(line.text)?.groupValues?.get(1)?.let { it to line.top } }
+            .minByOrNull { it.second }
+            ?.first
 
     private fun erxToken(lines: List<OcrLine>): String? =
         lines.mapNotNull { ERX_TOKEN.find(it.text)?.groupValues?.get(1) }
             // Keep tokens that mix letters and digits (excludes plain numbers like a reference "208861").
             .filter { it.any(Char::isDigit) && it.any(Char::isLetter) }
             .maxByOrNull { it.length }
+
+    /** Repairs a number OCR'd with letter O for digit 0 (and a decimal comma), e.g. "6O" -> "60". */
+    private fun normaliseDigits(s: String): String = s.replace('O', '0').replace('o', '0').replace(',', '.')
 
     /** The one full dd/MM/yyyy date that is not the "valid to" date — the date of issue. */
     private fun dateOfIssue(lines: List<OcrLine>, excluding: String?): Long? {

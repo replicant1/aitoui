@@ -23,6 +23,8 @@ data class OcrLine(
  */
 data class ParsedScript(
     val serialNo: String? = null,
+    /** A second serial number (e.g. the eRx token when the PBS number is in [serialNo]). */
+    val serialNo2: String? = null,
     val dateOfIssueMillis: Long? = null,
     val validToMillis: Long? = null,
     val repeats: Int? = null,

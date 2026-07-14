@@ -85,16 +85,20 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
         }
         composable<ScanScriptRoute> {
             ScanScriptRoot(
-                onScanned = { r ->
+                onScanned = { parsed ->
                     navController.navigate(
                         ScriptRoute(
-                            selectedFormatId = r.matchedFormatId,
-                            serialNo = r.parsed.serialNo,
-                            dateOfIssueMillis = r.parsed.dateOfIssueMillis,
-                            validToMillis = r.parsed.validToMillis,
-                            repeats = r.parsed.repeats,
-                            instructions = r.parsed.instructions,
-                            priorDispensed = r.parsed.priorDispensed ?: 0,
+                            brandName = parsed.brand,
+                            activeIngredient = parsed.activeIngredient,
+                            dosePerTablet = parsed.dosePerTablet,
+                            tabletsPerUnit = parsed.tabletsPerUnit,
+                            serialNo = parsed.serialNo,
+                            serialNo2 = parsed.serialNo2,
+                            dateOfIssueMillis = parsed.dateOfIssueMillis,
+                            validToMillis = parsed.validToMillis,
+                            repeats = parsed.repeats,
+                            instructions = parsed.instructions,
+                            priorDispensed = parsed.priorDispensed ?: 0,
                         ),
                     ) { popUpTo(ScanScriptRoute) { inclusive = true } }
                 },
