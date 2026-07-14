@@ -4,9 +4,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
@@ -32,14 +35,22 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import com.example.aitoui.data.DispensableUnitDetails
 import com.example.aitoui.data.Medication
+import com.example.aitoui.image.ImageStore
 import com.example.aitoui.ui.theme.AitouiTheme
+import com.example.aitoui.ui.theme.ThumbnailShape
 
 @Composable
 fun InHandRoot(
@@ -62,6 +73,8 @@ fun InHandScreen(
     onBack: () -> Unit,
 ) {
     var medicationExpanded by remember { mutableStateOf(false) }
+    // Shared width so ADD and DELETE are the same size (DELETE is the wider label).
+    val actionButtonWidth = 120.dp
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -143,6 +156,7 @@ fun InHandScreen(
             Button(
                 onClick = { onAction(InHandAction.Add) },
                 enabled = state.canAdd,
+                modifier = Modifier.width(actionButtonWidth),
             ) {
                 Text("ADD")
             }
@@ -152,12 +166,14 @@ fun InHandScreen(
                 style = MaterialTheme.typography.titleMedium,
             )
             OutlinedCard(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                val context = LocalContext.current
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(state.tabletsInHand, key = { it.id }) { entry ->
                         val selected = entry.id == state.selectedId
-                        Text(
-                            text = entry.label,
-                            style = MaterialTheme.typography.bodyLarge,
+                        // Dose and photo come from the medication's dispensable unit, looked up live.
+                        val unit = state.units.firstOrNull { it.medicationId == entry.medicationId }
+                        val dose = unit?.dosePerTablet?.let { " ($it" + "mg)" } ?: ""
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { onAction(InHandAction.RowSelected(entry.id)) }
@@ -165,8 +181,25 @@ fun InHandScreen(
                                     if (selected) MaterialTheme.colorScheme.primaryContainer
                                     else MaterialTheme.colorScheme.surface
                                 )
-                                .padding(horizontal = 16.dp, vertical = 12.dp),
-                        )
+                                .padding(horizontal = 16.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            unit?.imagePath?.let { imagePath ->
+                                AsyncImage(
+                                    model = ImageStore.fileFor(context, imagePath),
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(ThumbnailShape),
+                                )
+                            }
+                            Text(
+                                text = "${entry.brand}$dose × ${entry.number}",
+                                style = MaterialTheme.typography.bodyLarge,
+                            )
+                        }
                     }
                 }
             }
@@ -174,6 +207,7 @@ fun InHandScreen(
             Button(
                 onClick = { onAction(InHandAction.Delete) },
                 enabled = state.canDelete,
+                modifier = Modifier.width(actionButtonWidth),
             ) {
                 Text("DELETE")
             }
@@ -190,6 +224,10 @@ private fun InHandScreenPreview() {
                 medications = listOf(
                     Medication(1, "Panadol", "Paracetamol"),
                     Medication(2, "Nurofen", "Ibuprofen"),
+                ),
+                units = listOf(
+                    DispensableUnitDetails(1, 1, "Panadol", "Paracetamol", "500", "24", null),
+                    DispensableUnitDetails(2, 2, "Nurofen", "Ibuprofen", "200", "16", null),
                 ),
                 tabletsInHand = listOf(
                     InHandEntry(0, 1, "Panadol", "24"),
