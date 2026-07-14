@@ -40,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -133,9 +134,25 @@ fun InHandScreen(
                     expanded = medicationExpanded,
                     onDismissRequest = { medicationExpanded = false },
                 ) {
+                    val context = LocalContext.current
                     state.medications.forEach { medication ->
+                        // Photo and dose come from the medication's dispensable unit, looked up live.
+                        val unit = state.units.firstOrNull { it.medicationId == medication.id }
+                        val dose = unit?.dosePerTablet?.let { " ($it" + "mg)" } ?: ""
                         DropdownMenuItem(
-                            text = { Text("${medication.brandName} (${medication.activeIngredient})") },
+                            leadingIcon = {
+                                unit?.imagePath?.let { imagePath ->
+                                    AsyncImage(
+                                        model = ImageStore.fileFor(context, imagePath),
+                                        contentDescription = null,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .clip(ThumbnailShape),
+                                    )
+                                }
+                            },
+                            text = { Text("${medication.brandName}$dose", fontWeight = FontWeight.Normal) },
                             onClick = {
                                 onAction(InHandAction.MedicationSelected(medication.id))
                                 medicationExpanded = false
