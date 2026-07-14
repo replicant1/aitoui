@@ -35,7 +35,7 @@ interface ScriptDao {
                m.brandName AS brandName, m.activeIngredient AS activeIngredient,
                du.dosePerTablet AS dosePerTablet, du.tabletsPerUnit AS tabletsPerUnit,
                COALESCE((SELECT SUM(d.number) FROM dispensations d WHERE d.scriptId = s.id), 0) AS dispensed,
-               s.repeats AS repeats, s.dateOfIssue AS dateOfIssue
+               s.repeats AS repeats, s.dateOfIssue AS dateOfIssue, s.instructions AS instructions
         FROM scripts s
         JOIN dispensable_units du ON du.id = s.dispensableUnitId
         JOIN medications m ON m.id = du.medicationId

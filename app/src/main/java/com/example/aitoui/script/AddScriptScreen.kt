@@ -213,6 +213,14 @@ fun AddScriptScreen(
                         .clickable { showValidToPicker = true },
                 )
             }
+
+            OutlinedTextField(
+                value = state.instructions,
+                onValueChange = { onAction(AddScriptAction.InstructionsChanged(it)) },
+                label = { Text("Instructions") },
+                placeholder = { Text("e.g. Take ONE tablet TWICE a day as directed") },
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
 
