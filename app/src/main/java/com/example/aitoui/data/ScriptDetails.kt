@@ -17,6 +17,8 @@ data class ScriptDetails(
     val repeats: Int,
     /** Date the script was issued, as UTC epoch millis. */
     val dateOfIssue: Long,
+    /** Directions for use, e.g. "Take ONE tablet TWICE a day as directed". */
+    val instructions: String = "",
 ) {
     /** Medication name with dosage, e.g. "Panadol (500mg)". */
     val medicationLabel: String get() = "$brandName (${dosePerTablet}mg)"

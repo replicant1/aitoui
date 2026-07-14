@@ -20,6 +20,7 @@ import com.example.aitoui.script.AddScriptRoot
 import com.example.aitoui.script.ScriptsRoot
 import com.example.aitoui.dailyschedule.DailyScheduleRoot
 import com.example.aitoui.inhand.InHandRoot
+import com.example.aitoui.scan.ScanScriptRoot
 
 @Composable
 fun AppNavHost(navController: NavHostController = rememberNavController()) {
@@ -82,6 +83,27 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
                 onBack = { navController.popBackStack() }
             )
         }
+        composable<ScanScriptRoute> {
+            ScanScriptRoot(
+                onScanned = { r ->
+                    navController.navigate(
+                        ScriptRoute(
+                            selectedFormatId = r.matchedFormatId,
+                            serialNo = r.parsed.serialNo,
+                            dateOfIssueMillis = r.parsed.dateOfIssueMillis,
+                            validToMillis = r.parsed.validToMillis,
+                            repeats = r.parsed.repeats,
+                            instructions = r.parsed.instructions,
+                            priorDispensed = r.parsed.priorDispensed ?: 0,
+                        ),
+                    ) { popUpTo(ScanScriptRoute) { inclusive = true } }
+                },
+                onEnterManually = {
+                    navController.navigate(ScriptRoute()) { popUpTo(ScanScriptRoute) { inclusive = true } }
+                },
+                onBack = { navController.popBackStack() },
+            )
+        }
         composable<ScriptRoute> {
             AddScriptRoot(
                 onBack = { navController.popBackStack() }
@@ -90,7 +112,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
         composable<ScriptsRoute> {
             ScriptsRoot(
                 onBack = { navController.popBackStack() },
-                onAddScript = { navController.navigate(ScriptRoute) },
+                onAddScript = { navController.navigate(ScanScriptRoute) },
             )
         }
     }

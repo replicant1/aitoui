@@ -24,6 +24,8 @@ data class ScriptEntity(
     val dateOfIssue: Long,
     val repeats: Int,
     val validToMillis: Long,
+    /** Directions for use, e.g. "Take ONE tablet TWICE a day as directed". */
+    val instructions: String = "",
 )
 
 fun ScriptEntity.toDomain(): Script = Script(
@@ -33,6 +35,7 @@ fun ScriptEntity.toDomain(): Script = Script(
     dateOfIssue = dateOfIssue,
     repeats = repeats,
     validToMillis = validToMillis,
+    instructions = instructions,
 )
 
 fun Script.toEntity(): ScriptEntity = ScriptEntity(
@@ -42,4 +45,5 @@ fun Script.toEntity(): ScriptEntity = ScriptEntity(
     dateOfIssue = dateOfIssue,
     repeats = repeats,
     validToMillis = validToMillis,
+    instructions = instructions,
 )

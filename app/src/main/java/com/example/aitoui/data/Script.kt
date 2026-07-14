@@ -13,4 +13,6 @@ data class Script(
     val dateOfIssue: Long,
     val repeats: Int,
     val validToMillis: Long,
+    /** Directions for use, e.g. "Take ONE tablet TWICE a day as directed". */
+    val instructions: String = "",
 )
