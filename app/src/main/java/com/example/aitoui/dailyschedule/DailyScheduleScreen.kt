@@ -174,8 +174,14 @@ fun DailyScheduleScreen(
                 Text("ADD")
             }
 
+            // Total tablets taken daily, appended to the title (omitted when zero).
+            val totalTablets = state.tabletsTaken.sumOf { it.number.toDoubleOrNull() ?: 0.0 }
+            val totalLabel =
+                if (totalTablets == totalTablets.toLong().toDouble()) totalTablets.toLong().toString()
+                else totalTablets.toString()
             Text(
-                text = "Tablets taken daily:",
+                text = if (totalTablets > 0.0) "Tablets taken daily ($totalLabel):"
+                else "Tablets taken daily:",
                 style = MaterialTheme.typography.titleMedium,
             )
             OutlinedCard(modifier = Modifier.fillMaxWidth().weight(1f)) {
