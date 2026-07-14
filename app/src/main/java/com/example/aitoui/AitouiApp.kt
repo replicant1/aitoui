@@ -2,6 +2,7 @@ package com.example.aitoui
 
 import android.app.Application
 import androidx.room.Room
+import com.example.aitoui.data.ALL_MIGRATIONS
 import com.example.aitoui.data.AppDatabase
 import com.example.aitoui.data.DailyScheduleRepository
 import com.example.aitoui.data.DatabaseSeeder
@@ -25,7 +26,9 @@ class AitouiApp : Application() {
 
     private val database: AppDatabase by lazy {
         Room.databaseBuilder(this, AppDatabase::class.java, "aitoui.db")
-            // Dev app: schema changes recreate the DB rather than requiring hand-written migrations.
+            // Hand-written migrations preserve data across the versions they cover (see Migrations.kt).
+            .addMigrations(*ALL_MIGRATIONS)
+            // Fallback for any version jump without a migration (recreates rather than crashing).
             .fallbackToDestructiveMigration(dropAllTables = true)
             .build()
     }
