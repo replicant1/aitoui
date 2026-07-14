@@ -1,7 +1,6 @@
 package com.example.aitoui.inhand
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -50,6 +49,7 @@ import coil.compose.AsyncImage
 import com.example.aitoui.data.DispensableUnitDetails
 import com.example.aitoui.data.Medication
 import com.example.aitoui.image.ImageStore
+import com.example.aitoui.ui.selectableRow
 import com.example.aitoui.ui.theme.AitouiTheme
 import com.example.aitoui.ui.theme.ThumbnailShape
 import java.text.SimpleDateFormat
@@ -199,7 +199,9 @@ fun InHandScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { onAction(InHandAction.RowSelected(entry.id)) }
+                                .selectableRow(selected = selected) {
+                                    onAction(InHandAction.RowSelected(entry.id))
+                                }
                                 .background(
                                     if (selected) MaterialTheme.colorScheme.primaryContainer
                                     else MaterialTheme.colorScheme.surface

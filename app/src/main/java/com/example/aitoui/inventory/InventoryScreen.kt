@@ -9,7 +9,6 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -44,6 +43,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -53,6 +53,7 @@ import coil.compose.AsyncImage
 import com.example.aitoui.data.DispensableUnitDetails
 import com.example.aitoui.image.FullImageDialog
 import com.example.aitoui.image.ImageStore
+import com.example.aitoui.ui.selectableRow
 import com.example.aitoui.ui.theme.AitouiTheme
 import com.example.aitoui.ui.theme.ThumbnailShape
 
@@ -173,7 +174,7 @@ private fun MedicationRow(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .selectableRow(selected = selected, role = Role.Button, onClick = onClick)
             .background(background)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(if (hasThumbnail) gap else 2.dp),
