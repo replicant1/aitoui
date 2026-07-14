@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.aitoui.data.Medication
+import com.example.aitoui.ui.heading
 import com.example.aitoui.ui.theme.AitouiTheme
 
 @Composable
@@ -63,7 +64,7 @@ fun MedicationsScreen(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("Medications") },
+                title = { Text("Medications", modifier = Modifier.heading()) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(

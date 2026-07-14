@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.aitoui.inventory.humanizeDuration
+import com.example.aitoui.ui.heading
 
 /**
  * A colourblind-accessible line style: colour, thickness and dash pattern. Series are told apart by all
@@ -105,7 +106,7 @@ fun RunOutGraphScreen(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("Run-out Graph") },
+                title = { Text("Run-out Graph", modifier = Modifier.heading()) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(

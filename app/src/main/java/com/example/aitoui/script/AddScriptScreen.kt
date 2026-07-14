@@ -46,6 +46,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.aitoui.data.DispensableUnitDetails
 import com.example.aitoui.image.ImageStore
+import com.example.aitoui.ui.heading
 import com.example.aitoui.ui.theme.AitouiTheme
 import com.example.aitoui.ui.theme.ThumbnailShape
 import java.text.SimpleDateFormat
@@ -80,7 +81,7 @@ fun AddScriptScreen(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("Script") },
+                title = { Text("Script", modifier = Modifier.heading()) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(

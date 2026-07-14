@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.aitoui.data.Medication
+import com.example.aitoui.ui.heading
 import com.example.aitoui.ui.theme.AitouiTheme
 
 @Composable
@@ -63,7 +64,7 @@ fun DispensableUnitScreen(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("Dispensable Unit") },
+                title = { Text("Dispensable Unit", modifier = Modifier.heading()) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(

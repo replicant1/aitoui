@@ -55,6 +55,7 @@ import com.example.aitoui.data.ScriptDetails
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.TimeZone
+import com.example.aitoui.ui.heading
 import com.example.aitoui.ui.theme.AitouiTheme
 import com.example.aitoui.ui.theme.ScriptCardBand
 import com.example.aitoui.ui.theme.ScriptCardCaption
@@ -94,7 +95,7 @@ fun ScriptsScreen(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("Scripts") },
+                title = { Text("Scripts", modifier = Modifier.heading()) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(

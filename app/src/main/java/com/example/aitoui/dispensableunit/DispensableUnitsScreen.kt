@@ -39,6 +39,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.example.aitoui.ui.heading
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -89,7 +90,7 @@ fun DispensableUnitsScreen(
             modifier = Modifier.fillMaxSize(),
             topBar = {
                 TopAppBar(
-                    title = { Text("Dispensable Units") },
+                    title = { Text("Dispensable Units", modifier = Modifier.heading()) },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
                             Icon(
