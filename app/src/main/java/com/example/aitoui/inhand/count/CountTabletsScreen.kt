@@ -33,6 +33,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.runtime.Composable
@@ -61,6 +62,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.aitoui.BuildConfig
 import com.example.aitoui.counting.CountImage
 import com.example.aitoui.image.ImageStore
 import kotlinx.coroutines.Dispatchers
@@ -182,6 +184,24 @@ private fun CameraPreview(
     }
     var capturing by remember { mutableStateOf(false) }
 
+    // Debug-only: feed a pushed test image (filesDir/test-image.jpg) through the same review flow as a
+    // capture, for previewing tap-to-correct on a known dense spread without the live camera.
+    fun loadTestImage() {
+        if (capturing) return
+        capturing = true
+        scope.launch {
+            val loaded = withContext(Dispatchers.Default) {
+                val src = File(context.filesDir, "test-image.jpg")
+                if (!src.exists()) return@withContext null
+                val copy = ImageStore.newCaptureFile(context)
+                src.copyTo(copy, overwrite = true)
+                copy.absolutePath to ImageStore.decodeUpright(copy, ANALYSIS_MAX_DIMENSION).toCountImage()
+            }
+            capturing = false
+            loaded?.let { onCaptured(it.first, it.second) }
+        }
+    }
+
     androidx.compose.ui.viewinterop.AndroidView(
         modifier = Modifier.fillMaxSize(),
         factory = {
@@ -202,8 +222,19 @@ private fun CameraPreview(
     )
 
     Column(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
-        IconButton(onClick = onBack, modifier = Modifier.padding(8.dp)) {
-            Icon(Icons.Filled.Close, contentDescription = "Cancel", tint = Color.White)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = onBack, modifier = Modifier.padding(8.dp)) {
+                Icon(Icons.Filled.Close, contentDescription = "Cancel", tint = Color.White)
+            }
+            if (BuildConfig.DEBUG) {
+                TextButton(onClick = { loadTestImage() }, modifier = Modifier.padding(end = 8.dp)) {
+                    Text("Use test image", color = Color.White)
+                }
+            }
         }
         Text(
             text = "Spread the tablets in a single layer on a plain, contrasting surface, then take a photo.",
