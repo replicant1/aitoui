@@ -346,7 +346,7 @@ private fun ConfirmLayoutView(
             PackImageView(bitmap, state.imageWidth, state.imageHeight, pack, interactive = false, onPopAt = { _, _ -> PopResult.NONE })
         }
         Text(
-            text = "Nudge the grid until it sits on the blisters.",
+            text = "Set the rows and columns to match the pack.",
             color = Color.White, style = MaterialTheme.typography.bodySmall,
             textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
         )
@@ -354,10 +354,10 @@ private fun ConfirmLayoutView(
             Stepper("Columns", pack.cols) { onSetColumns(it) }
             Stepper("Rows", pack.rows) { onSetRows(it) }
         }
-        val rowsLabel = if (pack.rows == 1) "1 row" else "${pack.rows} rows"
         val colsLabel = if (pack.cols == 1) "1 column" else "${pack.cols} columns"
+        val rowsLabel = if (pack.rows == 1) "1 row" else "${pack.rows} rows"
         Button(onClick = onConfirm, modifier = Modifier.fillMaxWidth().padding(top = 14.dp)) {
-            Text("Confirm grid is $rowsLabel, $colsLabel")
+            Text("Confirm grid is $colsLabel × $rowsLabel")
         }
     }
 }
@@ -373,7 +373,7 @@ private fun PopView(
 ) {
     Column(modifier = Modifier.fillMaxSize().safeDrawingPadding().padding(16.dp)) {
         Header(
-            title = "Pop the empties",
+            title = "Pop blisters",
             trailing = if (state.packs.size > 1) "Pack ${state.currentPackIndex + 1} / ${state.packs.size}" else null,
         )
         val feedback = rememberPopFeedback()
@@ -401,7 +401,7 @@ private fun PopView(
             horizontalArrangement = Arrangement.Center,
         ) {
             Text(
-                text = "Full ${pack.fullCount}   ·   Popped ${pack.popped.size}",
+                text = "Full ${pack.fullCount}   ·   Empty ${pack.popped.size}",
                 color = Color.White, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
             )
         }
