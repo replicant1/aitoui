@@ -11,6 +11,7 @@ import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -27,6 +28,7 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -163,7 +165,12 @@ private fun PermissionGate(onGrant: () -> Unit, onBack: () -> Unit) {
             textAlign = TextAlign.Center,
         )
         Button(onClick = onGrant, modifier = Modifier.padding(top = 16.dp)) { Text("Grant permission") }
-        OutlinedButton(onClick = onBack, modifier = Modifier.padding(top = 8.dp)) { Text("Cancel") }
+        OutlinedButton(
+            onClick = onBack,
+            modifier = Modifier.padding(top = 8.dp),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+            border = BorderStroke(1.dp, Color.White),
+        ) { Text("Cancel") }
     }
 }
 
@@ -392,7 +399,12 @@ private fun ReviewCapture(
             modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            OutlinedButton(onClick = onRetake, modifier = Modifier.weight(1f)) { Text("Retake") }
+            OutlinedButton(
+                onClick = onRetake,
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+                border = BorderStroke(1.dp, Color.White),
+            ) { Text("Retake") }
             Button(
                 onClick = onUseCount,
                 enabled = !state.analysing,
