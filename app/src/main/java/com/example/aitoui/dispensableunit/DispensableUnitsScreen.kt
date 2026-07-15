@@ -255,7 +255,7 @@ private fun DispensableUnitRow(
                     modifier = Modifier.padding(top = 4.dp),
                 )
             }
-            IconButton(onClick = onDeleteClick) {
+            IconButton(onClick = onDeleteClick, modifier = Modifier.align(Alignment.Top)) {
                 Icon(imageVector = Icons.Filled.Close, contentDescription = "Delete dispensable unit")
             }
         }
