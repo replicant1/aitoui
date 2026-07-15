@@ -57,6 +57,8 @@ data class InHandState(
 sealed interface InHandAction {
     data class MedicationSelected(val id: Long) : InHandAction
     data class NumberOfTabletsChanged(val value: String) : InHandAction
+    /** A camera-counted tablet total, dropped into the "Number of tablets" field for the user to ADD. */
+    data class TabletsCounted(val count: Int) : InHandAction
     data object Add : InHandAction
     data class RowSelected(val id: Long) : InHandAction
     data object Delete : InHandAction
@@ -122,6 +124,9 @@ class InHandViewModel(
 
             is InHandAction.NumberOfTabletsChanged ->
                 _state.update { it.copy(numberOfTablets = action.value.decimalOnly()) }
+
+            is InHandAction.TabletsCounted ->
+                _state.update { it.copy(numberOfTablets = action.count.toString()) }
 
             InHandAction.Add -> _state.update { current ->
                 if (!current.canAdd) return@update current

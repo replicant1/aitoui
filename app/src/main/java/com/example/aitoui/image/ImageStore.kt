@@ -49,6 +49,13 @@ object ImageStore {
         File(capturesDir(context), "capture_${UUID.randomUUID()}.jpg")
 
     /**
+     * Decodes [file] downscaled so its longest side is at most [maxDimension] and rotated upright per EXIF —
+     * for analysing a camera capture (e.g. tablet counting), not for storage. Do off the main thread.
+     */
+    fun decodeUpright(file: File, maxDimension: Int): Bitmap =
+        applyExifRotation(file, decodeDownscaled(file, maxDimension))
+
+    /**
      * From a camera [source] JPEG, writes the hi-res square capture and a downscaled thumbnail of the
      * [crop] region within it (both under the same returned filename), then deletes [source]. Returns the
      * shared filename. Applies EXIF rotation and centre-squares defensively. Do off the main thread.
