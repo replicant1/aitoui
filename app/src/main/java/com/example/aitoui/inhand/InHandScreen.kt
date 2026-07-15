@@ -17,6 +17,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -30,6 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -61,12 +63,25 @@ import java.util.TimeZone
 @Composable
 fun InHandRoot(
     onBack: () -> Unit,
+    onCountTablets: () -> Unit,
+    countedTablets: Int?,
+    onCountedConsumed: () -> Unit,
     viewModel: InHandViewModel = viewModel(factory = InHandViewModel.Factory),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+
+    // A count returned from the camera screen lands in the "Number of tablets" field.
+    LaunchedEffect(countedTablets) {
+        countedTablets?.let {
+            viewModel.onAction(InHandAction.TabletsCounted(it))
+            onCountedConsumed()
+        }
+    }
+
     InHandScreen(
         state = state,
         onAction = viewModel::onAction,
+        onCountTablets = onCountTablets,
         onBack = onBack,
     )
 }
@@ -76,6 +91,7 @@ fun InHandRoot(
 fun InHandScreen(
     state: InHandState,
     onAction: (InHandAction) -> Unit,
+    onCountTablets: () -> Unit,
     onBack: () -> Unit,
 ) {
     var medicationExpanded by remember { mutableStateOf(false) }
@@ -173,6 +189,14 @@ fun InHandScreen(
                 label = { Text("Number of tablets") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                trailingIcon = {
+                    IconButton(onClick = onCountTablets, enabled = state.selectedMedicationId != null) {
+                        Icon(
+                            imageVector = Icons.Filled.PhotoCamera,
+                            contentDescription = "Count tablets with camera",
+                        )
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
             )
             Button(
@@ -271,6 +295,7 @@ private fun InHandScreenPreview() {
                 gatheredDate = 1_700_000_000_000L,
             ),
             onAction = {},
+            onCountTablets = {},
             onBack = {},
         )
     }

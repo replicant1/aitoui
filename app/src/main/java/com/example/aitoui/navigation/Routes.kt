@@ -55,3 +55,14 @@ data class ScriptRoute(
 
 @Serializable
 object ScriptsRoute
+
+/**
+ * The camera screen that counts tablets and returns the count to the In Hand screen (via the previous
+ * back-stack entry's saved-state handle, under [TABLET_COUNT_RESULT]). No args in the MVP — the count is
+ * medication-agnostic; a `medicationId` will be added when the tablet reference photo is used.
+ */
+@Serializable
+object CountTabletsRoute
+
+/** Saved-state-handle key under which [CountTabletsRoute] returns its integer tablet count. */
+const val TABLET_COUNT_RESULT = "tabletCount"

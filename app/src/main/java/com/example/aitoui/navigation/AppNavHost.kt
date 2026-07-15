@@ -20,6 +20,7 @@ import com.example.aitoui.script.AddScriptRoot
 import com.example.aitoui.script.ScriptsRoot
 import com.example.aitoui.dailyschedule.DailyScheduleRoot
 import com.example.aitoui.inhand.InHandRoot
+import com.example.aitoui.inhand.count.CountTabletsRoot
 import com.example.aitoui.scan.ScanScriptRoot
 
 @Composable
@@ -67,9 +68,24 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
                 onBack = { navController.popBackStack() }
             )
         }
-        composable<InHandRoute> {
+        composable<InHandRoute> { entry ->
+            val countedTablets by entry.savedStateHandle
+                .getStateFlow<Int?>(TABLET_COUNT_RESULT, null)
+                .collectAsStateWithLifecycle()
             InHandRoot(
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onCountTablets = { navController.navigate(CountTabletsRoute) },
+                countedTablets = countedTablets,
+                onCountedConsumed = { entry.savedStateHandle[TABLET_COUNT_RESULT] = null },
+            )
+        }
+        composable<CountTabletsRoute> {
+            CountTabletsRoot(
+                onCounted = { count ->
+                    navController.previousBackStackEntry?.savedStateHandle?.set(TABLET_COUNT_RESULT, count)
+                    navController.popBackStack()
+                },
+                onBack = { navController.popBackStack() },
             )
         }
         composable<InventoryRoute> {
