@@ -346,7 +346,7 @@ private fun ConfirmLayoutView(
             PackImageView(bitmap, state.imageWidth, state.imageHeight, pack, interactive = false, onPopAt = { _, _ -> PopResult.NONE })
         }
         Text(
-            text = "Nudge the grid until it sits on the blisters.",
+            text = "Set the rows and columns to match the pack.",
             color = Color.White, style = MaterialTheme.typography.bodySmall,
             textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
         )
