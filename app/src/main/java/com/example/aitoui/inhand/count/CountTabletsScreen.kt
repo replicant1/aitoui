@@ -14,6 +14,7 @@ import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -36,6 +37,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -44,9 +46,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -65,6 +70,9 @@ import java.io.File
 
 /** Longest edge (px) the capture is downscaled to before counting — fast and threshold-stable. */
 private const val ANALYSIS_MAX_DIMENSION = 1200
+
+/** Maximum pinch-zoom on the review image, so dense clusters can be corrected accurately. */
+private const val MAX_ZOOM = 5f
 
 @Composable
 fun CountTabletsRoot(
@@ -270,40 +278,72 @@ private fun ReviewCapture(
                 val boxW = if (fitByWidth) maxWidth else maxHeight * ratio
                 val boxH = if (fitByWidth) maxWidth / ratio else maxHeight
 
+                // Transient view-only zoom/pan; resets when a new frame is decoded. Content point p maps to
+                // box point: box = center + scale*(p - center) + offset; taps invert this to image pixels.
+                var scale by remember(bitmap) { mutableFloatStateOf(1f) }
+                var offset by remember(bitmap) { mutableStateOf(Offset.Zero) }
+
                 Box(
                     modifier = Modifier
                         .size(boxW, boxH)
+                        .clipToBounds()
+                        .pointerInput(state.imageWidth, state.imageHeight) {
+                            detectTransformGestures { centroid, pan, zoom, _ ->
+                                val center = Offset(size.width / 2f, size.height / 2f)
+                                val newScale = (scale * zoom).coerceIn(1f, MAX_ZOOM)
+                                val z = newScale / scale
+                                val panned = offset * z + (centroid - center) * (1f - z) + pan
+                                val maxX = (newScale - 1f).coerceAtLeast(0f) * size.width / 2f
+                                val maxY = (newScale - 1f).coerceAtLeast(0f) * size.height / 2f
+                                scale = newScale
+                                offset = Offset(panned.x.coerceIn(-maxX, maxX), panned.y.coerceIn(-maxY, maxY))
+                            }
+                        }
                         .pointerInput(state.imageWidth, state.imageHeight) {
                             detectTapGestures { pos ->
+                                val center = Offset(size.width / 2f, size.height / 2f)
+                                val content = (pos - center - offset) / scale + center
                                 onTapAt(
-                                    pos.x / size.width * state.imageWidth,
-                                    pos.y / size.height * state.imageHeight,
+                                    content.x / size.width * state.imageWidth,
+                                    content.y / size.height * state.imageHeight,
                                 )
                             }
                         },
                 ) {
-                    androidx.compose.foundation.Image(
-                        bitmap = bitmap.asImageBitmap(),
-                        contentDescription = "Captured tablets",
-                        contentScale = ContentScale.FillBounds,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                    Canvas(modifier = Modifier.fillMaxSize()) {
-                        val r = size.minDimension * 0.018f
-                        state.markers.forEach { m ->
-                            val cx = m.x / state.imageWidth * size.width
-                            val cy = m.y / state.imageHeight * size.height
-                            drawCircle(
-                                color = markerColor,
-                                radius = r,
-                                center = androidx.compose.ui.geometry.Offset(cx, cy),
-                                style = Stroke(width = r * 0.5f),
-                            )
-                            drawCircle(
-                                color = markerColor,
-                                radius = r * 0.35f,
-                                center = androidx.compose.ui.geometry.Offset(cx, cy),
-                            )
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .graphicsLayer {
+                                scaleX = scale
+                                scaleY = scale
+                                translationX = offset.x
+                                translationY = offset.y
+                            },
+                    ) {
+                        androidx.compose.foundation.Image(
+                            bitmap = bitmap.asImageBitmap(),
+                            contentDescription = "Captured tablets",
+                            contentScale = ContentScale.FillBounds,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                        Canvas(modifier = Modifier.fillMaxSize()) {
+                            // Markers are drawn in unscaled box space; the graphicsLayer zooms them with the image.
+                            val r = size.minDimension * 0.018f / scale
+                            state.markers.forEach { m ->
+                                val cx = m.x / state.imageWidth * size.width
+                                val cy = m.y / state.imageHeight * size.height
+                                drawCircle(
+                                    color = markerColor,
+                                    radius = r,
+                                    center = Offset(cx, cy),
+                                    style = Stroke(width = r * 0.5f),
+                                )
+                                drawCircle(
+                                    color = markerColor,
+                                    radius = r * 0.35f,
+                                    center = Offset(cx, cy),
+                                )
+                            }
                         }
                     }
                 }
@@ -311,7 +351,7 @@ private fun ReviewCapture(
         }
 
         Text(
-            text = "Tap a missed tablet to add it, or tap a marker to remove it.",
+            text = "Pinch to zoom. Tap a missed tablet to add it, or tap a marker to remove it.",
             color = Color.White,
             style = MaterialTheme.typography.bodySmall,
             textAlign = TextAlign.Center,
