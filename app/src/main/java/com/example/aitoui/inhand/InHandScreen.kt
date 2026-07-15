@@ -2,6 +2,7 @@ package com.example.aitoui.inhand
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,6 +14,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material.icons.Icons
@@ -64,6 +66,7 @@ import java.util.TimeZone
 fun InHandRoot(
     onBack: () -> Unit,
     onCountTablets: () -> Unit,
+    onCountBlisters: () -> Unit,
     countedTablets: Int?,
     onCountedConsumed: () -> Unit,
     viewModel: InHandViewModel = viewModel(factory = InHandViewModel.Factory),
@@ -82,6 +85,7 @@ fun InHandRoot(
         state = state,
         onAction = viewModel::onAction,
         onCountTablets = onCountTablets,
+        onCountBlisters = onCountBlisters,
         onBack = onBack,
     )
 }
@@ -92,6 +96,7 @@ fun InHandScreen(
     state: InHandState,
     onAction: (InHandAction) -> Unit,
     onCountTablets: () -> Unit,
+    onCountBlisters: () -> Unit,
     onBack: () -> Unit,
 ) {
     var medicationExpanded by remember { mutableStateOf(false) }
@@ -190,11 +195,30 @@ fun InHandScreen(
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 trailingIcon = {
-                    IconButton(onClick = onCountTablets, enabled = state.selectedMedicationId != null) {
-                        Icon(
-                            imageVector = Icons.Filled.PhotoCamera,
-                            contentDescription = "Count tablets with camera",
-                        )
+                    var countMenuExpanded by remember { mutableStateOf(false) }
+                    Box {
+                        IconButton(
+                            onClick = { countMenuExpanded = true },
+                            enabled = state.selectedMedicationId != null,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.PhotoCamera,
+                                contentDescription = "Count with camera",
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = countMenuExpanded,
+                            onDismissRequest = { countMenuExpanded = false },
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Loose tablets") },
+                                onClick = { countMenuExpanded = false; onCountTablets() },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Blister packs") },
+                                onClick = { countMenuExpanded = false; onCountBlisters() },
+                            )
+                        }
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
@@ -296,6 +320,7 @@ private fun InHandScreenPreview() {
             ),
             onAction = {},
             onCountTablets = {},
+            onCountBlisters = {},
             onBack = {},
         )
     }
