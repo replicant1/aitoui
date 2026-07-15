@@ -25,7 +25,7 @@ class BlisterCountViewModelTest {
     }
 
     @Test
-    fun `packs found enter layout confirmation, all pockets full by default`() {
+    fun `packs found enter layout confirmation, all blisters full by default`() {
         val vm = vmWith(region())
         val s = vm.state.value
         assertEquals(BlisterPhase.CONFIRM_LAYOUT, s.phase)
@@ -36,12 +36,12 @@ class BlisterCountViewModelTest {
     }
 
     @Test
-    fun `changing the layout updates the pocket count and clears pops`() {
+    fun `changing the layout updates the blister count and clears pops`() {
         val vm = vmWith(region())
         vm.confirmLayout()
         vm.popAt(popPoint(vm, 0, 0).first, popPoint(vm, 0, 0).second)
         vm.setColumns(3) // 3x5 = 15, and pops reset
-        assertEquals(15, vm.state.value.currentPack!!.pocketCount)
+        assertEquals(15, vm.state.value.currentPack!!.blisterCount)
         assertEquals(15, vm.state.value.total)
         assertEquals(emptySet<CellRef>(), vm.state.value.currentPack!!.popped)
     }
@@ -54,7 +54,7 @@ class BlisterCountViewModelTest {
     }
 
     @Test
-    fun `popping a pocket empties it and un-popping refills it`() {
+    fun `popping a blister empties it and un-popping refills it`() {
         val vm = vmWith(region())
         vm.confirmLayout()
         val (x, y) = popPoint(vm, 0, 0)
@@ -76,7 +76,7 @@ class BlisterCountViewModelTest {
     }
 
     @Test
-    fun `reset restores every pocket`() {
+    fun `reset restores every blister`() {
         val vm = vmWith(region())
         vm.confirmLayout()
         vm.popAt(popPoint(vm, 1, 0).first, popPoint(vm, 1, 0).second)
@@ -112,7 +112,7 @@ class BlisterCountViewModelTest {
         assertNull(vm.state.value.capturePath)
     }
 
-    /** Image-pixel coordinate of the centre of pocket ([along], [across]) on the current pack. */
+    /** Image-pixel coordinate of the centre of blister ([along], [across]) on the current pack. */
     private fun popPoint(vm: BlisterCountViewModel, along: Int, across: Int): Pair<Float, Float> {
         val pack = vm.state.value.currentPack!!
         val p = cellCenter(pack.region, pack.alongLong, pack.alongShort, along, across)

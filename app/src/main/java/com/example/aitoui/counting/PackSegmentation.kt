@@ -7,8 +7,8 @@ import kotlin.math.sin
 /**
  * A segmented blister pack, squared up for gridding: its centroid, two orthogonal principal axes (unit
  * vectors), and the pack's extent along each. [longX]/[longY] is the pack's longer side (which carries more
- * pockets), [shortX]/[shortY] the shorter. Extents are signed distances of pixels from the centroid when
- * projected onto each axis, so a pocket at fraction f along the long axis sits at `longMin + f*(longMax-longMin)`.
+ * blisters), [shortX]/[shortY] the shorter. Extents are signed distances of pixels from the centroid when
+ * projected onto each axis, so a blister at fraction f along the long axis sits at `longMin + f*(longMax-longMin)`.
  * All values are in image pixels. See [cellCenter] / [tapToCell] in PackGrid.kt.
  */
 data class PackRegion(
@@ -106,7 +106,7 @@ fun segmentPacks(image: CountImage, minAreaFraction: Float = 0.02f): List<PackRe
 
     val regions = ArrayList<PackRegion>(m)
     for (k in 0 until m) {
-        // Long axis = the one with the greater extent (more pockets).
+        // Long axis = the one with the greater extent (more blisters).
         val region = if ((aMax[k] - aMin[k]) >= (bMax[k] - bMin[k])) {
             PackRegion(
                 mx[k].toFloat(), my[k].toFloat(),

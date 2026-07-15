@@ -346,7 +346,7 @@ private fun ConfirmLayoutView(
             PackImageView(bitmap, state.imageWidth, state.imageHeight, pack, interactive = false, onPopAt = { _, _ -> PopResult.NONE })
         }
         Text(
-            text = "Nudge the grid until it sits on the pockets.",
+            text = "Nudge the grid until it sits on the blisters.",
             color = Color.White, style = MaterialTheme.typography.bodySmall,
             textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
         )
@@ -392,7 +392,7 @@ private fun PopView(
             )
         }
         Text(
-            text = "Every pocket starts full — tap the gone ones to pop them. Pinch to zoom.",
+            text = "Every blister starts full — tap the gone ones to pop them. Pinch to zoom.",
             color = Color.White, style = MaterialTheme.typography.bodySmall,
             textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
         )
@@ -432,7 +432,7 @@ private fun SummaryView(state: BlisterCountState, onUseTotal: () -> Unit, onReta
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text("Pack ${i + 1}  ·  ${pack.cols}×${pack.rows}", color = Color.White)
-                    Text("${pack.fullCount} / ${pack.pocketCount}", color = Color.White, fontWeight = FontWeight.SemiBold)
+                    Text("${pack.fullCount} / ${pack.blisterCount}", color = Color.White, fontWeight = FontWeight.SemiBold)
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
@@ -476,8 +476,8 @@ private fun Stepper(label: String, value: Int, onChange: (Int) -> Unit) {
 
 /**
  * The current pack, cropped from the captured frame to fill the view (so confirm/pop happen over one pack,
- * not the whole photo), with its pocket grid drawn on top: pinch-to-zoom + pan, and (when [interactive])
- * taps mapped back to image pixels and forwarded to [onPopAt]. Full pockets show a hollow ring; popped ones
+ * not the whole photo), with its blister grid drawn on top: pinch-to-zoom + pan, and (when [interactive])
+ * taps mapped back to image pixels and forwarded to [onPopAt]. Full blisters show a hollow ring; popped ones
  * a filled hole.
  */
 @Composable
@@ -508,7 +508,7 @@ private fun PackImageView(
         var scale by remember(bitmap, pack.region) { mutableFloatStateOf(1f) }
         var offset by remember(bitmap, pack.region) { mutableStateOf(Offset.Zero) }
 
-        // Pocket marker radius in image pixels: a fraction of the smaller pocket pitch.
+        // Blister marker radius in image pixels: a fraction of the smaller blister pitch.
         val longPitch = abs(pack.region.longMax - pack.region.longMin) * (1 - 2 * PACK_GRID_MARGIN_LONG) / pack.alongLong
         val shortPitch = abs(pack.region.shortMax - pack.region.shortMin) * (1 - 2 * PACK_GRID_MARGIN_SHORT) / pack.alongShort
         val radiusImg = 0.30f * min(longPitch, shortPitch)

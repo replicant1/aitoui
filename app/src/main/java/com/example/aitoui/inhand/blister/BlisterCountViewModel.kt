@@ -26,8 +26,8 @@ enum class BlisterPhase { CAPTURE, CONFIRM_LAYOUT, POP, SUMMARY }
 enum class PopResult { POPPED, UNPOPPED, NONE }
 
 /**
- * One pack being counted: its squared-up [region], the user-confirmed layout, and which pockets have been
- * popped (emptied). Every pocket starts full, so [popped] starts empty and [fullCount] starts at the total.
+ * One pack being counted: its squared-up [region], the user-confirmed layout, and which blisters have been
+ * popped (emptied). Every blister starts full, so [popped] starts empty and [fullCount] starts at the total.
  */
 @Stable
 data class PackState(
@@ -36,11 +36,11 @@ data class PackState(
     val rows: Int = 5,
     val popped: Set<CellRef> = emptySet(),
 ) {
-    /** More pockets run down the pack's long axis; fewer across the short axis. */
+    /** More blisters run down the pack's long axis; fewer across the short axis. */
     val alongLong: Int get() = maxOf(cols, rows)
     val alongShort: Int get() = minOf(cols, rows)
-    val pocketCount: Int get() = cols * rows
-    val fullCount: Int get() = pocketCount - popped.size
+    val blisterCount: Int get() = cols * rows
+    val fullCount: Int get() = blisterCount - popped.size
 }
 
 /**
@@ -59,12 +59,12 @@ data class BlisterCountState(
 ) {
     val currentPack: PackState? get() = packs.getOrNull(currentPackIndex)
     val isLastPack: Boolean get() = currentPackIndex >= packs.lastIndex
-    /** Tablets remaining = full pockets summed across every pack. */
+    /** Tablets remaining = full blisters summed across every pack. */
     val total: Int get() = packs.sumOf { it.fullCount }
 }
 
 /**
- * Drives the blister-counting screen. The machine only does geometry ([segmentPacks]); every pocket defaults
+ * Drives the blister-counting screen. The machine only does geometry ([segmentPacks]); every blister defaults
  * to full and the user pops the empties. All state transitions here are synchronous and pure except
  * [analyse], which segments off the main thread.
  */
@@ -115,7 +115,7 @@ class BlisterCountViewModel : ViewModel() {
         _state.update { it.copy(phase = BlisterPhase.POP) }
     }
 
-    /** Toggle the pocket under image-pixel ([x], [y]); returns what happened so the screen can give feedback. */
+    /** Toggle the blister under image-pixel ([x], [y]); returns what happened so the screen can give feedback. */
     fun popAt(x: Float, y: Float): PopResult {
         val pack = _state.value.currentPack ?: return PopResult.NONE
         val cell = tapToCell(pack.region, pack.alongLong, pack.alongShort, x, y) ?: return PopResult.NONE
@@ -126,7 +126,7 @@ class BlisterCountViewModel : ViewModel() {
         return if (popping) PopResult.POPPED else PopResult.UNPOPPED
     }
 
-    /** Restore every pocket in the current pack to full. */
+    /** Restore every blister in the current pack to full. */
     fun resetCurrentPops() = updateCurrentPack { it.copy(popped = emptySet()) }
 
     /** Advance to the next pack's layout confirmation, or to the summary after the last pack. */

@@ -11,7 +11,7 @@ import android.os.VibratorManager
 import com.example.aitoui.R
 
 /**
- * Plays the "pop" when a pocket is emptied: a short sound (only when the ringer isn't silenced) paired with a
+ * Plays the "pop" when a blister is emptied: a short sound (only when the ringer isn't silenced) paired with a
  * haptic tick (which carries the feedback when the phone is muted). Un-popping is a lighter haptic only.
  * Create once per screen and [release] on dispose.
  */

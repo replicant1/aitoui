@@ -1,18 +1,18 @@
 package com.example.aitoui.counting
 
 /**
- * Pure geometry for laying a confirmed pocket grid over a [PackRegion] and hit-testing taps back to pockets.
- * The grid has [alongLong] pockets down the pack's long axis and [alongShort] across its short axis (for a
- * 2x5 pack: alongLong = 5, alongShort = 2). The pocket band is inset from the pack edge by these fractions,
- * since pockets don't reach the sealed rim.
+ * Pure geometry for laying a confirmed blister grid over a [PackRegion] and hit-testing taps back to blisters.
+ * The grid has [alongLong] blisters down the pack's long axis and [alongShort] across its short axis (for a
+ * 2x5 pack: alongLong = 5, alongShort = 2). The blister band is inset from the pack edge by these fractions,
+ * since blisters don't reach the sealed rim.
  */
 const val PACK_GRID_MARGIN_LONG = 0.06f
 const val PACK_GRID_MARGIN_SHORT = 0.10f
 
-/** A pocket address: [along] indexes the long axis (0 until alongLong), [across] the short axis. */
+/** A blister address: [along] indexes the long axis (0 until alongLong), [across] the short axis. */
 data class CellRef(val along: Int, val across: Int)
 
-/** Centre of pocket ([along], [across]) in image pixels. */
+/** Centre of blister ([along], [across]) in image pixels. */
 fun cellCenter(region: PackRegion, alongLong: Int, alongShort: Int, along: Int, across: Int): CountPoint {
     val f = cellFraction(along, alongLong, PACK_GRID_MARGIN_LONG)
     val g = cellFraction(across, alongShort, PACK_GRID_MARGIN_SHORT)
@@ -25,8 +25,8 @@ fun cellCenter(region: PackRegion, alongLong: Int, alongShort: Int, along: Int, 
 }
 
 /**
- * The pocket a tap at image ([x], [y]) falls on, or null if the tap is well outside the pack. Taps within
- * the pack snap to the nearest pocket (so a tap anywhere on a pocket, including its margin, still registers).
+ * The blister a tap at image ([x], [y]) falls on, or null if the tap is well outside the pack. Taps within
+ * the pack snap to the nearest blister (so a tap anywhere on a blister, including its margin, still registers).
  */
 fun tapToCell(region: PackRegion, alongLong: Int, alongShort: Int, x: Float, y: Float): CellRef? {
     val dx = x - region.cx
@@ -42,12 +42,12 @@ fun tapToCell(region: PackRegion, alongLong: Int, alongShort: Int, x: Float, y: 
     )
 }
 
-/** Fractional position (0..1 across the pack) of pocket [index]'s centre, given the band [margin]. */
+/** Fractional position (0..1 across the pack) of blister [index]'s centre, given the band [margin]. */
 private fun cellFraction(index: Int, count: Int, margin: Float): Float =
     margin + (index + 0.5f) / count * (1 - 2 * margin)
 
-/** Inverse of [cellFraction]: which pocket a [fraction] (0..1 across the pack) lands in. */
+/** Inverse of [cellFraction]: which blister a [fraction] (0..1 across the pack) lands in. */
 private fun cellIndex(fraction: Float, count: Int, margin: Float): Int {
-    val inner = (fraction - margin) / (1 - 2 * margin) // 0..1 across the pocket band
+    val inner = (fraction - margin) / (1 - 2 * margin) // 0..1 across the blister band
     return (inner * count).toInt()
 }
