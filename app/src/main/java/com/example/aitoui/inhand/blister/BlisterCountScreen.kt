@@ -354,10 +354,8 @@ private fun ConfirmLayoutView(
             Stepper("Columns", pack.cols) { onSetColumns(it) }
             Stepper("Rows", pack.rows) { onSetRows(it) }
         }
-        val colsLabel = if (pack.cols == 1) "1 column" else "${pack.cols} columns"
-        val rowsLabel = if (pack.rows == 1) "1 row" else "${pack.rows} rows"
         Button(onClick = onConfirm, modifier = Modifier.fillMaxWidth().padding(top = 14.dp)) {
-            Text("Confirm grid is $colsLabel × $rowsLabel")
+            Text("Continue ›")
         }
     }
 }
