@@ -214,11 +214,8 @@ class AddScriptViewModel(
         viewModelScope.launch {
             val existing = medicationRepository.medications.first()
             val m = FuzzyMatcher.classifyMedications(s.brandName.trim(), s.activeIngredient.trim(), existing)
-            if (m.hasCandidates) {
-                _state.update { it.copy(medicationStep = MedicationResolution(m.exact, m.similar, m.blocked)) }
-            } else {
-                onMedicationResolved(ResolvedMedication.New(s.brandName.trim(), s.activeIngredient.trim()))
-            }
+            // Always confirm via the dialog — even with no similar medications, the user picks the new one.
+            _state.update { it.copy(medicationStep = MedicationResolution(m.exact, m.similar, m.blocked)) }
         }
     }
 
