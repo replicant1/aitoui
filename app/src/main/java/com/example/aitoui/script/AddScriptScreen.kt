@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -29,7 +28,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -46,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.aitoui.data.DispensableUnitDetails
 import com.example.aitoui.data.Medication
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -250,14 +249,15 @@ fun AddScriptScreen(
     }
 
     state.dispensableUnitStep?.let { step ->
-        ResolutionDialog(
-            title = "Is this the dispensable unit?",
-            body = "This medication already has dispensable units. Pick one, or create a new dispensable unit.",
-            candidateLabels = step.candidates.map { it.formatId to "${it.dosePerTablet}mg × ${it.tabletsPerUnit} per unit" },
+        DispensableUnitResolutionDialog(
+            medicationBrandName = step.medicationBrandName,
+            medicationActiveIngredient = step.medicationActiveIngredient,
+            existingUnits = step.candidates,
+            newDosePerTablet = state.dosePerTablet.trim(),
+            newTabletsPerUnit = state.tabletsPerUnit.trim(),
             blocked = step.blocked,
-            blockedMessage = "A dispensable unit with this dose and pack size already exists — pick it above.",
-            onPick = { onAction(AddScriptAction.PickDispensableUnit(it)) },
-            onCreate = { onAction(AddScriptAction.CreateDispensableUnit) },
+            onPickExisting = { onAction(AddScriptAction.PickDispensableUnit(it)) },
+            onCreateNew = { onAction(AddScriptAction.CreateDispensableUnit) },
             onCancel = { onAction(AddScriptAction.CancelResolution) },
         )
     }
@@ -441,50 +441,162 @@ private fun MedicationChoiceCard(
     }
 }
 
-/** A pick-an-existing-or-create-new dialog used for the dispensable-unit step. */
+/** A single selection within [DispensableUnitResolutionDialog]: an existing dispensable unit, or the entered "new" one. */
+private sealed interface DuSelection {
+    data class Existing(val id: Long) : DuSelection
+    data object New : DuSelection
+}
+
+/**
+ * Resolve the entered dispensable unit against the medication's existing ones. Every option — each existing
+ * dispensable unit and the entered "new" one — is a single-select radio card; the user picks one and presses
+ * Continue. When creating a new dispensable unit is refused ([blocked] — a duplicate dose/pack already exists)
+ * the new card is omitted, so only an existing one can be chosen.
+ */
 @Composable
-private fun ResolutionDialog(
-    title: String,
-    body: String,
-    candidateLabels: List<Pair<Long, String>>,
+private fun DispensableUnitResolutionDialog(
+    medicationBrandName: String,
+    medicationActiveIngredient: String,
+    existingUnits: List<DispensableUnitDetails>,
+    newDosePerTablet: String,
+    newTabletsPerUnit: String,
     blocked: Boolean,
-    blockedMessage: String,
-    onPick: (Long) -> Unit,
-    onCreate: () -> Unit,
+    onPickExisting: (Long) -> Unit,
+    onCreateNew: () -> Unit,
     onCancel: () -> Unit,
 ) {
+    var selection by remember { mutableStateOf<DuSelection?>(null) }
+
+    val hasExisting = existingUnits.isNotEmpty()
+    val single = existingUnits.size == 1
+    val showNew = !blocked
+
+    val existingPrompt = if (single) {
+        "This medication already has the following dispensable unit:"
+    } else {
+        "This medication already has the following dispensable units:"
+    }
+    val actionPrompt = when {
+        !hasExisting -> "Select the new dispensable unit below:"
+        blocked && single -> "Select the existing dispensable unit above."
+        blocked -> "Select an existing dispensable unit above."
+        single -> "Select the existing dispensable unit above or select the new dispensable unit below:"
+        else -> "Select an existing dispensable unit above or select the new dispensable unit below:"
+    }
+
     AlertDialog(
         onDismissRequest = onCancel,
-        title = { Text(title) },
+        title = { Text("Resolve dispensable unit") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(body, style = MaterialTheme.typography.bodyMedium)
-                candidateLabels.forEach { (id, label) ->
-                    Surface(
-                        onClick = { onPick(id) },
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(label, modifier = Modifier.padding(12.dp))
+            Column(
+                modifier = Modifier.selectableGroup(),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                if (hasExisting) {
+                    Text(existingPrompt, style = MaterialTheme.typography.bodyMedium)
+                    existingUnits.forEach { unit ->
+                        DispensableUnitChoiceCard(
+                            brandName = medicationBrandName,
+                            activeIngredient = medicationActiveIngredient,
+                            dosePerTablet = unit.dosePerTablet,
+                            tabletsPerUnit = unit.tabletsPerUnit,
+                            isNew = false,
+                            selected = selection == DuSelection.Existing(unit.formatId),
+                            onSelect = { selection = DuSelection.Existing(unit.formatId) },
+                        )
                     }
                 }
-                if (blocked) {
-                    Text(
-                        text = blockedMessage,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
+                Text(actionPrompt, style = MaterialTheme.typography.bodyMedium)
+                if (showNew) {
+                    DispensableUnitChoiceCard(
+                        brandName = medicationBrandName,
+                        activeIngredient = medicationActiveIngredient,
+                        dosePerTablet = newDosePerTablet,
+                        tabletsPerUnit = newTabletsPerUnit,
+                        isNew = true,
+                        selected = selection == DuSelection.New,
+                        onSelect = { selection = DuSelection.New },
                     )
                 }
             }
         },
         confirmButton = {
-            TextButton(onClick = onCreate, enabled = !blocked) { Text("Create new") }
+            TextButton(
+                onClick = {
+                    when (val sel = selection) {
+                        is DuSelection.Existing -> onPickExisting(sel.id)
+                        DuSelection.New -> onCreateNew()
+                        null -> Unit
+                    }
+                },
+                enabled = selection != null,
+            ) { Text("Continue") }
         },
         dismissButton = {
             TextButton(onClick = onCancel) { Text("Cancel") }
         },
     )
+}
+
+/**
+ * One selectable dispensable unit in [DispensableUnitResolutionDialog], styled like a Dispensable Units screen
+ * card minus the tablet-photo thumbnail: brand (bold) over active ingredient (muted) over the dose/pack line,
+ * fronted by a radio button. Both existing units and the entered ("new") one are filled cards; the new one
+ * carries a sparkle badge at the top-right.
+ */
+@Composable
+private fun DispensableUnitChoiceCard(
+    brandName: String,
+    activeIngredient: String,
+    dosePerTablet: String,
+    tabletsPerUnit: String,
+    isNew: Boolean,
+    selected: Boolean,
+    onSelect: () -> Unit,
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .selectable(selected = selected, onClick = onSelect, role = Role.RadioButton)
+                    .padding(start = 8.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                RadioButton(selected = selected, onClick = null)
+                Column(modifier = Modifier.padding(start = 8.dp)) {
+                    Text(
+                        text = brandName,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        text = activeIngredient,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = "${dosePerTablet}mg × Qty $tabletsPerUnit",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                }
+            }
+            if (isNew) {
+                // Sparkle badge marks this as the "create a new dispensable unit" option.
+                Icon(
+                    imageVector = Icons.Filled.AutoAwesome,
+                    contentDescription = "New dispensable unit",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(6.dp)
+                        .size(18.dp),
+                )
+            }
+        }
+    }
 }
 
 /** Format a UTC epoch-millis date (as produced by the Material date picker) as "dd MMM yyyy". */
@@ -564,6 +676,71 @@ private fun MedicationResolutionDialogBlockedPreview() {
             newActiveIngredient = "Atenolol",
             blocked = true,
             onPickKnown = {},
+            onCreateNew = {},
+            onCancel = {},
+        )
+    }
+}
+
+private val previewExistingUnits = listOf(
+    DispensableUnitDetails(
+        formatId = 1, medicationId = 1, brandName = "Tensig", activeIngredient = "Atenolol",
+        dosePerTablet = "50", tabletsPerUnit = "60", imagePath = null,
+    ),
+    DispensableUnitDetails(
+        formatId = 2, medicationId = 1, brandName = "Tensig", activeIngredient = "Atenolol",
+        dosePerTablet = "100", tabletsPerUnit = "30", imagePath = null,
+    ),
+)
+
+@Preview(name = "DU dialog · many existing, not blocked", showBackground = true)
+@Composable
+private fun DispensableUnitResolutionDialogManyPreview() {
+    AitouiTheme {
+        DispensableUnitResolutionDialog(
+            medicationBrandName = "Tensig",
+            medicationActiveIngredient = "Atenolol",
+            existingUnits = previewExistingUnits,
+            newDosePerTablet = "25",
+            newTabletsPerUnit = "90",
+            blocked = false,
+            onPickExisting = {},
+            onCreateNew = {},
+            onCancel = {},
+        )
+    }
+}
+
+@Preview(name = "DU dialog · no existing units", showBackground = true)
+@Composable
+private fun DispensableUnitResolutionDialogNonePreview() {
+    AitouiTheme {
+        DispensableUnitResolutionDialog(
+            medicationBrandName = "Ventolin",
+            medicationActiveIngredient = "Salbutamol",
+            existingUnits = emptyList(),
+            newDosePerTablet = "50",
+            newTabletsPerUnit = "60",
+            blocked = false,
+            onPickExisting = {},
+            onCreateNew = {},
+            onCancel = {},
+        )
+    }
+}
+
+@Preview(name = "DU dialog · one existing, blocked", showBackground = true)
+@Composable
+private fun DispensableUnitResolutionDialogBlockedPreview() {
+    AitouiTheme {
+        DispensableUnitResolutionDialog(
+            medicationBrandName = "Tensig",
+            medicationActiveIngredient = "Atenolol",
+            existingUnits = previewExistingUnits.take(1),
+            newDosePerTablet = "50",
+            newTabletsPerUnit = "60",
+            blocked = true,
+            onPickExisting = {},
             onCreateNew = {},
             onCancel = {},
         )

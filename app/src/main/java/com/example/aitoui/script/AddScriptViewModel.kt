@@ -76,6 +76,9 @@ data class MedicationResolution(
 /** Dispensable-unit-resolution dialog for the [resolvedMedication]: its existing dispensable units + blocked flag. */
 data class DispensableUnitResolution(
     val resolvedMedication: ResolvedMedication,
+    /** The resolved medication's brand/active, shown on every dispensable-unit card. */
+    val medicationBrandName: String,
+    val medicationActiveIngredient: String,
     val candidates: List<DispensableUnitDetails>,
     val blocked: Boolean,
 )
@@ -224,23 +227,28 @@ class AddScriptViewModel(
         _state.update { it.copy(medicationStep = null) }
         val s = _state.value
         viewModelScope.launch {
-            when (resolved) {
+            // Always confirm via the dispensable-unit dialog, even with no existing units to match against.
+            val step = when (resolved) {
                 is ResolvedMedication.Existing -> {
+                    val med = medicationRepository.medications.first().find { it.id == resolved.id }
                     val units = dispensableUnitRepository.formatsWithMedication.first()
                     val du = FuzzyMatcher.classifyDispensableUnits(
                         resolved.id, s.dosePerTablet.trim(), s.tabletsPerUnit.trim(), units,
                     )
-                    if (du.hasCandidates) {
-                        _state.update {
-                            it.copy(dispensableUnitStep = DispensableUnitResolution(resolved, du.candidates, du.blocked))
-                        }
-                    } else {
-                        persist(resolved, ChosenUnit.New)
-                    }
+                    DispensableUnitResolution(
+                        resolved,
+                        med?.brandName.orEmpty(),
+                        med?.activeIngredient.orEmpty(),
+                        du.candidates,
+                        du.blocked,
+                    )
                 }
-                // A brand-new medication has no existing dispensable units — create one.
-                is ResolvedMedication.New -> persist(resolved, ChosenUnit.New)
+                // A brand-new medication has no existing dispensable units to match against.
+                is ResolvedMedication.New -> DispensableUnitResolution(
+                    resolved, resolved.brandName, resolved.activeIngredient, emptyList(), blocked = false,
+                )
             }
+            _state.update { it.copy(dispensableUnitStep = step) }
         }
     }
 
