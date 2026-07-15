@@ -218,8 +218,11 @@ private fun DispensableUnitRow(
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Top,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
+            // The thumbnail's 12dp inset on start/top/bottom sets the row height, so its top, bottom, and
+            // left margins are all equal. The text column carries no vertical padding, so it centres within
+            // that height rather than making the row taller and unbalancing the thumbnail.
             TabletPhoto(
                 imagePath = unit.imagePath,
                 contentDescription = "Tablet photo for ${unit.brandName}",
@@ -231,7 +234,7 @@ private fun DispensableUnitRow(
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(start = 12.dp, top = 12.dp, bottom = 12.dp),
+                    .padding(start = 12.dp),
             ) {
                 // Medication component — as presented on the Medications screen.
                 Text(
@@ -252,7 +255,7 @@ private fun DispensableUnitRow(
                     modifier = Modifier.padding(top = 4.dp),
                 )
             }
-            IconButton(onClick = onDeleteClick) {
+            IconButton(onClick = onDeleteClick, modifier = Modifier.align(Alignment.Top)) {
                 Icon(imageVector = Icons.Filled.Close, contentDescription = "Delete dispensable unit")
             }
         }
