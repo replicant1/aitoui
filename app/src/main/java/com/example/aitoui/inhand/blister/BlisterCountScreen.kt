@@ -373,7 +373,7 @@ private fun PopView(
 ) {
     Column(modifier = Modifier.fillMaxSize().safeDrawingPadding().padding(16.dp)) {
         Header(
-            title = "Pop the empties",
+            title = "Pop blisters",
             trailing = if (state.packs.size > 1) "Pack ${state.currentPackIndex + 1} / ${state.packs.size}" else null,
         )
         val feedback = rememberPopFeedback()
@@ -401,7 +401,7 @@ private fun PopView(
             horizontalArrangement = Arrangement.Center,
         ) {
             Text(
-                text = "Full ${pack.fullCount}   ·   Popped ${pack.popped.size}",
+                text = "Full ${pack.fullCount}   ·   Empty ${pack.popped.size}",
                 color = Color.White, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
             )
         }
