@@ -5,13 +5,13 @@
 Add a camera-based way to count the tablets still held in **blister packs** and
 feed the total into the existing **"Number of tablets"** field on the In Hand
 screen — the same hand-off as the loose-tablet counter. The user photographs one
-or more packs, confirms each pack's grid layout, **pops the empty pockets**, and
+or more packs, confirms each pack's grid layout, **pops the empty blisters**, and
 the remaining count returns to the field. They then tap **ADD** → **SAVE** as
 today.
 
 The defining decision: the app does **geometry only** — segment each pack, square
-it up, lay a grid the user confirms — and **never classifies a pocket as full or
-empty**. Every pocket **defaults to full**; the user taps the gone ones. This is
+it up, lay a grid the user confirms — and **never classifies a blister as full or
+empty**. Every blister **defaults to full**; the user taps the gone ones. This is
 grounded in measurement, not preference (see *What we validated*).
 
 **In scope (MVP):**
@@ -23,7 +23,7 @@ grounded in measurement, not preference (see *What we validated*).
 - Per-pack **layout confirmation** (columns × rows, e.g. 2×5).
 - **Assume-full default + pop-the-empties** correction, with a pop **sound** and
   a **haptic** tick.
-- Sum full pockets across all packs → integer returns to the field.
+- Sum full blisters across all packs → integer returns to the field.
 - Pure-Kotlin, on-device (no OpenCV / ML Kit / network), reusing the
   loose-tablet counter's camera + result plumbing.
 
@@ -43,12 +43,12 @@ grounded in measurement, not preference (see *What we validated*).
   reliable in pure Kotlin; full/empty is not (the signals overlap across packs and
   lighting). So the machine does the reliable part and hands the judgement to the
   person.
-- **Assume every pocket is full.** Scanning happens right after dispensing, when
+- **Assume every blister is full.** Scanning happens right after dispensing, when
   packs are full or nearly so, so the default is correct the vast majority of the
   time and a fresh pack needs **zero taps**.
-- **Foil-up preferred, any side accepted.** On the foil side an empty pocket is an
+- **Foil-up preferred, any side accepted.** On the foil side an empty blister is an
   obvious torn hole — easiest for a *person* to read. But because the app never
-  reads pockets, dome-up and mixed photos work identically; only the human's
+  reads blisters, dome-up and mixed photos work identically; only the human's
   reading difficulty differs.
 - **Packs must not touch or overlap.** Segmentation separates packs by each being
   its own bright island on the dark surface; overlap merges them into one blob.
@@ -65,10 +65,10 @@ grounded in measurement, not preference (see *What we validated*).
    or dome-up* → **capture** → the frame freezes and is decoded upright.
 5. The app **segments** the packs and, for **each pack**, shows it squared with a
    grid overlay → the user nudges **columns × rows** until it snaps → **Confirm**.
-6. **Pop screen** (per pack): every pocket starts **full**. Tapping a pocket
+6. **Pop screen** (per pack): every blister starts **full**. Tapping a blister
    **pops** it (→ empty) with a pop sound + haptic; the **Full** count ticks down.
    Tap again to un-pop. **Pinch to zoom** for dense packs.
-7. **Summary:** full pockets summed across all packs → **Use N**.
+7. **Summary:** full blisters summed across all packs → **Use N**.
 8. Back on In Hand, `N` populates "Number of tablets"; the user taps **ADD** then
    **SAVE** (unchanged pipeline).
 
@@ -125,11 +125,11 @@ existing `Segmentation.kt` (`toGrayscale`, `otsuThreshold`, `foregroundMask`):
   inset margins:
   - `cellCenter(region, cols, rows, r, c): CountPoint` (image px).
   - `tapToCell(region, cols, rows, x, y): CellRef?` (inverse of the above; null
-    outside the pocket area).
-  - `pocketCount(cols, rows)`.
+    outside the blister area).
+  - `blisterCount(cols, rows)`.
 
 Both are the exact stages the offline prototype already validated (markers landed
-on pockets); this promotes that throwaway code into tested production functions.
+on blisters); this promotes that throwaway code into tested production functions.
 
 ## Pop feedback (sound + haptic)
 
@@ -162,7 +162,7 @@ on pockets); this promotes that throwaway code into tested production functions.
   angles) on a dark ground → correct pack count, centroids, and orientation.
 - **Unit — `PackGrid`:** `cellCenter` positions for a known region; `tapToCell`
   round-trips (tap at a computed cell center returns that cell); taps outside the
-  pocket area return null.
+  blister area return null.
 - **Unit — `BlisterCountViewModel`:** pop/un-pop toggles the right cell;
   `fullCount` and `total` math; default is all-full.
 - **Unit — `InHandViewModel`:** `TabletsCounted(n)` sets `numberOfTablets`, flips
@@ -194,7 +194,7 @@ on pockets); this promotes that throwaway code into tested production functions.
 - **Perspective / tilt.** The uniform grid assumes a roughly flat pack; steep
   angles drift the grid (seen in the prototype). Mitigation: capture guidance;
   the user can nudge cols/rows and pinch-zoom; corners/homography is a later step.
-- **Label-margin packs.** Pockets may not fill the full pack extent (foil packs
+- **Label-margin packs.** Blisters may not fill the full pack extent (foil packs
   have printed strips). Global inset margins + user confirm covers the common
   case; per-product margins are a later refinement.
 - **Forgotten pops → over-count.** Mild and rare right after dispensing; the
@@ -222,13 +222,13 @@ on pockets); this promotes that throwaway code into tested production functions.
 Two throwaway JVM prototypes over the real sample photos settled the design:
 
 - **Geometry works.** Segment → PCA-rectify → 2×5 grid placed markers on the
-  pockets reliably on flat packs (both sides); alignment degrades under tilt.
-- **Classification does not.** Forcing full/empty per pocket failed: on dome-up,
+  blisters reliably on flat packs (both sides); alignment degrades under tilt.
+- **Classification does not.** Forcing full/empty per blister failed: on dome-up,
   a global threshold gave 10/10/8 and per-pack Otsu gave 10/4/5 against a
   ground truth of **10/3/8** — the features (brightness, variance, edge) overlap
-  across packs (an embossed full pocket looks like a crumpled empty elsewhere).
+  across packs (an embossed full blister looks like a crumpled empty elsewhere).
 - **Foil-up auto-default doesn't pay.** A conservative 3-way (full / empty /
-  defer) rule on the foil photos **deferred 70%** (9 of 30 pockets auto-resolved;
+  defer) rule on the foil photos **deferred 70%** (9 of 30 blisters auto-resolved;
   one pack deferred entirely) because printing destroys the texture cue and only
   a weak dark-cavity cue survives.
 
