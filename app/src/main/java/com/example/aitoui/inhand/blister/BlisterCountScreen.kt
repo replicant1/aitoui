@@ -13,7 +13,6 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
@@ -45,6 +44,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -62,10 +62,11 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -82,7 +83,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import kotlin.math.abs
+import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 /** Longest edge (px) the capture is downscaled to before segmenting — fast and threshold-stable. */
 private const val ANALYSIS_MAX_DIMENSION = 1200
@@ -351,8 +354,10 @@ private fun ConfirmLayoutView(
             Stepper("Columns", pack.cols) { onSetColumns(it) }
             Stepper("Rows", pack.rows) { onSetRows(it) }
         }
+        val rowsLabel = if (pack.rows == 1) "1 row" else "${pack.rows} rows"
+        val colsLabel = if (pack.cols == 1) "1 column" else "${pack.cols} columns"
         Button(onClick = onConfirm, modifier = Modifier.fillMaxWidth().padding(top = 14.dp)) {
-            Text("Grid lines up — Confirm")
+            Text("Confirm grid is $rowsLabel, $colsLabel")
         }
     }
 }
@@ -371,8 +376,20 @@ private fun PopView(
             title = "Pop the empties",
             trailing = if (state.packs.size > 1) "Pack ${state.currentPackIndex + 1} / ${state.packs.size}" else null,
         )
+        val feedback = rememberPopFeedback()
         Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
-            PackImageView(bitmap, state.imageWidth, state.imageHeight, pack, interactive = true, onPopAt = onPopAt)
+            PackImageView(
+                bitmap, state.imageWidth, state.imageHeight, pack, interactive = true,
+                onPopAt = { x, y ->
+                    val result = onPopAt(x, y)
+                    when (result) {
+                        PopResult.POPPED -> feedback.pop()
+                        PopResult.UNPOPPED -> feedback.unpop()
+                        PopResult.NONE -> Unit
+                    }
+                    result
+                },
+            )
         }
         Text(
             text = "Every pocket starts full — tap the gone ones to pop them. Pinch to zoom.",
@@ -458,9 +475,10 @@ private fun Stepper(label: String, value: Int, onChange: (Int) -> Unit) {
 }
 
 /**
- * The captured frame with the current pack's pocket grid drawn on it: pinch-to-zoom + pan, and (when
- * [interactive]) taps mapped back to image pixels and forwarded to [onPopAt]. Full pockets show a hollow
- * ring; popped ones a filled hole.
+ * The current pack, cropped from the captured frame to fill the view (so confirm/pop happen over one pack,
+ * not the whole photo), with its pocket grid drawn on top: pinch-to-zoom + pan, and (when [interactive])
+ * taps mapped back to image pixels and forwarded to [onPopAt]. Full pockets show a hollow ring; popped ones
+ * a filled hole.
  */
 @Composable
 private fun PackImageView(
@@ -473,15 +491,22 @@ private fun PackImageView(
 ) {
     val ringColor = MaterialTheme.colorScheme.primary
     val poppedColor = Color(0xFFFFC24B)
+    val imageBitmap = remember(bitmap) { bitmap.asImageBitmap() }
+
+    // Axis-aligned crop around just this pack (padded), so it fills the view.
+    val crop = remember(pack.region, imageWidth, imageHeight) {
+        packCropRect(pack.region, imageWidth, imageHeight, pad = 0.08f)
+    }
+    val cropX = crop[0]; val cropY = crop[1]; val cropW = crop[2]; val cropH = crop[3]
 
     BoxWithConstraints {
-        val ratio = imageWidth.toFloat() / imageHeight.coerceAtLeast(1)
+        val ratio = cropW.toFloat() / cropH
         val fitByWidth = maxWidth / ratio <= maxHeight
         val boxW = if (fitByWidth) maxWidth else maxHeight * ratio
         val boxH = if (fitByWidth) maxWidth / ratio else maxHeight
 
-        var scale by remember(bitmap) { mutableFloatStateOf(1f) }
-        var offset by remember(bitmap) { mutableStateOf(Offset.Zero) }
+        var scale by remember(bitmap, pack.region) { mutableFloatStateOf(1f) }
+        var offset by remember(bitmap, pack.region) { mutableStateOf(Offset.Zero) }
 
         // Pocket marker radius in image pixels: a fraction of the smaller pocket pitch.
         val longPitch = abs(pack.region.longMax - pack.region.longMin) * (1 - 2 * PACK_GRID_MARGIN_LONG) / pack.alongLong
@@ -492,7 +517,7 @@ private fun PackImageView(
             modifier = Modifier
                 .size(boxW, boxH)
                 .clipToBounds()
-                .pointerInput(imageWidth, imageHeight) {
+                .pointerInput(pack.region) {
                     detectTransformGestures { centroid, pan, zoom, _ ->
                         val center = Offset(size.width / 2f, size.height / 2f)
                         val newScale = (scale * zoom).coerceIn(1f, MAX_ZOOM)
@@ -504,12 +529,12 @@ private fun PackImageView(
                         offset = Offset(panned.x.coerceIn(-maxX, maxX), panned.y.coerceIn(-maxY, maxY))
                     }
                 }
-                .pointerInput(interactive, imageWidth, imageHeight) {
+                .pointerInput(interactive, pack.region) {
                     if (!interactive) return@pointerInput
                     detectTapGestures { pos ->
                         val center = Offset(size.width / 2f, size.height / 2f)
                         val content = (pos - center - offset) / scale + center
-                        onPopAt(content.x / size.width * imageWidth, content.y / size.height * imageHeight)
+                        onPopAt(cropX + content.x / size.width * cropW, cropY + content.y / size.height * cropH)
                     }
                 },
         ) {
@@ -518,19 +543,20 @@ private fun PackImageView(
                     scaleX = scale; scaleY = scale; translationX = offset.x; translationY = offset.y
                 },
             ) {
-                Image(
-                    bitmap = bitmap.asImageBitmap(),
-                    contentDescription = "Captured packs",
-                    contentScale = ContentScale.FillBounds,
-                    modifier = Modifier.fillMaxSize(),
-                )
                 Canvas(modifier = Modifier.fillMaxSize()) {
-                    val sx = size.width / imageWidth
-                    val sy = size.height / imageHeight
+                    drawImage(
+                        image = imageBitmap,
+                        srcOffset = IntOffset(cropX, cropY),
+                        srcSize = IntSize(cropW, cropH),
+                        dstOffset = IntOffset.Zero,
+                        dstSize = IntSize(size.width.roundToInt(), size.height.roundToInt()),
+                    )
+                    val sx = size.width / cropW
+                    val sy = size.height / cropH
                     val r = radiusImg * sx
                     for (along in 0 until pack.alongLong) for (across in 0 until pack.alongShort) {
                         val c = cellCenter(pack.region, pack.alongLong, pack.alongShort, along, across)
-                        val center = Offset(c.x * sx, c.y * sy)
+                        val center = Offset((c.x - cropX) * sx, (c.y - cropY) * sy)
                         val popped = com.example.aitoui.counting.CellRef(along, across) in pack.popped
                         if (popped) {
                             drawCircle(color = Color.Black.copy(alpha = 0.55f), radius = r, center = center)
@@ -543,6 +569,34 @@ private fun PackImageView(
             }
         }
     }
+}
+
+/** Axis-aligned pixel crop rect [x, y, w, h] around a pack's oriented box, padded and clamped to the image. */
+private fun packCropRect(region: com.example.aitoui.counting.PackRegion, imageWidth: Int, imageHeight: Int, pad: Float): IntArray {
+    var minX = Float.MAX_VALUE; var minY = Float.MAX_VALUE
+    var maxX = -Float.MAX_VALUE; var maxY = -Float.MAX_VALUE
+    for (lc in floatArrayOf(region.longMin, region.longMax)) {
+        for (sc in floatArrayOf(region.shortMin, region.shortMax)) {
+            val x = region.cx + lc * region.longX + sc * region.shortX
+            val y = region.cy + lc * region.longY + sc * region.shortY
+            minX = min(minX, x); maxX = max(maxX, x); minY = min(minY, y); maxY = max(maxY, y)
+        }
+    }
+    val padX = (maxX - minX) * pad
+    val padY = (maxY - minY) * pad
+    val x0 = (minX - padX).coerceIn(0f, (imageWidth - 1).toFloat()).toInt()
+    val y0 = (minY - padY).coerceIn(0f, (imageHeight - 1).toFloat()).toInt()
+    val w = (maxX + padX - x0).roundToInt().coerceIn(1, imageWidth - x0)
+    val h = (maxY + padY - y0).roundToInt().coerceIn(1, imageHeight - y0)
+    return intArrayOf(x0, y0, w, h)
+}
+
+@Composable
+private fun rememberPopFeedback(): PopFeedback {
+    val context = LocalContext.current
+    val feedback = remember { PopFeedback(context) }
+    DisposableEffect(Unit) { onDispose { feedback.release() } }
+    return feedback
 }
 
 /** Read the bitmap's pixels into a platform-independent [CountImage] for [com.example.aitoui.counting]. */

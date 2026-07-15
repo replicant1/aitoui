@@ -20,6 +20,7 @@ import com.example.aitoui.script.AddScriptRoot
 import com.example.aitoui.script.ScriptsRoot
 import com.example.aitoui.dailyschedule.DailyScheduleRoot
 import com.example.aitoui.inhand.InHandRoot
+import com.example.aitoui.inhand.blister.BlisterCountRoot
 import com.example.aitoui.inhand.count.CountTabletsRoot
 import com.example.aitoui.scan.ScanScriptRoot
 
@@ -75,12 +76,22 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
             InHandRoot(
                 onBack = { navController.popBackStack() },
                 onCountTablets = { navController.navigate(CountTabletsRoute) },
+                onCountBlisters = { navController.navigate(BlisterCountRoute) },
                 countedTablets = countedTablets,
                 onCountedConsumed = { entry.savedStateHandle[TABLET_COUNT_RESULT] = null },
             )
         }
         composable<CountTabletsRoute> {
             CountTabletsRoot(
+                onCounted = { count ->
+                    navController.previousBackStackEntry?.savedStateHandle?.set(TABLET_COUNT_RESULT, count)
+                    navController.popBackStack()
+                },
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable<BlisterCountRoute> {
+            BlisterCountRoot(
                 onCounted = { count ->
                     navController.previousBackStackEntry?.savedStateHandle?.set(TABLET_COUNT_RESULT, count)
                     navController.popBackStack()

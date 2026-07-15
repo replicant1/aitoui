@@ -5,6 +5,9 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera.any" android:required="false" />
 
+    <!-- Haptic tick when popping a blister pocket. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
     <!-- Backup/restore reads & writes pxtx.zip in public Downloads. On API 29+ this uses MediaStore
          (no permission needed); the legacy permissions cover API 24-28 only. -->
     <uses-permission

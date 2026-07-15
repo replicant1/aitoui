@@ -64,5 +64,12 @@ object ScriptsRoute
 @Serializable
 object CountTabletsRoute
 
-/** Saved-state-handle key under which [CountTabletsRoute] returns its integer tablet count. */
+/**
+ * The camera screen that counts tablets remaining in blister packs (geometry-only: the user pops the empty
+ * pockets) and returns the total to the In Hand screen under [TABLET_COUNT_RESULT], like [CountTabletsRoute].
+ */
+@Serializable
+object BlisterCountRoute
+
+/** Saved-state-handle key under which [CountTabletsRoute] / [BlisterCountRoute] return their integer count. */
 const val TABLET_COUNT_RESULT = "tabletCount"
