@@ -5,9 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import com.example.aitoui.counting.BlobTabletCounter
 import com.example.aitoui.counting.CountImage
 import com.example.aitoui.counting.CountPoint
+import com.example.aitoui.counting.PeakTabletCounter
 import com.example.aitoui.counting.TabletCounter
 import com.example.aitoui.counting.editMarkers
 import kotlinx.coroutines.Dispatchers
@@ -46,7 +46,7 @@ data class CountTabletsState(
  * count-relevant, testable state.
  */
 class CountTabletsViewModel(
-    private val counter: TabletCounter = BlobTabletCounter(),
+    private val counter: TabletCounter = PeakTabletCounter(),
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(CountTabletsState())
