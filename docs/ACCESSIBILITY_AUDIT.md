@@ -250,14 +250,24 @@ Gesture-driven capture/crop with no accessible path through either phase; severa
   smaller labelling/state Med items below remain actionable.
 - [x] **[High]** Content descriptions: the shutter `IconButton` (`:304`) has no `contentDescription`
   (decorative child `Box` `:332`) → label "Take photo". **Done 2026-07-16.**
-- [ ] **[Med]** State: the flash toggle announces only "Flash" regardless of OFF/AUTO/ON (`:378`) → reflect
+- [x] **[Med]** State: the flash toggle announces only "Flash" regardless of OFF/AUTO/ON (`:378`) → reflect
   the mode.
-- [ ] **[Med]** Custom-drawn: the crop rectangle/position/size is `Canvas`-only (`:238`) and never exposed →
+  **Done 2026-07-16** — reads "Flash: off/auto/on" for the current mode.
+- [x] **[Med]** Custom-drawn: the crop rectangle/position/size is `Canvas`-only (`:238`) and never exposed →
   expose crop bounds via semantics.
-- [ ] **[Med]** Touch-target: the 30dp corner handles (`:266`) are below 48dp → enlarge the touch area.
-- [ ] **[Med]** Heading: the phase instruction lines ("Frame the tablet…" `:298`, "Drag or resize…" `:335`)
+  **Done 2026-07-16** — the crop-move `Box` now carries a `contentDescription` giving the square's size and
+  centre as percentages of the photo ("Crop square: 64% of the photo, centred 50% across and 50% down"), so
+  a screen reader can perceive the bounds. Adjusting them stays a visual gesture (per the deferred High).
+- [x] **[Med]** Touch-target: the 30dp corner handles (`:266`) are below 48dp → enlarge the touch area.
+  **Done 2026-07-16** — each handle is now a 48dp transparent touch target centring the unchanged 30dp
+  visible circle.
+- [x] **[Med]** Heading: the phase instruction lines ("Frame the tablet…" `:298`, "Drag or resize…" `:335`)
   are the only titles but aren't headings → `.heading()`.
-- [ ] **[Low]** Contrast: white instruction text over the live preview (`:298`) → add a scrim.
+  **Done 2026-07-16** — both instruction lines are now `.heading()`.
+- [x] **[Low]** Contrast: white instruction text over the live preview (`:298`) → add a scrim.
+  **Done 2026-07-16** — both instruction lines now sit on a rounded 50%-black scrim. On a tall phone they
+  actually fall in the black letterbox below the square preview (already white-on-black), but the scrim is
+  defensive: on squarer devices / landscape the letterbox shrinks and the text can overlap the preview.
 
 ### 14. CountTabletsScreen — `inhand/count/CountTabletsScreen.kt`
 The whole tap-to-correct review is gesture-only and the running count never announces.
