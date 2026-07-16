@@ -62,3 +62,5 @@ val ScriptCardBand = Color(0xFFFFF176)
 val ScriptCardSurface = Color(0xFFFFFFFF)
 val ScriptCardInk = Color(0xFF000000)
 val ScriptCardCaption = Color(0xFF888888)
+/** Medium grey shared by the card's delete cross and the dispense "+" affordance. */
+val ScriptCardIcon = Color(0xFF757575)

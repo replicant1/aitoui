@@ -59,6 +59,7 @@ import com.example.aitoui.ui.heading
 import com.example.aitoui.ui.theme.AitouiTheme
 import com.example.aitoui.ui.theme.ScriptCardBand
 import com.example.aitoui.ui.theme.ScriptCardCaption
+import com.example.aitoui.ui.theme.ScriptCardIcon
 import com.example.aitoui.ui.theme.ScriptCardInk
 import com.example.aitoui.ui.theme.ScriptCardSurface
 
@@ -275,7 +276,7 @@ private fun ScriptCard(
                     Icon(
                         imageVector = Icons.Filled.Close,
                         contentDescription = "Delete script",
-                        tint = ScriptCardInk,
+                        tint = ScriptCardIcon,
                     )
                 }
             }
@@ -360,7 +361,7 @@ private fun ScriptCardCell(
                 Icon(
                     imageVector = Icons.Filled.Add,
                     contentDescription = "Dispense one unit",
-                    tint = ScriptCardInk,
+                    tint = ScriptCardIcon,
                 )
             }
         }
