@@ -44,6 +44,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -118,14 +119,25 @@ fun ScriptsScreen(
                             onDismissRequest = { sortMenuExpanded = false },
                         ) {
                             SortOrder.entries.forEach { order ->
+                                val isSelected = order == state.sortOrder
                                 DropdownMenuItem(
-                                    text = { Text(order.label) },
+                                    // Announce the active sort order via selection state, so a screen
+                                    // reader reads e.g. "Most recent, selected" rather than relying on the
+                                    // check icon alone. The flag lives on the label Text (a descendant of
+                                    // the item's clickable node) so it merges onto the announced node rather
+                                    // than being stranded on a pruned wrapper above the click target.
+                                    text = {
+                                        Text(
+                                            text = order.label,
+                                            modifier = Modifier.semantics { selected = isSelected },
+                                        )
+                                    },
                                     onClick = {
                                         onAction(ScriptsAction.SortOrderChanged(order))
                                         sortMenuExpanded = false
                                     },
-                                    trailingIcon = if (order == state.sortOrder) {
-                                        { Icon(Icons.Filled.Check, contentDescription = "Selected") }
+                                    trailingIcon = if (isSelected) {
+                                        { Icon(Icons.Filled.Check, contentDescription = null) }
                                     } else {
                                         null
                                     },
@@ -275,7 +287,7 @@ private fun ScriptCard(
                 IconButton(onClick = onDeleteClick) {
                     Icon(
                         imageVector = Icons.Filled.Close,
-                        contentDescription = "Delete script",
+                        contentDescription = "Delete ${script.brandName}",
                         tint = ScriptCardIcon,
                     )
                 }
