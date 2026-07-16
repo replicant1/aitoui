@@ -160,8 +160,10 @@ Well-labelled — the camera `IconButton` has a description and is disabled unti
 use `selectableRow`.
 - [ ] **[Low]** Live announcements: the camera-count result lands in "Number of tablets" via
   `LaunchedEffect(countedTablets)` (`:77`) with no announcement → consider a `liveRegion` on the field.
-- [ ] **[Low]** Live announcements: "Tablets in hand as of {date}:" (`:235`) updates after Save/Add/Delete
+- [x] **[Low]** Live announcements: "Tablets in hand as of {date}:" (`:235`) updates after Save/Add/Delete
   without a `liveRegion`.
+  **Done 2026-07-16** — the heading Text is now a `LiveRegionMode.Polite` region, so TalkBack announces the
+  updated title after Save records the gathered date.
 
 ### 9. InventoryScreen — `inventory/InventoryScreen.kt`
 Labels/headings solid; rows aren't grouped and the thumbnail target is undersized.
