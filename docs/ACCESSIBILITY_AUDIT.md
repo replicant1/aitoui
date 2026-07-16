@@ -217,11 +217,15 @@ Gesture-driven capture/crop with no accessible path through either phase; severa
 
 ### 14. CountTabletsScreen — `inhand/count/CountTabletsScreen.kt`
 The whole tap-to-correct review is gesture-only and the running count never announces.
-- [ ] **[High]** Gesture-only: tap-to-add/remove markers (`:341`) and pinch-to-zoom/pan (`:329`) have no
+- [~] **[High]** Gesture-only: tap-to-add/remove markers (`:341`) and pinch-to-zoom/pan (`:329`) have no
   semantics — a TalkBack user can't add, remove, or perceive markers → expose each marker as a semantics node
   with a "Remove tablet" action, add an "Add tablet" affordance, or provide +/- count controls.
-- [ ] **[High]** Live announcements: the header flips "Counting…" ↔ "N tablets" (`:305`) and every tap
-  changes the count, unannounced → `liveRegion = LiveRegionMode.Polite`.
+  **Deferred 2026-07-16 (won't fix):** unlike the blister grid, markers are at *arbitrary* positions a
+  screen-reader user can't judge, and capturing the photo is itself visual — so this is inherently a sighted
+  tool. A TalkBack user's accessible path is to type the number straight into the In Hand "Number of tablets"
+  field. We announce the detected count (below) but don't build blind marker editing.
+- [x] **[High]** Live announcements: the header flips "Counting…" ↔ "N tablets" (`:305`) and every tap
+  changes the count, unannounced → `liveRegion = LiveRegionMode.Polite`. **Done 2026-07-16.**
 - [x] **[High]** Content descriptions: the shutter `IconButton` (`:254`) has no `contentDescription`
   (decorative child `Box` `:287`) → label "Take photo". **Done 2026-07-16.**
 - [ ] **[Med]** Custom-drawn: markers are `Canvas`-only (`:367`); count/positions invisible → surface a
