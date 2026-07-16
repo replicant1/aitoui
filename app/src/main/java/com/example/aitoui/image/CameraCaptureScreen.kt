@@ -22,6 +22,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -198,6 +199,19 @@ fun CameraCaptureScreen(
                                             focusPoint = pos
                                         }
                                     }
+                                }
+                                // Pinch to drive the camera's optical/digital zoom.
+                                .pointerInput(Unit) {
+                                    detectTransformGestures { _, _, zoom, _ ->
+                                        if (zoom == 1f) return@detectTransformGestures
+                                        camera?.let { cam ->
+                                            val zs = cam.cameraInfo.zoomState.value
+                                            val current = zs?.zoomRatio ?: 1f
+                                            val min = zs?.minZoomRatio ?: 1f
+                                            val max = zs?.maxZoomRatio ?: 1f
+                                            cam.cameraControl.setZoomRatio((current * zoom).coerceIn(min, max))
+                                        }
+                                    }
                                 },
                         )
                         focusPoint?.let { p ->
@@ -282,7 +296,7 @@ fun CameraCaptureScreen(
 
                 if (capturedFile == null) {
                     Text(
-                        text = "Frame the tablet, tap to focus",
+                        text = "Frame the tablet — pinch to zoom, tap to focus",
                         color = Color.White,
                         modifier = Modifier.padding(top = 20.dp),
                     )
