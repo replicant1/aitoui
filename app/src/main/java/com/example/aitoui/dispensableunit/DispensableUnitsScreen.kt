@@ -43,6 +43,9 @@ import com.example.aitoui.ui.heading
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -232,9 +235,11 @@ private fun DispensableUnitRow(
                 modifier = Modifier.padding(start = 12.dp, top = 12.dp, bottom = 12.dp),
             )
             Column(
+                // Read brand, active ingredient and dose as a single stop rather than three.
                 modifier = Modifier
                     .weight(1f)
-                    .padding(start = 12.dp),
+                    .padding(start = 12.dp)
+                    .semantics(mergeDescendants = true) {},
             ) {
                 // Medication component — as presented on the Medications screen.
                 Text(
@@ -287,7 +292,22 @@ private fun TabletPhoto(
             modifier = modifier
                 .size(56.dp)
                 .clip(shape)
-                .combinedClickable(onClick = onManagePhotoClick, onLongClick = onViewFullImage),
+                // Sighted: tap manages the photo, long-press views it full-size. A screen reader can't
+                // long-press, so label the tap ("Manage photo") and expose the full-size view as an
+                // explicit custom action in TalkBack's actions menu.
+                .combinedClickable(
+                    onClickLabel = "Manage photo",
+                    onClick = onManagePhotoClick,
+                    onLongClick = onViewFullImage,
+                )
+                .semantics {
+                    customActions = listOf(
+                        CustomAccessibilityAction("View full-size photo") {
+                            onViewFullImage()
+                            true
+                        },
+                    )
+                },
         )
     } else {
         Box(
