@@ -58,6 +58,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -279,6 +281,7 @@ private fun CameraPreview(
                     )
                 },
                 modifier = Modifier
+                    .semantics { contentDescription = "Take photo" }
                     .padding(bottom = 32.dp)
                     .size(80.dp)
                     .clip(CircleShape)

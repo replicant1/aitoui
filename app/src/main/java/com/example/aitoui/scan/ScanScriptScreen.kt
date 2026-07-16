@@ -51,6 +51,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -211,6 +213,7 @@ fun ScanScriptScreen(
                         )
                     },
                     modifier = Modifier
+                        .semantics { contentDescription = "Capture form" }
                         .size(80.dp)
                         .clip(CircleShape)
                         .background(Color.White.copy(alpha = 0.25f)),
