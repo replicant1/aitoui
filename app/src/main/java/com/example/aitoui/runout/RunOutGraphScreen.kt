@@ -37,8 +37,12 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.setProgress
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
@@ -54,6 +58,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.aitoui.inventory.humanizeDuration
 import com.example.aitoui.ui.heading
+import kotlin.math.roundToInt
 
 /**
  * A colourblind-accessible line style: colour, thickness and dash pattern. Series are told apart by all
@@ -232,18 +237,45 @@ private fun RunOutChart(
         return ((x - plotLeft) / (plotRight - plotLeft)).coerceIn(0f, 1f)
     }
 
-    // Screen-reader summary of the otherwise-silent chart; the legend below exposes per-unit days remaining.
+    // Screen-reader summary of the otherwise-silent chart. The chart is exposed as an adjustable
+    // (slider-like) node: TalkBack users swipe up/down to move the time cursor, and [cursorReadout]
+    // — re-announced on each adjust — gives the same per-unit figures the sighted legend shows.
     val plottedCount = data.series.count { it.totalTablets > 0 }
     val chartDescription =
         "Run-out projection chart. " +
             (if (plottedCount == 1) "1 dispensable unit" else "$plottedCount dispensable units") +
             " plotted over ${data.domainDays.toInt()} days. Vertical axis: tablets remaining. " +
-            "Horizontal axis: time. Days remaining for each unit are listed in the legend below."
+            "Horizontal axis: time. Swipe up or down to move the time cursor and hear how much of " +
+            "each dispensable unit is left at that point."
+
+    val cursorDays = cursorDay.roundToInt()
+    val cursorLabel = if (cursorDays <= 0) "now" else "$cursorDays days from now"
+    val cursorReadout =
+        if (data.series.isEmpty()) cursorLabel
+        else "$cursorLabel. " + data.series.joinToString(". ") { s ->
+            "${s.label}, ${humanizeDuration(s.daysRemainingAt(cursorDay))} left"
+        }
+
+    // Increment one day for short domains, one week for longer ones, so a swipe moves a sensible amount.
+    val stepDays = if (data.domainDays <= 60.0) 1.0 else 7.0
+    val cursorSteps = ((data.domainDays / stepDays).roundToInt() - 1).coerceAtLeast(1)
 
     Canvas(
         modifier = modifier
             .fillMaxSize()
-            .semantics { contentDescription = chartDescription }
+            .semantics {
+                contentDescription = chartDescription
+                stateDescription = cursorReadout
+                progressBarRangeInfo = ProgressBarRangeInfo(
+                    current = cursorDay.toFloat(),
+                    range = 0f..data.domainDays.toFloat(),
+                    steps = cursorSteps,
+                )
+                setProgress { target ->
+                    onCursorFractionChange((target / data.domainDays.toFloat()).coerceIn(0f, 1f))
+                    true
+                }
+            }
             .pointerInput(data) {
                 detectHorizontalDragGestures(
                     onDragStart = { pos -> onCursorFractionChange(fractionForX(pos.x, size.width)) },
