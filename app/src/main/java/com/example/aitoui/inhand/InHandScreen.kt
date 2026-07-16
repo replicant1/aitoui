@@ -27,7 +27,6 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedCard
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -53,6 +52,8 @@ import coil.compose.AsyncImage
 import com.example.aitoui.data.DispensableUnitDetails
 import com.example.aitoui.data.Medication
 import com.example.aitoui.image.ImageStore
+import com.example.aitoui.ui.AppTextField
+import com.example.aitoui.ui.REQUIRED_FIELDS_NOTE
 import com.example.aitoui.ui.heading
 import com.example.aitoui.ui.selectableRow
 import com.example.aitoui.ui.theme.AitouiTheme
@@ -132,7 +133,8 @@ fun InHandScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                text = "These are the tablets currently in your hand — dispensed, but not yet taken.",
+                text = "These are the tablets currently in your hand — dispensed, but not yet taken. " +
+                    REQUIRED_FIELDS_NOTE,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -142,19 +144,17 @@ fun InHandScreen(
                 expanded = medicationExpanded,
                 onExpandedChange = { medicationExpanded = !medicationExpanded },
             ) {
-                OutlinedTextField(
+                AppTextField(
                     value = state.selectedMedicationName,
                     onValueChange = {},
+                    label = "Medication",
                     readOnly = true,
-                    label = { Text("Medication") },
-                    placeholder = { Text("Select a medication") },
+                    placeholder = "Select a medication",
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = medicationExpanded) },
                     supportingText = if (state.medications.isEmpty()) {
-                        { Text("No medications yet — add one first") }
+                        "No medications yet — add one first"
                     } else null,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                    modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable),
                 )
                 ExposedDropdownMenu(
                     expanded = medicationExpanded,
@@ -188,11 +188,10 @@ fun InHandScreen(
                 }
             }
 
-            OutlinedTextField(
+            AppTextField(
                 value = state.numberOfTablets,
                 onValueChange = { onAction(InHandAction.NumberOfTabletsChanged(it)) },
-                label = { Text("Number of tablets") },
-                singleLine = true,
+                label = "Number of tablets",
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 trailingIcon = {
                     var countMenuExpanded by remember { mutableStateOf(false) }
@@ -221,7 +220,6 @@ fun InHandScreen(
                         }
                     }
                 },
-                modifier = Modifier.fillMaxWidth(),
             )
             Button(
                 onClick = { onAction(InHandAction.Add) },
