@@ -150,10 +150,15 @@ labels; empty-state uses `supportingText`.
 ### 7. DailyScheduleScreen — `dailyschedule/DailyScheduleScreen.kt`
 Strong state semantics — rows use `selectableRow` (Role + selected, so selection isn't colour-alone) and the
 total is a heading.
-- [ ] **[Low]** Live announcements: "Tablets taken daily ({N}):" (`:183`) recomputes on Add/Delete without a
+- [x] **[Low]** Live announcements: "Tablets taken daily ({N}):" (`:183`) recomputes on Add/Delete without a
   `liveRegion` → add `liveRegion = LiveRegionMode.Polite`.
-- [ ] **[Low]** Content descriptions: row thumbnail is `contentDescription = null` (`:214`) — acceptable as
+  **Done 2026-07-17** — the total heading is now a `LiveRegionMode.Polite` region, so TalkBack announces the
+  updated total after Add/Delete.
+- [x] **[Low]** Content descriptions: row thumbnail is `contentDescription = null` (`:214`) — acceptable as
   decorative since the brand is in the text.
+  **Done 2026-07-17 (no change needed)** — verified: the row is thumbnail + "{brand}{dose} × {number}", so
+  the brand is already in the adjacent text. Giving the thumbnail a description would make TalkBack read the
+  brand twice; `null` (decorative) is the correct choice. Left as is.
 
 ### 8. InHandScreen — `inhand/InHandScreen.kt`
 Well-labelled — the camera `IconButton` has a description and is disabled until a medication is chosen; rows
@@ -202,11 +207,16 @@ is unreachable.
   `stateDescription` — re-announced on each swipe-adjust — reads the cursor position ("N days from now")
   plus each unit's remaining supply at that point, giving the screen-reader user the same figures the
   sighted legend shows (so the legend needn't be a separate live region).
-- [ ] **[Med]** Dynamic type: the legend's days column is fixed `width(96.dp)` with `maxLines = 1` +
+- [x] **[Med]** Dynamic type: the legend's days column is fixed `width(96.dp)` with `maxLines = 1` +
   `Ellipsis` (`:394`) — truncates at large font scales → `widthIn(min = 96.dp)` or allow wrap.
-- [ ] **[Low]** Reading order: each legend `Row` (swatch + label + days) isn't merged (`:367`) →
+  **Done 2026-07-17** — the days column is now `widthIn(min = 96.dp)`, so the figure grows past 96dp at large
+  font scales (the weighted label column yields the space) rather than truncating.
+- [x] **[Low]** Reading order: each legend `Row` (swatch + label + days) isn't merged (`:367`) →
   `semantics(mergeDescendants = true)`.
-- [ ] **[Low]** Heading: the "Remaining at cursor" legend header (`:360`) isn't a heading → `.heading()`.
+  **Done 2026-07-17** — each legend `Row` is now `semantics(mergeDescendants = true)`, so it reads as one
+  stop ("{unit}, {days} left"); the swatch stays a decorative colour/dash key.
+- [x] **[Low]** Heading: the "Remaining at cursor" legend header (`:360`) isn't a heading → `.heading()`.
+  **Done 2026-07-17** — the legend header is now `.heading()`.
 
 ### 11. ScanScriptScreen — `scan/ScanScriptScreen.kt`
 Camera controls are the weak spot: shutter unlabelled, flash hides its state, overlaid text has no scrim.

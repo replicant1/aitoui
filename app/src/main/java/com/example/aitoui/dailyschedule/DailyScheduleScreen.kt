@@ -38,6 +38,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
@@ -181,7 +184,10 @@ fun DailyScheduleScreen(
             Text(
                 text = if (totalTablets > 0.0) "Tablets taken daily ($totalLabel):"
                 else "Tablets taken daily:",
-                modifier = Modifier.heading(),
+                // Polite live region so a screen reader hears the updated total after Add/Delete.
+                modifier = Modifier
+                    .heading()
+                    .semantics { liveRegion = LiveRegionMode.Polite },
                 style = MaterialTheme.typography.titleMedium,
             )
             OutlinedCard(modifier = Modifier.fillMaxWidth().weight(1f)) {
