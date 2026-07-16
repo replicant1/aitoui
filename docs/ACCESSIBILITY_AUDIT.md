@@ -97,11 +97,14 @@ Save is exposed via `enabled`.
 
 ### 4. ScriptsScreen — `script/ScriptsScreen.kt`
 The tappable "Dispensed" cell is not discoverable as an action; delete buttons ambiguous.
-- [ ] **[High]** State/content: the "Dispensed" cell is a bare `Modifier.clickable` (`ScriptsScreen.kt:291`,
+- [x] **[High]** State/content: the "Dispensed" cell is a bare `Modifier.clickable` (`ScriptsScreen.kt:291`,
   `ScriptCardCell` ~`:338`) with no `Role.Button`, `onClickLabel`, or description — reads as two fragments
   ("Dispensed", "2"), visually identical to the non-interactive "Repeats" cell → add
   `role = Role.Button` + `onClickLabel = "Dispense one unit"`, merge the cell, and give it a visual
   affordance distinguishing it from Repeats.
+  **Done 2026-07-16 (screen-reader part)** — cell now a merged `Role.Button` with the "Dispense one unit"
+  action label. The **visual affordance** (distinguishing it from Repeats for sighted users) is a separate
+  design change, still open.
 - [ ] **[Med]** Content descriptions: delete button reads identical "Delete script" (`:277`) →
   `"Delete script for ${script.brandName}"`.
 - [ ] **[Low]** Reading order: `ScriptCard` (`:242`) emits many stops with delete interleaved → merge the
