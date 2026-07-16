@@ -86,8 +86,9 @@ Largely accessible: title is a heading, buttons labelled, decorative icons corre
 
 ### 2. MedicationsScreen — `medication/MedicationsScreen.kt`
 Good baseline; the per-row delete control is ambiguous.
-- [ ] **[Med]** Content descriptions: every row's delete button reads the identical "Delete medication"
+- [x] **[Med]** Content descriptions: every row's delete button reads the identical "Delete medication"
   (`MedicationsScreen.kt:161`) → `"Delete ${medication.brandName}"`.
+  **Done 2026-07-16** — the delete icon now reads "Delete {brandName}" per row.
 - [ ] **[Low]** Reading order: `MedicationRow` (`:139`) exposes brand + active ingredient as two stops →
   `Modifier.semantics(mergeDescendants = true)` on the info column (keep delete separate).
 
