@@ -19,6 +19,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -158,6 +159,8 @@ private fun MedicationRow(
                     contentDescription = "View tablet photo for ${item.unit.brandName}",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
+                        // Reserve a >=48dp touch target around the 44dp visual (as Material's IconButton does).
+                        .minimumInteractiveComponentSize()
                         .size(44.dp)
                         .clip(ThumbnailShape)
                         .clickable(role = Role.Button) { onViewImage(imagePath) },
