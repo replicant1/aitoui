@@ -152,14 +152,14 @@ fun AddScriptScreen(
             OutlinedTextField(
                 value = state.serialNo,
                 onValueChange = { onAction(AddScriptAction.SerialNoChanged(it)) },
-                label = { Text("Serial number") },
+                label = { Text("Prescription number") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
                 value = state.serialNo2,
                 onValueChange = { onAction(AddScriptAction.SerialNo2Changed(it)) },
-                label = { Text("Serial number 2") },
+                label = { Text("eRx token") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
