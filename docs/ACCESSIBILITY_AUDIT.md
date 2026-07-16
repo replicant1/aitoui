@@ -163,10 +163,15 @@ is unreachable.
   lines, axes, "Tablets"/"Time" titles and month labels are all invisible drawn text → add a
   `contentDescription` summarizing the chart (domain days, unit count) so it announces as a described figure.
   **Done 2026-07-16** — chart now announces a summary (unit count + domain days + axes + legend pointer).
-- [ ] **[High]** Gesture-only / live: the time cursor is driven only by
+- [x] **[High]** Gesture-only / live: the time cursor is driven only by
   `detectHorizontalDragGestures`/`detectTapGestures` (`:236`) with no accessibility action, so TalkBack can't
   move it and the "Remaining at cursor" legend is pinned to day 0 → expose the cursor as a semantics slider
   (`ProgressBarRangeInfo` + `setProgress`) and mark the legend a `liveRegion`.
+  **Done 2026-07-16** — the chart is now an adjustable node: `progressBarRangeInfo` over `0..domainDays`
+  (stepped 1 day for ≤60-day domains, 1 week for longer) + `setProgress` wired to the cursor. Its
+  `stateDescription` — re-announced on each swipe-adjust — reads the cursor position ("N days from now")
+  plus each unit's remaining supply at that point, giving the screen-reader user the same figures the
+  sighted legend shows (so the legend needn't be a separate live region).
 - [ ] **[Med]** Dynamic type: the legend's days column is fixed `width(96.dp)` with `maxLines = 1` +
   `Ellipsis` (`:394`) — truncates at large font scales → `widthIn(min = 96.dp)` or allow wrap.
 - [ ] **[Low]** Reading order: each legend `Row` (swatch + label + days) isn't merged (`:367`) →
@@ -200,10 +205,16 @@ is the date fields' invisible click overlay.
 
 ### 13. CameraCaptureScreen — `image/CameraCaptureScreen.kt`
 Gesture-driven capture/crop with no accessible path through either phase; several unlabelled controls.
-- [ ] **[High]** Gesture-only: tap-to-focus (`:192`), pinch-to-zoom (`:204`), crop drag (`:256`) and the four
+- [deferred] **[High]** Gesture-only: tap-to-focus (`:192`), pinch-to-zoom (`:204`), crop drag (`:256`) and the four
   corner resize handles (`:267`) are raw gestures with no semantics — a TalkBack user can't focus, zoom, or
   crop → add `customActions` ("Focus centre", "Zoom in/out", "Grow/shrink crop", "Move crop") or non-gesture
   stepper/slider fallbacks.
+  **Deferred 2026-07-16 (inherently visual, won't fix)** — focusing, zooming and dragging a crop rectangle are
+  adjustments to a live photo the user can't see, and unlike the CountTablets markers there is no non-visual
+  fallback: the feature *is* "photograph the tablet" for a dispensable unit's reference image. A screen-reader
+  user would not be capturing tablet photos, so a `customActions`/stepper scaffold would add complexity for a
+  path that has no real destination. Same rationale as the deferred CountTablets marker editing. The screen's
+  smaller labelling/state Med items below remain actionable.
 - [x] **[High]** Content descriptions: the shutter `IconButton` (`:304`) has no `contentDescription`
   (decorative child `Box` `:332`) → label "Take photo". **Done 2026-07-16.**
 - [ ] **[Med]** State: the flash toggle announces only "Flash" regardless of OFF/AUTO/ON (`:378`) → reflect
@@ -259,10 +270,13 @@ Multi-phase pack workflow whose pop interaction and blister state are gesture/Ca
 
 ## Remediation priority
 
-**Tier 1 — unblock screen-reader users (High).** The gesture-only + Canvas-invisible interactions:
-`RunOutGraph` (chart description + cursor slider), `CameraCapture` (focus/zoom/crop actions),
-`CountTablets` (marker add/remove + count live region), `BlisterCount` (pop action + per-cell state + tally
-live region), and every camera shutter label; plus the `Scripts` "Dispensed" cell action.
+**Tier 1 — unblock screen-reader users (High). ✅ Complete (2026-07-16).** All 13 High items are resolved:
+11 fixed and 2 deferred as inherently visual (with rationale in-line). Fixed: `RunOutGraph` (chart
+description + adjustable cursor slider), `CountTablets` (count live region), `BlisterCount` (pop action +
+per-cell state + tally live region), every camera shutter label, and the `Scripts` "Dispensed" cell action.
+Deferred (no non-visual destination): `CameraCapture` focus/zoom/crop gestures and `CountTablets` marker
+add/remove — both are adjustments to an image the user can't see, with the accessible path lying elsewhere
+(typing into the In Hand "Number of tablets" field). Remaining a11y work is Tier 2/3 only.
 
 **Tier 2 — friction/ambiguity (Med).** Row grouping (`Inventory`, `Medications`, `Scripts`), the date-field
 overlay in `AddScript`, flash-state descriptions, undersized touch targets (`Inventory` 44dp, `CameraCapture`
