@@ -150,10 +150,15 @@ labels; empty-state uses `supportingText`.
 ### 7. DailyScheduleScreen — `dailyschedule/DailyScheduleScreen.kt`
 Strong state semantics — rows use `selectableRow` (Role + selected, so selection isn't colour-alone) and the
 total is a heading.
-- [ ] **[Low]** Live announcements: "Tablets taken daily ({N}):" (`:183`) recomputes on Add/Delete without a
+- [x] **[Low]** Live announcements: "Tablets taken daily ({N}):" (`:183`) recomputes on Add/Delete without a
   `liveRegion` → add `liveRegion = LiveRegionMode.Polite`.
-- [ ] **[Low]** Content descriptions: row thumbnail is `contentDescription = null` (`:214`) — acceptable as
+  **Done 2026-07-17** — the total heading is now a `LiveRegionMode.Polite` region, so TalkBack announces the
+  updated total after Add/Delete.
+- [x] **[Low]** Content descriptions: row thumbnail is `contentDescription = null` (`:214`) — acceptable as
   decorative since the brand is in the text.
+  **Done 2026-07-17 (no change needed)** — verified: the row is thumbnail + "{brand}{dose} × {number}", so
+  the brand is already in the adjacent text. Giving the thumbnail a description would make TalkBack read the
+  brand twice; `null` (decorative) is the correct choice. Left as is.
 
 ### 8. InHandScreen — `inhand/InHandScreen.kt`
 Well-labelled — the camera `IconButton` has a description and is disabled until a medication is chosen; rows
