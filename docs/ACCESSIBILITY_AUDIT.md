@@ -310,10 +310,12 @@ Multi-phase pack workflow whose pop interaction and blister state are gesture/Ca
   loading label are now polite live regions.
 - [x] **[High]** Content descriptions: the shutter `IconButton` (`:296`) has no `contentDescription`
   (decorative child `Box` `:325`) → label "Take photo". **Done 2026-07-16.**
-- [ ] **[Med]** Heading: `Header` titles ("Confirm layout", "Pop blisters", "Total on hand", `:454`) are
+- [x] **[Med]** Heading: `Header` titles ("Confirm layout", "Pop blisters", "Total on hand", `:454`) are
   plain `Text`, never headings → `.heading()` inside `Header`.
-- [ ] **[Low]** Contrast: white text over the live preview (`:289`); popped vs full also differ by shape, so
+  **Done 2026-07-16** — the `Header` title `Text` is now `.heading()`, so every phase title is a heading.
+- [x] **[Low]** Contrast: white text over the live preview (`:289`); popped vs full also differ by shape, so
   the colour cue is acceptable → add a scrim behind preview text.
+  **Done 2026-07-16** — the camera-preview instruction now sits on a rounded 50%-black scrim.
 
 ---
 
