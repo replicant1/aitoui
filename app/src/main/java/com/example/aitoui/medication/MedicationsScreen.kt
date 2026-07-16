@@ -158,7 +158,10 @@ private fun MedicationRow(
                 )
             }
             IconButton(onClick = onDeleteClick) {
-                Icon(imageVector = Icons.Filled.Close, contentDescription = "Delete medication")
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = "Delete ${medication.brandName}",
+                )
             }
         }
     }
