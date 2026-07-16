@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
@@ -86,6 +87,7 @@ import com.example.aitoui.counting.PACK_GRID_MARGIN_LONG
 import com.example.aitoui.counting.PACK_GRID_MARGIN_SHORT
 import com.example.aitoui.counting.cellCenter
 import com.example.aitoui.image.ImageStore
+import com.example.aitoui.ui.heading
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -304,7 +306,13 @@ private fun CameraCapture(onCaptured: (String, CountImage) -> Unit, onBack: () -
             text = "Lay the packs on a plain surface so they don't touch or overlap — foil-up, dome-up, or mixed. Then take a photo.",
             color = Color.White, textAlign = TextAlign.Center,
             style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+            // A scrim keeps the white instruction legible over the live preview behind it.
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color.Black.copy(alpha = 0.5f))
+                .padding(horizontal = 12.dp, vertical = 8.dp),
         )
         Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
             IconButton(
@@ -501,7 +509,7 @@ private fun SummaryView(state: BlisterCountState, onUseTotal: () -> Unit, onReta
 @Composable
 private fun Header(title: String, trailing: String?) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-        Text(title, color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+        Text(title, color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold, modifier = Modifier.heading())
         if (trailing != null) Text(trailing, color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.bodySmall)
     }
 }
