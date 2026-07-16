@@ -131,12 +131,17 @@ The tappable "Dispensed" cell is not discoverable as an action; delete buttons a
 Icons/photos labelled and title is a heading, but a core photo gesture is screen-reader-invisible. (The
 recently-tuned 56dp thumbnail row height is **not** a clipping risk — the text column is `weight(1f)` with no
 fixed height, so the row grows with scaled text.)
-- [ ] **[Med]** Gesture-only: the photo's `onLongClick = onViewFullImage` (`:290`) is long-press only, which
+- [x] **[Med]** Gesture-only: the photo's `onLongClick = onViewFullImage` (`:290`) is long-press only, which
   TalkBack can't perform — yet the hint says "Long-press a photo to view it full-size" (`:116`) → expose a
   `CustomAccessibilityAction("View full-size photo", …)`.
-- [ ] **[Low]** Content descriptions: the photo's primary tap opens the retake/remove dialog but its
+  **Done 2026-07-16** — the photo now carries a `CustomAccessibilityAction("View full-size photo")` in
+  TalkBack's actions menu; the sighted long-press is unchanged.
+- [x] **[Low]** Content descriptions: the photo's primary tap opens the retake/remove dialog but its
   description is only "Tablet photo for {brand}" (`:285`) → add an `onClick` semantics label ("Manage photo").
-- [ ] **[Low]** Reading order: merge the three-`Text` column (`:234`) so brand/ingredient/dose read as one.
+  **Done 2026-07-16** — `combinedClickable(onClickLabel = "Manage photo", …)`, so TalkBack announces
+  "double-tap to Manage photo" on the "Tablet photo for {brand}" node.
+- [x] **[Low]** Reading order: merge the three-`Text` column (`:234`) so brand/ingredient/dose read as one.
+  **Done 2026-07-16** — the text `Column` is now `semantics(mergeDescendants = true)`.
 
 ### 6. DispensableUnitScreen — `dispensableunit/DispensableUnitScreen.kt`
 **No significant issues.** Title heading; back labelled; Save exposes disabled state; all three fields have
