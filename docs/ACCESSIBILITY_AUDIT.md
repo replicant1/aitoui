@@ -171,9 +171,11 @@ use `selectableRow`.
 
 ### 9. InventoryScreen — `inventory/InventoryScreen.kt`
 Labels/headings solid; rows aren't grouped and the thumbnail target is undersized.
-- [ ] **[Med]** Reading order: `MedicationRow` has no `mergeDescendants`, so TalkBack hits 5+ stops and the
+- [x] **[Med]** Reading order: `MedicationRow` has no `mergeDescendants`, so TalkBack hits 5+ stops and the
   runway value reads in isolation ("—"/"5 months", `:176`) → wrap the row in
   `semantics(mergeDescendants = true)` (or `clearAndSetSemantics` with a composed sentence).
+  **Done 2026-07-16** — the row's outer `Column` is now `semantics(mergeDescendants = true)`, so brand, dose,
+  runway and the supply lines read as one stop; the clickable thumbnail stays a separate focusable button.
 - [ ] **[Med]** Touch-target: the tappable thumbnail is `size(44.dp)` + `.clickable` (`:154`), below 48dp →
   use `minimumInteractiveComponentSize()` or a ≥48dp target around the 44dp visual.
 - [x] **[Low]** Content/state: the clickable thumbnail has no `Role.Button` and its description doesn't say

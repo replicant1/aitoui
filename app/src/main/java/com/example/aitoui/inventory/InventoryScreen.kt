@@ -32,6 +32,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -134,9 +135,13 @@ private fun MedicationRow(
     val gap = 12.dp
     val hasThumbnail = item.unit.imagePath != null
     Column(
+        // Read the row as one stop — brand, dose, runway and the supply lines together — instead of 5+
+        // separate stops (the runway "—"/"5 months" no longer reads in isolation). The clickable thumbnail
+        // is its own merge boundary, so it stays a separate focusable button.
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .semantics(mergeDescendants = true) {},
         verticalArrangement = Arrangement.spacedBy(if (hasThumbnail) gap else 2.dp),
     ) {
         // Top block: the tablet photo, with the brand name and dose/pack size wrapped to its right,
