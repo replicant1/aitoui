@@ -3,7 +3,6 @@ package com.example.aitoui.dispensableunit
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -18,7 +17,6 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -35,6 +33,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.aitoui.data.Medication
+import com.example.aitoui.ui.AppTextField
+import com.example.aitoui.ui.REQUIRED_FIELDS_NOTE
 import com.example.aitoui.ui.heading
 import com.example.aitoui.ui.theme.AitouiTheme
 
@@ -94,7 +94,7 @@ fun DispensableUnitScreen(
         ) {
             Text(
                 text = "A Dispensable Unit is a particular packaging and presentation of a " +
-                    "medication. Typically a box or bottle of a capsule or tablet.",
+                    "medication. Typically a box or bottle of a capsule or tablet. $REQUIRED_FIELDS_NOTE",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -103,19 +103,17 @@ fun DispensableUnitScreen(
                 expanded = medicationExpanded,
                 onExpandedChange = { medicationExpanded = !medicationExpanded },
             ) {
-                OutlinedTextField(
+                AppTextField(
                     value = state.selectedMedicationName,
                     onValueChange = {},
+                    label = "Medication",
                     readOnly = true,
-                    label = { Text("Medication") },
-                    placeholder = { Text("Select a medication") },
+                    placeholder = "Select a medication",
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = medicationExpanded) },
                     supportingText = if (state.medications.isEmpty()) {
-                        { Text("No medications yet — add one first") }
+                        "No medications yet — add one first"
                     } else null,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                    modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable),
                 )
                 ExposedDropdownMenu(
                     expanded = medicationExpanded,
@@ -133,21 +131,17 @@ fun DispensableUnitScreen(
                 }
             }
 
-            OutlinedTextField(
+            AppTextField(
                 value = state.dosePerTablet,
                 onValueChange = { onAction(DispensableUnitAction.DosePerTabletChanged(it)) },
-                label = { Text("Dose per tablet") },
-                singleLine = true,
+                label = "Dose per tablet",
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth(),
             )
-            OutlinedTextField(
+            AppTextField(
                 value = state.tabletsPerUnit,
                 onValueChange = { onAction(DispensableUnitAction.TabletsPerUnitChanged(it)) },
-                label = { Text("Tablets per unit") },
-                singleLine = true,
+                label = "Tablets per unit",
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth(),
             )
         }
     }
