@@ -1,6 +1,6 @@
 # Database Schema
 
-**Database:** `aitoui.db` (Room) · **version:** 20 · **package:** `com.example.aitoui.data`
+**Database:** `aitoui.db` (Room) · **version:** 23 · **package:** `com.example.aitoui.data`
 
 The schema models prescriptions and pharmacy dispensing as a chain:
 
@@ -46,9 +46,11 @@ unit (many scripts → one unit).
 | `id` | INTEGER | PK, auto-generated | |
 | `dispensableUnitId` | INTEGER | **FK → `dispensable_units.id`** (ON DELETE CASCADE), indexed | the unit the script is for |
 | `serialNo` | TEXT | not null | prescription serial number |
+| `serialNo2` | TEXT | not null | second serial number (from the PB038 form); `""` if none |
 | `dateOfIssue` | INTEGER | not null | date issued, epoch millis |
 | `repeats` | INTEGER | not null | |
 | `validToMillis` | INTEGER | not null | "valid to" date, epoch millis |
+| `instructions` | TEXT | not null | directions for use (e.g. `"Take ONE tablet TWICE a day"`); `""` if none |
 
 A script's "dispensed" count is **not stored** — it is derived on read by summing `number` over the
 script's rows in `dispensations`.
@@ -86,6 +88,16 @@ save.
 | `medicationId` | INTEGER | **FK → `medications.id`** (ON DELETE CASCADE), indexed | the medication in hand |
 | `quantity` | REAL | not null | tablets in hand (may be fractional) |
 
+### `in_hand_date`
+The date the `in_hand` figures were gathered — when the user last pressed "Save" on the In Hand screen
+(UTC epoch millis at the start of that day). A **single-row** table: the primary key is fixed (`id = 0`)
+and each save overwrites the one row, so it never grows. Standalone — no foreign key.
+
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `id` | INTEGER | PK, fixed (`0`) | single-row table; not auto-generated |
+| `gatheredAtMillis` | INTEGER | not null | when the figures were gathered, epoch millis (start of day, UTC) |
+
 ---
 
 ## Relationships
@@ -97,7 +109,7 @@ save.
 - `medications` **1 — N** `daily_schedule` (`daily_schedule.medicationId`)
 - `medications` **1 — N** `in_hand` (`in_hand.medicationId`)
 
-All foreign keys use `ON DELETE CASCADE`.
+`in_hand_date` is standalone (single-row, no foreign key). All foreign keys use `ON DELETE CASCADE`.
 
 ---
 
@@ -131,9 +143,11 @@ classDiagram
         +Long id «PK»
         +Long dispensableUnitId «FK»
         +String serialNo
+        +String serialNo2
         +Long dateOfIssue
         +Int repeats
         +Long validToMillis
+        +String instructions
     }
     class dispensations {
         +Long id «PK»
@@ -151,6 +165,10 @@ classDiagram
         +Long id «PK»
         +Long medicationId «FK»
         +Double quantity
+    }
+    class in_hand_date {
+        +Int id «PK»
+        +Long gatheredAtMillis
     }
     medications "1" *-- "0..*" dispensable_units : medicationId
     dispensable_units "1" *-- "0..*" scripts : dispensableUnitId
