@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -149,12 +150,12 @@ private fun MedicationRow(
                 val context = LocalContext.current
                 AsyncImage(
                     model = ImageStore.fileFor(context, imagePath),
-                    contentDescription = "Tablet photo for ${item.unit.brandName}",
+                    contentDescription = "View tablet photo for ${item.unit.brandName}",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .size(44.dp)
                         .clip(ThumbnailShape)
-                        .clickable { onViewImage(imagePath) },
+                        .clickable(role = Role.Button) { onViewImage(imagePath) },
                 )
             }
             Column(
