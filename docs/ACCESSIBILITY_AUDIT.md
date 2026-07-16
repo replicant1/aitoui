@@ -156,9 +156,10 @@ Labels/headings solid; rows aren't grouped and the thumbnail target is undersize
 Colour-blind handling is genuinely strong (colour + line width + dash, Okabe–Ito palette, legend swatches
 replicate the dash — **category 6 passes**), but the `Canvas` carries no semantics and the time-cursor scrub
 is unreachable.
-- [ ] **[High]** Custom-drawn: `RunOutChart`'s `Canvas` has no `semantics`/`contentDescription` (`:233`) —
+- [x] **[High]** Custom-drawn: `RunOutChart`'s `Canvas` has no `semantics`/`contentDescription` (`:233`) —
   lines, axes, "Tablets"/"Time" titles and month labels are all invisible drawn text → add a
   `contentDescription` summarizing the chart (domain days, unit count) so it announces as a described figure.
+  **Done 2026-07-16** — chart now announces a summary (unit count + domain days + axes + legend pointer).
 - [ ] **[High]** Gesture-only / live: the time cursor is driven only by
   `detectHorizontalDragGestures`/`detectTapGestures` (`:236`) with no accessibility action, so TalkBack can't
   move it and the "Remaining at cursor" legend is pinned to day 0 → expose the cursor as a semantics slider
