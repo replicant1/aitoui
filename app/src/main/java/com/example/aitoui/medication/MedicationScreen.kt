@@ -3,7 +3,6 @@ package com.example.aitoui.medication
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material.icons.Icons
@@ -11,7 +10,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -23,6 +21,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.aitoui.ui.AppTextField
+import com.example.aitoui.ui.REQUIRED_FIELDS_NOTE
 import com.example.aitoui.ui.heading
 import com.example.aitoui.ui.theme.AitouiTheme
 
@@ -79,23 +79,19 @@ fun MedicationScreen(
         ) {
             Text(
                 text = "A Medication is a proprietary formulation based around an active " +
-                    "ingredient, that can be prescribed by your doctor.",
+                    "ingredient, that can be prescribed by your doctor. $REQUIRED_FIELDS_NOTE",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            OutlinedTextField(
+            AppTextField(
                 value = state.brandName,
                 onValueChange = { onAction(MedicationAction.BrandNameChanged(it)) },
-                label = { Text("Brand Name") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
+                label = "Brand Name",
             )
-            OutlinedTextField(
+            AppTextField(
                 value = state.activeIngredient,
                 onValueChange = { onAction(MedicationAction.ActiveIngredientChanged(it)) },
-                label = { Text("Active Ingredient") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
+                label = "Active Ingredient",
             )
         }
     }
