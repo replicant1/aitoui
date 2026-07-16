@@ -76,6 +76,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil.compose.AsyncImage
+import com.example.aitoui.ui.heading
 import kotlinx.coroutines.delay
 import java.io.File
 import kotlin.math.roundToInt
@@ -250,11 +251,21 @@ fun CameraCaptureScreen(
                             drawRect(dim, Offset(l + s, t), Size(w - (l + s), s))
                             drawRect(Color.White, Offset(l, t), Size(s, s), style = Stroke(width = 2.dp.toPx()))
                         }
+                        // The crop rectangle is Canvas-drawn; expose its current position and size so a
+                        // screen reader can at least perceive the bounds (adjusting stays a visual gesture).
+                        val cropDesc = if (boxSizePx > 0f) {
+                            "Crop square: ${(cropRadius * 2f / boxSizePx * 100).roundToInt()}% of the photo, " +
+                                "centred ${(cropCenter.x / boxSizePx * 100).roundToInt()}% across and " +
+                                "${(cropCenter.y / boxSizePx * 100).roundToInt()}% down"
+                        } else {
+                            "Crop square"
+                        }
                         // Move the whole square.
                         Box(
                             modifier = Modifier
                                 .offset { IntOffset((cropCenter.x - cropRadius).roundToInt(), (cropCenter.y - cropRadius).roundToInt()) }
                                 .size(with(density) { (cropRadius * 2f).toDp() })
+                                .semantics { contentDescription = cropDesc }
                                 .pointerInput(Unit) {
                                     detectDragGestures { _, drag ->
                                         cropCenter = Offset(
@@ -264,22 +275,21 @@ fun CameraCaptureScreen(
                                     }
                                 },
                         )
-                        // Four corner resize handles.
-                        val handle = 30.dp
+                        // Four corner resize handles. A 48dp transparent touch target centres a 30dp
+                        // visible circle, so the hit area meets the minimum without changing the look.
+                        val handleVisual = 30.dp
+                        val handleTouch = 48.dp
                         listOf(-1 to -1, 1 to -1, -1 to 1, 1 to 1).forEach { (sx, sy) ->
                             Box(
                                 modifier = Modifier
                                     .offset {
-                                        val hp = handle.toPx()
+                                        val hp = handleTouch.toPx()
                                         IntOffset(
                                             (cropCenter.x + sx * cropRadius - hp / 2f).roundToInt(),
                                             (cropCenter.y + sy * cropRadius - hp / 2f).roundToInt(),
                                         )
                                     }
-                                    .size(handle)
-                                    .clip(CircleShape)
-                                    .background(Color.White)
-                                    .border(1.dp, Color.Gray, CircleShape)
+                                    .size(handleTouch)
                                     .pointerInput(Unit) {
                                         detectDragGestures { _, drag ->
                                             val dr = (sx * drag.x + sy * drag.y) / 2f
@@ -291,7 +301,16 @@ fun CameraCaptureScreen(
                                             )
                                         }
                                     },
-                            )
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(handleVisual)
+                                        .clip(CircleShape)
+                                        .background(Color.White)
+                                        .border(1.dp, Color.Gray, CircleShape),
+                                )
+                            }
                         }
                     }
                 }
@@ -300,7 +319,14 @@ fun CameraCaptureScreen(
                     Text(
                         text = "Frame the tablet — pinch to zoom, tap to focus",
                         color = Color.White,
-                        modifier = Modifier.padding(top = 20.dp),
+                        // Heading so a screen reader can jump to it; scrim keeps the white text legible
+                        // where the letterbox is small enough that it sits over the preview.
+                        modifier = Modifier
+                            .padding(top = 20.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color.Black.copy(alpha = 0.5f))
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                            .heading(),
                     )
                     // Shutter.
                     IconButton(
@@ -338,7 +364,12 @@ fun CameraCaptureScreen(
                     Text(
                         text = "Drag or resize the square, then tap OK",
                         color = Color.White,
-                        modifier = Modifier.padding(top = 20.dp),
+                        modifier = Modifier
+                            .padding(top = 20.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color.Black.copy(alpha = 0.5f))
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                            .heading(),
                     )
                     Row(
                         modifier = Modifier.padding(top = 16.dp),
@@ -372,13 +403,19 @@ fun CameraCaptureScreen(
                     },
                     modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
                 ) {
+                    val flashMode = flashModes[flashIndex]
                     Icon(
-                        imageVector = when (flashModes[flashIndex]) {
+                        imageVector = when (flashMode) {
                             ImageCapture.FLASH_MODE_ON -> Icons.Filled.FlashOn
                             ImageCapture.FLASH_MODE_AUTO -> Icons.Filled.FlashAuto
                             else -> Icons.Filled.FlashOff
                         },
-                        contentDescription = "Flash",
+                        // Announce the current mode so tapping (off → auto → on) is intelligible.
+                        contentDescription = when (flashMode) {
+                            ImageCapture.FLASH_MODE_ON -> "Flash: on"
+                            ImageCapture.FLASH_MODE_AUTO -> "Flash: auto"
+                            else -> "Flash: off"
+                        },
                         tint = Color.White,
                     )
                 }
