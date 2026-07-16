@@ -275,7 +275,7 @@ private fun ScriptCard(
                 IconButton(onClick = onDeleteClick) {
                     Icon(
                         imageVector = Icons.Filled.Close,
-                        contentDescription = "Delete script",
+                        contentDescription = "Delete ${script.brandName}",
                         tint = ScriptCardIcon,
                     )
                 }

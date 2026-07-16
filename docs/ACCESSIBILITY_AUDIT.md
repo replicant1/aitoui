@@ -106,8 +106,9 @@ The tappable "Dispensed" cell is not discoverable as an action; delete buttons a
   **Done 2026-07-16** — a "+" `IconButton` (labelled "Dispense one unit") in the Dispensed cell's top-right
   corner, mirroring the card's delete cross, is now the dispense control; caption+value read as one node.
   Both the screen-reader and visual-affordance parts are addressed.
-- [ ] **[Med]** Content descriptions: delete button reads identical "Delete script" (`:277`) →
+- [x] **[Med]** Content descriptions: delete button reads identical "Delete script" (`:277`) →
   `"Delete script for ${script.brandName}"`.
+  **Done 2026-07-16** — reads `"Delete ${script.brandName}"` per card, matching the Medications delete label.
 - [ ] **[Low]** Reading order: `ScriptCard` (`:242`) emits many stops with delete interleaved → merge the
   header column (`:255`) so brand + dosage read together.
 - [ ] **[Low]** Contrast: dosage uses `ScriptCardInk.copy(alpha = 0.6f)` on the yellow band (`:271`); verify
