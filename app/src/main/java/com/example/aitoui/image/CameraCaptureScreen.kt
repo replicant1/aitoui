@@ -66,6 +66,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
@@ -324,6 +326,7 @@ fun CameraCaptureScreen(
                             )
                         },
                         modifier = Modifier
+                            .semantics { contentDescription = "Take photo" }
                             .padding(top = 16.dp)
                             .size(80.dp)
                             .clip(CircleShape)

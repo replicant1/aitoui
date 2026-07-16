@@ -44,9 +44,9 @@ helpers are `ui/Heading.kt` (`Modifier.heading()`) and `ui/SelectableRow.kt` (`R
 - **Hardcoded strings app-wide.** Every user-facing string is an inline literal, not a `stringResource`.
   This doesn't break TalkBack (the literals are read aloud) but blocks localization/translated output. Noted
   once here; not repeated per screen.
-- **Unlabelled shutter buttons.** All four camera screens use an `IconButton` whose child is a decorative
-  `Box`, with no `contentDescription` → TalkBack says only "button". Same fix everywhere: label it
-  "Take photo" / "Capture".
+- **Unlabelled shutter buttons.** ~~All four camera screens use an `IconButton` whose child is a decorative
+  `Box`, with no `contentDescription` → TalkBack says only "button".~~ **Fixed 2026-07-16** — labelled
+  "Take photo" (capture/count/blister) and "Capture form" (scan).
 - **Un-announced live counts.** The counters (`CountTablets` "N tablets", `BlisterCount` "Full X · Empty Y",
   graph "Remaining at cursor") update silently. Add `liveRegion = LiveRegionMode.Polite`.
 
@@ -171,8 +171,9 @@ is unreachable.
 
 ### 11. ScanScriptScreen — `scan/ScanScriptScreen.kt`
 Camera controls are the weak spot: shutter unlabelled, flash hides its state, overlaid text has no scrim.
-- [ ] **[High]** Content descriptions: the shutter `IconButton` is a decorative `Box` with no
+- [x] **[High]** Content descriptions: the shutter `IconButton` is a decorative `Box` with no
   `contentDescription` (`:199`) → label "Capture / scan form" (and disable/announce when `state.busy`).
+  **Done 2026-07-16** — labelled "Capture form" (busy-disable still open).
 - [ ] **[Med]** State: the flash toggle's description is a constant "Flash" across off/auto/on (`:227`) →
   reflect the mode ("Flash: auto").
 - [ ] **[Med]** Contrast: white instruction text and the "Enter manually" label sit over the live preview
@@ -199,8 +200,8 @@ Gesture-driven capture/crop with no accessible path through either phase; severa
   corner resize handles (`:267`) are raw gestures with no semantics — a TalkBack user can't focus, zoom, or
   crop → add `customActions` ("Focus centre", "Zoom in/out", "Grow/shrink crop", "Move crop") or non-gesture
   stepper/slider fallbacks.
-- [ ] **[High]** Content descriptions: the shutter `IconButton` (`:304`) has no `contentDescription`
-  (decorative child `Box` `:332`) → label "Take photo".
+- [x] **[High]** Content descriptions: the shutter `IconButton` (`:304`) has no `contentDescription`
+  (decorative child `Box` `:332`) → label "Take photo". **Done 2026-07-16.**
 - [ ] **[Med]** State: the flash toggle announces only "Flash" regardless of OFF/AUTO/ON (`:378`) → reflect
   the mode.
 - [ ] **[Med]** Custom-drawn: the crop rectangle/position/size is `Canvas`-only (`:238`) and never exposed →
@@ -217,8 +218,8 @@ The whole tap-to-correct review is gesture-only and the running count never anno
   with a "Remove tablet" action, add an "Add tablet" affordance, or provide +/- count controls.
 - [ ] **[High]** Live announcements: the header flips "Counting…" ↔ "N tablets" (`:305`) and every tap
   changes the count, unannounced → `liveRegion = LiveRegionMode.Polite`.
-- [ ] **[High]** Content descriptions: the shutter `IconButton` (`:254`) has no `contentDescription`
-  (decorative child `Box` `:287`) → label "Take photo".
+- [x] **[High]** Content descriptions: the shutter `IconButton` (`:254`) has no `contentDescription`
+  (decorative child `Box` `:287`) → label "Take photo". **Done 2026-07-16.**
 - [ ] **[Med]** Custom-drawn: markers are `Canvas`-only (`:367`); count/positions invisible → surface a
   semantics description.
 - [ ] **[Med]** Heading: the "N tablets" headline (`:305`) isn't a heading → `.heading()`.
@@ -235,8 +236,8 @@ Multi-phase pack workflow whose pop interaction and blister state are gesture/Ca
 - [ ] **[High]** Live announcements: the "Full X · Empty Y" tally (`:402`) updates per pop and the
   "Finding packs…" `LoadingOverlay` (`:164`) aren't live regions → `liveRegion = LiveRegionMode.Polite`.
   (The `PopFeedback` haptic at `:384` helps tactile users but isn't speech.)
-- [ ] **[High]** Content descriptions: the shutter `IconButton` (`:296`) has no `contentDescription`
-  (decorative child `Box` `:325`) → label "Take photo".
+- [x] **[High]** Content descriptions: the shutter `IconButton` (`:296`) has no `contentDescription`
+  (decorative child `Box` `:325`) → label "Take photo". **Done 2026-07-16.**
 - [ ] **[Med]** Heading: `Header` titles ("Confirm layout", "Pop blisters", "Total on hand", `:454`) are
   plain `Text`, never headings → `.heading()` inside `Header`.
 - [ ] **[Low]** Contrast: white text over the live preview (`:289`); popped vs full also differ by shape, so
