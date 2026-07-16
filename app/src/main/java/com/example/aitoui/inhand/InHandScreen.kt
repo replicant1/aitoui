@@ -42,6 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -76,11 +77,16 @@ fun InHandRoot(
     viewModel: InHandViewModel = viewModel(factory = InHandViewModel.Factory),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val view = LocalView.current
 
     // A count returned from the camera screen lands in the "Number of tablets" field.
     LaunchedEffect(countedTablets) {
         countedTablets?.let {
             viewModel.onAction(InHandAction.TabletsCounted(it))
+            // The field is populated without the user typing, so a screen reader would otherwise get no
+            // cue. A one-shot announcement suits this discrete event better than a liveRegion on the field,
+            // which would also fire on every manual keystroke and when the field resets after Add.
+            view.announceForAccessibility("Counted $it ${if (it == 1) "tablet" else "tablets"}")
             onCountedConsumed()
         }
     }

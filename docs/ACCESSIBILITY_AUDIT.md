@@ -158,8 +158,12 @@ total is a heading.
 ### 8. InHandScreen — `inhand/InHandScreen.kt`
 Well-labelled — the camera `IconButton` has a description and is disabled until a medication is chosen; rows
 use `selectableRow`.
-- [ ] **[Low]** Live announcements: the camera-count result lands in "Number of tablets" via
+- [x] **[Low]** Live announcements: the camera-count result lands in "Number of tablets" via
   `LaunchedEffect(countedTablets)` (`:77`) with no announcement → consider a `liveRegion` on the field.
+  **Done 2026-07-16** — announced via `View.announceForAccessibility("Counted N tablet(s)")` from the
+  `LaunchedEffect` when the count arrives, rather than a `liveRegion` on the field. A field live region is an
+  anti-pattern for an editable field: it would also fire on every manual keystroke and when the field resets
+  after Add (announcing empty). The one-shot announcement fires only for the discrete camera-count event.
 - [x] **[Low]** Live announcements: "Tablets in hand as of {date}:" (`:235`) updates after Save/Add/Delete
   without a `liveRegion`.
   **Done 2026-07-16** — the heading Text is now a `LiveRegionMode.Polite` region, so TalkBack announces the
