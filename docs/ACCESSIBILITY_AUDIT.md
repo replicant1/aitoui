@@ -282,11 +282,17 @@ The whole tap-to-correct review is gesture-only and the running count never anno
   changes the count, unannounced → `liveRegion = LiveRegionMode.Polite`. **Done 2026-07-16.**
 - [x] **[High]** Content descriptions: the shutter `IconButton` (`:254`) has no `contentDescription`
   (decorative child `Box` `:287`) → label "Take photo". **Done 2026-07-16.**
-- [ ] **[Med]** Custom-drawn: markers are `Canvas`-only (`:367`); count/positions invisible → surface a
+- [x] **[Med]** Custom-drawn: markers are `Canvas`-only (`:367`); count/positions invisible → surface a
   semantics description.
-- [ ] **[Med]** Heading: the "N tablets" headline (`:305`) isn't a heading → `.heading()`.
-- [ ] **[Low]** Colour/contrast: white text over the live preview (`:246`); markers distinguished by
+  **Done 2026-07-16** — the marker `Canvas` now carries a `contentDescription` ("N tablet markers") so the
+  counted total is perceivable. Individual positions stay a visual aid (per the deferred marker-editing High).
+- [x] **[Med]** Heading: the "N tablets" headline (`:305`) isn't a heading → `.heading()`.
+  **Done 2026-07-16** — the headline is now `.heading()` (alongside its existing polite live region).
+- [x] **[Low]** Colour/contrast: white text over the live preview (`:246`); markers distinguished by
   `colorScheme.primary` alone (`:374`) → scrim + shape/number cue (moot until markers are exposed).
+  **Done 2026-07-16** — the camera-preview instruction now sits on a rounded 50%-black scrim. The marker
+  colour cue is moot: markers are all identical same-meaning dots (no colour-coded information to lose), and
+  they aren't individually exposed (that editing path is the deferred High).
 
 ### 15. BlisterCountScreen — `inhand/blister/BlisterCountScreen.kt`
 Multi-phase pack workflow whose pop interaction and blister state are gesture/Canvas-only and unannounced.

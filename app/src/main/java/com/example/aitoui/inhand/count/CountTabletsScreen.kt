@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -71,6 +72,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.aitoui.BuildConfig
 import com.example.aitoui.counting.CountImage
 import com.example.aitoui.image.ImageStore
+import com.example.aitoui.ui.heading
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -252,7 +254,13 @@ private fun CameraPreview(
             color = Color.White,
             textAlign = TextAlign.Center,
             style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+            // A scrim keeps the white instruction legible over the live preview behind it.
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color.Black.copy(alpha = 0.5f))
+                .padding(horizontal = 12.dp, vertical = 8.dp),
         )
         Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
             IconButton(
@@ -310,7 +318,10 @@ private fun ReviewCapture(
             text = if (state.analysing) "Counting…" else "${state.count} tablets",
             color = Color.White,
             style = MaterialTheme.typography.headlineSmall,
-            modifier = Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite },
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics { liveRegion = LiveRegionMode.Polite }
+                .heading(),
             textAlign = TextAlign.Center,
         )
 
@@ -369,7 +380,15 @@ private fun ReviewCapture(
                             contentScale = ContentScale.FillBounds,
                             modifier = Modifier.fillMaxSize(),
                         )
-                        Canvas(modifier = Modifier.fillMaxSize()) {
+                        Canvas(
+                            // The markers are Canvas-only; surface how many there are so a screen reader
+                            // can perceive the counted total (individual positions stay a visual aid).
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .semantics {
+                                    contentDescription = "${state.markers.size} tablet markers"
+                                },
+                        ) {
                             // Markers are drawn in unscaled box space; the graphicsLayer zooms them with the image.
                             val r = size.minDimension * 0.018f / scale
                             state.markers.forEach { m ->
