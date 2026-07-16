@@ -1,5 +1,6 @@
 package com.example.aitoui.dispensableunit
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -11,10 +12,12 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -33,6 +36,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,6 +47,8 @@ import com.example.aitoui.ui.heading
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
@@ -57,6 +63,7 @@ import com.example.aitoui.image.CameraCaptureScreen
 import com.example.aitoui.image.FullImageDialog
 import com.example.aitoui.image.ImageStore
 import com.example.aitoui.ui.theme.AitouiTheme
+import kotlin.math.roundToInt
 
 @Composable
 fun DispensableUnitsRoot(
@@ -88,6 +95,20 @@ fun DispensableUnitsScreen(
     // The filename of a hi-res photo being viewed full-screen (via long-press), if any.
     var viewingFullImage by remember { mutableStateOf<String?>(null) }
 
+    val listState = rememberLazyListState()
+    val density = LocalDensity.current
+    // Slide the Add button left of the last row's delete icon once the list is scrolled to the end, so
+    // the FAB never covers that icon. Only when the list actually scrolls — a short list that fits on
+    // screen keeps the FAB in its default corner (nothing is under it there).
+    val fabShiftPx = with(density) { 72.dp.toPx() }
+    val atListEnd by remember {
+        derivedStateOf { listState.canScrollBackward && !listState.canScrollForward }
+    }
+    val fabShift by animateFloatAsState(
+        targetValue = if (atListEnd) -fabShiftPx else 0f,
+        label = "fabShift",
+    )
+
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
@@ -105,7 +126,10 @@ fun DispensableUnitsScreen(
                 )
             },
             floatingActionButton = {
-                FloatingActionButton(onClick = onAddDispensableUnit) {
+                FloatingActionButton(
+                    onClick = onAddDispensableUnit,
+                    modifier = Modifier.offset { IntOffset(fabShift.roundToInt(), 0) },
+                ) {
                     Icon(imageVector = Icons.Filled.Add, contentDescription = "Add dispensable unit")
                 }
             },
@@ -124,6 +148,7 @@ fun DispensableUnitsScreen(
                 )
 
                 LazyColumn(
+                    state = listState,
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
