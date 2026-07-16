@@ -1,14 +1,17 @@
 package com.example.aitoui.medication
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -25,17 +28,22 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.aitoui.data.Medication
 import com.example.aitoui.ui.heading
 import com.example.aitoui.ui.theme.AitouiTheme
+import kotlin.math.roundToInt
 
 @Composable
 fun MedicationsRoot(
@@ -60,6 +68,20 @@ fun MedicationsScreen(
     onBack: () -> Unit,
     onAddMedication: () -> Unit,
 ) {
+    val listState = rememberLazyListState()
+    val density = LocalDensity.current
+    // Slide the Add button left of the last row's delete icon once the list is scrolled to the end, so
+    // the FAB never covers that icon. Only when the list actually scrolls — a short list that fits on
+    // screen keeps the FAB in its default corner.
+    val fabShiftPx = with(density) { 72.dp.toPx() }
+    val atListEnd by remember {
+        derivedStateOf { listState.canScrollBackward && !listState.canScrollForward }
+    }
+    val fabShift by animateFloatAsState(
+        targetValue = if (atListEnd) -fabShiftPx else 0f,
+        label = "fabShift",
+    )
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
@@ -76,7 +98,10 @@ fun MedicationsScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = onAddMedication) {
+            FloatingActionButton(
+                onClick = onAddMedication,
+                modifier = Modifier.offset { IntOffset(fabShift.roundToInt(), 0) },
+            ) {
                 Icon(imageVector = Icons.Filled.Add, contentDescription = "Add medication")
             }
         },
@@ -95,6 +120,7 @@ fun MedicationsScreen(
             )
 
             LazyColumn(
+                state = listState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
