@@ -24,7 +24,6 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedCard
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -48,6 +47,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.aitoui.data.DispensableUnitDetails
 import com.example.aitoui.image.ImageStore
+import com.example.aitoui.ui.AppTextField
+import com.example.aitoui.ui.REQUIRED_FIELDS_NOTE
 import com.example.aitoui.ui.heading
 import com.example.aitoui.ui.selectableRow
 import com.example.aitoui.ui.theme.AitouiTheme
@@ -106,7 +107,8 @@ fun DailyScheduleScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                text = "This is the number and type of tablets that you take every day.",
+                text = "This is the number and type of tablets that you take every day. " +
+                    REQUIRED_FIELDS_NOTE,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -116,19 +118,17 @@ fun DailyScheduleScreen(
                 expanded = medicationExpanded,
                 onExpandedChange = { medicationExpanded = !medicationExpanded },
             ) {
-                OutlinedTextField(
+                AppTextField(
                     value = state.selectedMedicationName,
                     onValueChange = {},
+                    label = "Medication",
                     readOnly = true,
-                    label = { Text("Medication") },
-                    placeholder = { Text("Select a medication") },
+                    placeholder = "Select a medication",
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = medicationExpanded) },
                     supportingText = if (state.units.isEmpty()) {
-                        { Text("No dispensable units yet — add one first") }
+                        "No dispensable units yet — add one first"
                     } else null,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                    modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable),
                 )
                 ExposedDropdownMenu(
                     expanded = medicationExpanded,
@@ -159,13 +159,11 @@ fun DailyScheduleScreen(
                 }
             }
 
-            OutlinedTextField(
+            AppTextField(
                 value = state.numberOfTablets,
                 onValueChange = { onAction(DailyScheduleAction.NumberOfTabletsChanged(it)) },
-                label = { Text("Number of tablets") },
-                singleLine = true,
+                label = "Number of tablets",
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth(),
             )
             Button(
                 onClick = { onAction(DailyScheduleAction.Add) },
