@@ -211,11 +211,16 @@ Camera controls are the weak spot: shutter unlabelled, flash hides its state, ov
 - [x] **[High]** Content descriptions: the shutter `IconButton` is a decorative `Box` with no
   `contentDescription` (`:199`) → label "Capture / scan form" (and disable/announce when `state.busy`).
   **Done 2026-07-16** — labelled "Capture form" (busy-disable still open).
-- [ ] **[Med]** State: the flash toggle's description is a constant "Flash" across off/auto/on (`:227`) →
+- [x] **[Med]** State: the flash toggle's description is a constant "Flash" across off/auto/on (`:227`) →
   reflect the mode ("Flash: auto").
-- [ ] **[Med]** Contrast: white instruction text and the "Enter manually" label sit over the live preview
+  **Done 2026-07-16** — the toggle now reads "Flash: off/auto/on" for the current mode, so cycling it is
+  intelligible to a screen reader.
+- [x] **[Med]** Contrast: white instruction text and the "Enter manually" label sit over the live preview
   with no scrim (`:192`, `:220`) → add a semi-opaque background behind the text. (The permission screen's
   white-on-black `:250` is fine.)
+  **Done 2026-07-16** — both the instruction and the "Enter manually" button now sit on a rounded
+  50%-black scrim, keeping the white text legible over any preview content. The permission screen (solid
+  black) is left as is.
 - [ ] **[Low]** Live announcements: the busy `CircularProgressIndicator` (`:273`) isn't announced → mark it a
   `liveRegion` / "Scanning…".
 - [ ] **[Low]** Reading order: the Close/"Cancel" `IconButton` is declared last though shown top-start

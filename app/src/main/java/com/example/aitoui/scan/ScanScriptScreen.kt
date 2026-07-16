@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -195,7 +196,12 @@ fun ScanScriptScreen(
                     text = "Fit the whole PB038 form in the frame, tap to focus, then tap to scan.",
                     color = Color.White,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(bottom = 20.dp),
+                    // A scrim keeps the white text legible over any live-preview content behind it.
+                    modifier = Modifier
+                        .padding(bottom = 20.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color.Black.copy(alpha = 0.5f))
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
                 )
                 // Shutter.
                 IconButton(
@@ -222,7 +228,11 @@ fun ScanScriptScreen(
                 }
                 TextButton(
                     onClick = onEnterManually,
-                    modifier = Modifier.padding(top = 12.dp),
+                    // Same scrim behind the button label, which also sits over the live preview.
+                    modifier = Modifier
+                        .padding(top = 12.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color.Black.copy(alpha = 0.5f)),
                 ) { Text("Enter manually", color = Color.White) }
             }
 
@@ -234,13 +244,19 @@ fun ScanScriptScreen(
                 },
                 modifier = Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(8.dp),
             ) {
+                val flashMode = flashModes[flashIndex]
                 Icon(
-                    imageVector = when (flashModes[flashIndex]) {
+                    imageVector = when (flashMode) {
                         ImageCapture.FLASH_MODE_ON -> Icons.Filled.FlashOn
                         ImageCapture.FLASH_MODE_AUTO -> Icons.Filled.FlashAuto
                         else -> Icons.Filled.FlashOff
                     },
-                    contentDescription = "Flash",
+                    // Announce the current mode so tapping (which cycles off → auto → on) is intelligible.
+                    contentDescription = when (flashMode) {
+                        ImageCapture.FLASH_MODE_ON -> "Flash: on"
+                        ImageCapture.FLASH_MODE_AUTO -> "Flash: auto"
+                        else -> "Flash: off"
+                    },
                     tint = Color.White,
                 )
             }
