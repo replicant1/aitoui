@@ -1,7 +1,6 @@
 package com.example.aitoui.script
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -45,7 +44,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -334,33 +332,38 @@ private fun ScriptCardCell(
     value: String,
     onClick: (() -> Unit)? = null,
 ) {
-    Column(
-        modifier = modifier
-            .background(ScriptCardSurface)
-            .then(
-                if (onClick != null) {
-                    Modifier.clickable(onClickLabel = "Dispense one unit", role = Role.Button, onClick = onClick)
-                } else {
-                    Modifier
-                },
+    Box(modifier = modifier.background(ScriptCardSurface)) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                // Read caption + value as one node ("Dispensed, 3") instead of two fragments.
+                .semantics(mergeDescendants = true) {}
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = caption,
+                style = MaterialTheme.typography.labelSmall,
+                color = ScriptCardCaption,
             )
-            // Read caption + value as one node ("Dispensed, 2, button") instead of two fragments.
-            .semantics(mergeDescendants = true) {}
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Text(
-            text = caption,
-            style = MaterialTheme.typography.labelSmall,
-            color = ScriptCardCaption,
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = ScriptCardInk,
-        )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = ScriptCardInk,
+            )
+        }
+        // "+" dispense affordance, mirroring the card's top-right delete cross.
+        if (onClick != null) {
+            IconButton(onClick = onClick, modifier = Modifier.align(Alignment.TopEnd)) {
+                Icon(
+                    imageVector = Icons.Filled.Add,
+                    contentDescription = "Dispense one unit",
+                    tint = ScriptCardInk,
+                )
+            }
+        }
     }
 }
 

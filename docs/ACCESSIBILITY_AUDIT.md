@@ -102,9 +102,9 @@ The tappable "Dispensed" cell is not discoverable as an action; delete buttons a
   ("Dispensed", "2"), visually identical to the non-interactive "Repeats" cell → add
   `role = Role.Button` + `onClickLabel = "Dispense one unit"`, merge the cell, and give it a visual
   affordance distinguishing it from Repeats.
-  **Done 2026-07-16 (screen-reader part)** — cell now a merged `Role.Button` with the "Dispense one unit"
-  action label. The **visual affordance** (distinguishing it from Repeats for sighted users) is a separate
-  design change, still open.
+  **Done 2026-07-16** — a "+" `IconButton` (labelled "Dispense one unit") in the Dispensed cell's top-right
+  corner, mirroring the card's delete cross, is now the dispense control; caption+value read as one node.
+  Both the screen-reader and visual-affordance parts are addressed.
 - [ ] **[Med]** Content descriptions: delete button reads identical "Delete script" (`:277`) →
   `"Delete script for ${script.brandName}"`.
 - [ ] **[Low]** Reading order: `ScriptCard` (`:242`) emits many stops with delete interleaved → merge the
