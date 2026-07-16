@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -404,13 +404,18 @@ private fun RunOutLegend(
             text = "Remaining at cursor",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = 4.dp),
+            modifier = Modifier
+                .padding(bottom = 4.dp)
+                .heading(),
         )
         data.series.forEach { s ->
             Row(
+                // Read each legend entry as one stop — "{unit}, {days} left" — instead of a swatch,
+                // label and days figure as separate stops. The swatch is a decorative colour/dash key.
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 3.dp),
+                    .padding(vertical = 3.dp)
+                    .semantics(mergeDescendants = true) {},
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
@@ -441,7 +446,9 @@ private fun RunOutLegend(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.End,
-                    modifier = Modifier.width(96.dp),
+                    // A minimum (not fixed) width, so the figure can grow past 96dp at large font scales
+                    // instead of truncating; the flexible label column yields the space.
+                    modifier = Modifier.widthIn(min = 96.dp),
                 )
             }
         }

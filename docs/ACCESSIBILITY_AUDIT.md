@@ -207,11 +207,16 @@ is unreachable.
   `stateDescription` — re-announced on each swipe-adjust — reads the cursor position ("N days from now")
   plus each unit's remaining supply at that point, giving the screen-reader user the same figures the
   sighted legend shows (so the legend needn't be a separate live region).
-- [ ] **[Med]** Dynamic type: the legend's days column is fixed `width(96.dp)` with `maxLines = 1` +
+- [x] **[Med]** Dynamic type: the legend's days column is fixed `width(96.dp)` with `maxLines = 1` +
   `Ellipsis` (`:394`) — truncates at large font scales → `widthIn(min = 96.dp)` or allow wrap.
-- [ ] **[Low]** Reading order: each legend `Row` (swatch + label + days) isn't merged (`:367`) →
+  **Done 2026-07-17** — the days column is now `widthIn(min = 96.dp)`, so the figure grows past 96dp at large
+  font scales (the weighted label column yields the space) rather than truncating.
+- [x] **[Low]** Reading order: each legend `Row` (swatch + label + days) isn't merged (`:367`) →
   `semantics(mergeDescendants = true)`.
-- [ ] **[Low]** Heading: the "Remaining at cursor" legend header (`:360`) isn't a heading → `.heading()`.
+  **Done 2026-07-17** — each legend `Row` is now `semantics(mergeDescendants = true)`, so it reads as one
+  stop ("{unit}, {days} left"); the swatch stays a decorative colour/dash key.
+- [x] **[Low]** Heading: the "Remaining at cursor" legend header (`:360`) isn't a heading → `.heading()`.
+  **Done 2026-07-17** — the legend header is now `.heading()`.
 
 ### 11. ScanScriptScreen — `scan/ScanScriptScreen.kt`
 Camera controls are the weak spot: shutter unlabelled, flash hides its state, overlaid text has no scrim.
