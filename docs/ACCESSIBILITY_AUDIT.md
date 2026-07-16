@@ -109,10 +109,14 @@ The tappable "Dispensed" cell is not discoverable as an action; delete buttons a
 - [x] **[Med]** Content descriptions: delete button reads identical "Delete script" (`:277`) →
   `"Delete script for ${script.brandName}"`.
   **Done 2026-07-16** — reads `"Delete ${script.brandName}"` per card, matching the Medications delete label.
-- [ ] **[Low]** Reading order: `ScriptCard` (`:242`) emits many stops with delete interleaved → merge the
+- [x] **[Low]** Reading order: `ScriptCard` (`:242`) emits many stops with delete interleaved → merge the
   header column (`:255`) so brand + dosage read together.
-- [ ] **[Low]** Contrast: dosage uses `ScriptCardInk.copy(alpha = 0.6f)` on the yellow band (`:271`); verify
+  **Done 2026-07-16** — the header `Column` is now `semantics(mergeDescendants = true)`, so brand + dosage
+  read as one stop; the delete cross stays a separate sibling node.
+- [x] **[Low]** Contrast: dosage uses `ScriptCardInk.copy(alpha = 0.6f)` on the yellow band (`:271`); verify
   it meets AA 4.5:1.
+  **Done 2026-07-16 (no change needed)** — verified: black @ 0.6 alpha composites to `#66602F` on the band
+  `#FFF176`, a contrast ratio of **5.52:1** — passes AA 4.5:1 (and it's `bodyLarge`). Left as is.
 - [x] **[Low]** State: sort `DropdownMenuItem`s (`:120`) show the current choice only via a check icon → set
   `semantics { selected = (order == state.sortOrder) }` on the current item.
   **Done 2026-07-16** — the current item now carries `selected` state so TalkBack reads e.g.

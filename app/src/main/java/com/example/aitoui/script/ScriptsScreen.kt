@@ -266,9 +266,12 @@ private fun ScriptCard(
                 verticalAlignment = Alignment.Top,
             ) {
                 Column(
+                    // Read the brand line and the dosage line as a single stop, so a screen reader
+                    // doesn't stop on each separately (the delete cross stays its own sibling node).
                     modifier = Modifier
                         .weight(1f)
-                        .padding(start = 16.dp, top = 12.dp, bottom = 12.dp),
+                        .padding(start = 16.dp, top = 12.dp, bottom = 12.dp)
+                        .semantics(mergeDescendants = true) {},
                 ) {
                     Text(
                         text = "${script.brandName} (${script.activeIngredient})",
