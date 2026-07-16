@@ -25,7 +25,6 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -48,6 +47,9 @@ import com.example.aitoui.data.DispensableUnitDetails
 import com.example.aitoui.data.Medication
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.aitoui.ui.AppTextField
+import com.example.aitoui.ui.FieldRequirement
+import com.example.aitoui.ui.REQUIRED_FIELDS_NOTE
 import com.example.aitoui.ui.heading
 import com.example.aitoui.ui.theme.AitouiTheme
 import java.text.SimpleDateFormat
@@ -112,67 +114,57 @@ fun AddScriptScreen(
             Text(
                 text = "A Script is an authorization from your doctor for the chemist to " +
                     "dispense to you a particular medication in a particular format. On Save, the app " +
-                    "matches the medication and dispensable unit to your existing records.",
+                    "matches the medication and dispensable unit to your existing records. " +
+                    REQUIRED_FIELDS_NOTE,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
             // The medication + dispensable unit, as raw fields — resolved to records on Save.
-            OutlinedTextField(
+            AppTextField(
                 value = state.brandName,
                 onValueChange = { onAction(AddScriptAction.BrandNameChanged(it)) },
-                label = { Text("Brand name") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
+                label = "Brand name",
             )
-            OutlinedTextField(
+            AppTextField(
                 value = state.activeIngredient,
                 onValueChange = { onAction(AddScriptAction.ActiveIngredientChanged(it)) },
-                label = { Text("Active ingredient") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
+                label = "Active ingredient",
             )
-            OutlinedTextField(
+            AppTextField(
                 value = state.dosePerTablet,
                 onValueChange = { onAction(AddScriptAction.DosePerTabletChanged(it)) },
-                label = { Text("Milligrams per tablet") },
-                singleLine = true,
+                label = "Milligrams per tablet",
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth(),
             )
-            OutlinedTextField(
+            AppTextField(
                 value = state.tabletsPerUnit,
                 onValueChange = { onAction(AddScriptAction.TabletsPerUnitChanged(it)) },
-                label = { Text("Tablets per unit") },
-                singleLine = true,
+                label = "Tablets per unit",
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth(),
             )
 
-            OutlinedTextField(
+            AppTextField(
                 value = state.serialNo,
                 onValueChange = { onAction(AddScriptAction.SerialNoChanged(it)) },
-                label = { Text("Prescription number") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
+                label = "Prescription number",
+                requirement = FieldRequirement.Optional,
             )
-            OutlinedTextField(
+            AppTextField(
                 value = state.serialNo2,
                 onValueChange = { onAction(AddScriptAction.SerialNo2Changed(it)) },
-                label = { Text("eRx token") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
+                label = "eRx token",
+                requirement = FieldRequirement.Optional,
             )
 
             // Date of issue — read-only field that opens a date picker on tap.
             Box {
-                OutlinedTextField(
+                AppTextField(
                     value = state.dateOfIssue?.let { formatDate(it) } ?: "",
                     onValueChange = {},
+                    label = "Date of issue",
                     readOnly = true,
-                    label = { Text("Date of issue") },
-                    placeholder = { Text("Select a date") },
-                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = "Select a date",
                 )
                 Box(
                     modifier = Modifier
@@ -181,24 +173,21 @@ fun AddScriptScreen(
                 )
             }
 
-            OutlinedTextField(
+            AppTextField(
                 value = state.repeats,
                 onValueChange = { onAction(AddScriptAction.RepeatsChanged(it)) },
-                label = { Text("Number of repeats") },
-                singleLine = true,
+                label = "Number of repeats",
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth(),
             )
 
             // Valid to — read-only field that opens a date picker on tap.
             Box {
-                OutlinedTextField(
+                AppTextField(
                     value = state.validToMillis?.let { formatDate(it) } ?: "",
                     onValueChange = {},
+                    label = "Valid to",
                     readOnly = true,
-                    label = { Text("Valid to") },
-                    placeholder = { Text("Select a date") },
-                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = "Select a date",
                 )
                 Box(
                     modifier = Modifier
@@ -207,12 +196,13 @@ fun AddScriptScreen(
                 )
             }
 
-            OutlinedTextField(
+            AppTextField(
                 value = state.instructions,
                 onValueChange = { onAction(AddScriptAction.InstructionsChanged(it)) },
-                label = { Text("Instructions") },
-                placeholder = { Text("e.g. Take ONE tablet TWICE a day as directed") },
-                modifier = Modifier.fillMaxWidth(),
+                label = "Instructions",
+                requirement = FieldRequirement.Optional,
+                singleLine = false,
+                placeholder = "e.g. Take ONE tablet TWICE a day as directed",
             )
         }
     }
