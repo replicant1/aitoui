@@ -113,8 +113,15 @@ The tappable "Dispensed" cell is not discoverable as an action; delete buttons a
   header column (`:255`) so brand + dosage read together.
 - [ ] **[Low]** Contrast: dosage uses `ScriptCardInk.copy(alpha = 0.6f)` on the yellow band (`:271`); verify
   it meets AA 4.5:1.
-- [ ] **[Low]** State: sort `DropdownMenuItem`s (`:120`) show the current choice only via a check icon → set
+- [x] **[Low]** State: sort `DropdownMenuItem`s (`:120`) show the current choice only via a check icon → set
   `semantics { selected = (order == state.sortOrder) }` on the current item.
+  **Done 2026-07-16** — the current item now carries `selected` state so TalkBack reads e.g.
+  "Brand name, selected". The flag is placed on the item's label `Text` (a descendant of the item's
+  clickable node) rather than on the `DropdownMenuItem` `modifier`: the `modifier` lands on a wrapper
+  *above* the click target, and semantics merge only from descendants upward, so a wrapper-placed flag
+  would never reach the spoken node. The check icon is now decorative (`contentDescription = null`) so the
+  selection isn't announced twice. (`selected`, like `stateDescription`, is TalkBack-audible only and does
+  not surface in `uiautomator dump` — verified across three placements plus AddScript's radio cards.)
 
 ### 5. DispensableUnitsScreen — `dispensableunit/DispensableUnitsScreen.kt`
 Icons/photos labelled and title is a heading, but a core photo gesture is screen-reader-invisible. (The
