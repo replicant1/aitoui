@@ -176,8 +176,10 @@ Labels/headings solid; rows aren't grouped and the thumbnail target is undersize
   `semantics(mergeDescendants = true)` (or `clearAndSetSemantics` with a composed sentence).
 - [ ] **[Med]** Touch-target: the tappable thumbnail is `size(44.dp)` + `.clickable` (`:154`), below 48dp →
   use `minimumInteractiveComponentSize()` or a ≥48dp target around the 44dp visual.
-- [ ] **[Low]** Content/state: the clickable thumbnail has no `Role.Button` and its description doesn't say
+- [x] **[Low]** Content/state: the clickable thumbnail has no `Role.Button` and its description doesn't say
   it's actionable (`:150`) → add `role = Role.Button` and reword ("View tablet photo for …").
+  **Done 2026-07-16** — thumbnail is now `clickable(role = Role.Button)` and reads "View tablet photo for
+  {brand}".
 
 ### 10. RunOutGraphScreen — `runout/RunOutGraphScreen.kt`
 Colour-blind handling is genuinely strong (colour + line width + dash, Okabe–Ito palette, legend swatches
