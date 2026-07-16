@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -63,8 +64,12 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
@@ -75,6 +80,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.aitoui.BuildConfig
+import com.example.aitoui.counting.CellRef
 import com.example.aitoui.counting.CountImage
 import com.example.aitoui.counting.PACK_GRID_MARGIN_LONG
 import com.example.aitoui.counting.PACK_GRID_MARGIN_SHORT
@@ -109,6 +115,7 @@ fun BlisterCountRoot(
         onSetRows = viewModel::setRows,
         onConfirmLayout = viewModel::confirmLayout,
         onPopAt = viewModel::popAt,
+        onToggleCell = viewModel::toggleCell,
         onResetPops = viewModel::resetCurrentPops,
         onNextPack = viewModel::nextPack,
         onRetake = viewModel::retake,
@@ -125,6 +132,7 @@ fun BlisterCountScreen(
     onSetRows: (Int) -> Unit,
     onConfirmLayout: () -> Unit,
     onPopAt: (Float, Float) -> PopResult,
+    onToggleCell: (CellRef) -> PopResult,
     onResetPops: () -> Unit,
     onNextPack: () -> Unit,
     onRetake: () -> Unit,
@@ -176,7 +184,8 @@ fun BlisterCountScreen(
                     )
                     BlisterPhase.POP -> PopView(
                         bitmap = bitmap!!, state = state, pack = pack,
-                        onPopAt = onPopAt, onReset = onResetPops, onNext = onNextPack,
+                        onPopAt = onPopAt, onToggleCell = onToggleCell,
+                        onReset = onResetPops, onNext = onNextPack,
                     )
                     else -> LoadingOverlay("…")
                 }
@@ -193,7 +202,10 @@ private fun LoadingOverlay(label: String) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         CircularProgressIndicator(color = Color.White)
-        Text(label, color = Color.White, modifier = Modifier.padding(top = 16.dp))
+        Text(
+            label, color = Color.White,
+            modifier = Modifier.padding(top = 16.dp).semantics { liveRegion = LiveRegionMode.Polite },
+        )
     }
 }
 
@@ -368,6 +380,7 @@ private fun PopView(
     state: BlisterCountState,
     pack: PackState,
     onPopAt: (Float, Float) -> PopResult,
+    onToggleCell: (CellRef) -> PopResult,
     onReset: () -> Unit,
     onNext: () -> Unit,
 ) {
@@ -377,19 +390,21 @@ private fun PopView(
             trailing = if (state.packs.size > 1) "Pack ${state.currentPackIndex + 1} / ${state.packs.size}" else null,
         )
         val feedback = rememberPopFeedback()
+        fun playFor(result: PopResult) {
+            when (result) {
+                PopResult.POPPED -> feedback.pop()
+                PopResult.UNPOPPED -> feedback.unpop()
+                PopResult.NONE -> Unit
+            }
+        }
         Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
             PackImageView(
                 bitmap, state.imageWidth, state.imageHeight, pack, interactive = true,
-                onPopAt = { x, y ->
-                    val result = onPopAt(x, y)
-                    when (result) {
-                        PopResult.POPPED -> feedback.pop()
-                        PopResult.UNPOPPED -> feedback.unpop()
-                        PopResult.NONE -> Unit
-                    }
-                    result
-                },
+                onPopAt = { x, y -> onPopAt(x, y).also { playFor(it) } },
             )
+            // Touch-free semantics overlay so TalkBack can navigate and pop each blister (sighted taps
+            // fall through to the image beneath).
+            AccessibleBlisterGrid(pack) { cell -> playFor(onToggleCell(cell)) }
         }
         Text(
             text = "Every blister starts full — tap the gone ones to pop them. Pinch to zoom.",
@@ -403,6 +418,7 @@ private fun PopView(
             Text(
                 text = "Full ${pack.fullCount}   ·   Empty ${pack.popped.size}",
                 color = Color.White, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
             )
         }
         Row(
@@ -416,6 +432,38 @@ private fun PopView(
             ) { Text("Undo all") }
             Button(onClick = onNext, modifier = Modifier.weight(1f)) {
                 Text(if (state.isLastPack) "Done" else "Next pack ›")
+            }
+        }
+    }
+}
+
+/**
+ * A transparent grid of one semantics node per blister, laid over the image. Each node exposes the
+ * blister's position and full/empty state, and a "Pop"/"Restore" action — so TalkBack can operate the pop
+ * task. Semantics-only (no pointer input), so sighted taps fall through to the image beneath.
+ */
+@Composable
+private fun AccessibleBlisterGrid(pack: PackState, onToggle: (CellRef) -> Unit) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        for (along in 0 until pack.alongLong) {
+            Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                for (across in 0 until pack.alongShort) {
+                    val cell = CellRef(along, across)
+                    val popped = cell in pack.popped
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .semantics(mergeDescendants = true) {
+                                contentDescription = "Blister, row ${along + 1}, column ${across + 1}"
+                                stateDescription = if (popped) "empty" else "full"
+                                onClick(label = if (popped) "Restore" else "Pop") {
+                                    onToggle(cell)
+                                    true
+                                }
+                            },
+                    )
+                }
             }
         }
     }

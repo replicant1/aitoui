@@ -119,6 +119,13 @@ class BlisterCountViewModel : ViewModel() {
     fun popAt(x: Float, y: Float): PopResult {
         val pack = _state.value.currentPack ?: return PopResult.NONE
         val cell = tapToCell(pack.region, pack.alongLong, pack.alongShort, x, y) ?: return PopResult.NONE
+        return toggleCell(cell)
+    }
+
+    /** Toggle a specific blister [cell] (used by the accessible grid); returns what happened. */
+    fun toggleCell(cell: CellRef): PopResult {
+        val pack = _state.value.currentPack ?: return PopResult.NONE
+        if (cell.along !in 0 until pack.alongLong || cell.across !in 0 until pack.alongShort) return PopResult.NONE
         val popping = cell !in pack.popped
         updateCurrentPack {
             it.copy(popped = if (popping) it.popped + cell else it.popped - cell)

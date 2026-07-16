@@ -232,14 +232,18 @@ The whole tap-to-correct review is gesture-only and the running count never anno
 
 ### 15. BlisterCountScreen — `inhand/blister/BlisterCountScreen.kt`
 Multi-phase pack workflow whose pop interaction and blister state are gesture/Canvas-only and unannounced.
-- [ ] **[High]** Gesture-only: tap-to-pop (`:532`) and pinch-to-zoom/pan (`:519`) in `PackImageView` have no
+- [x] **[High]** Gesture-only: tap-to-pop (`:532`) and pinch-to-zoom/pan (`:519`) in `PackImageView` have no
   accessible alternative → expose each blister cell as a semantics node with toggle state + "Pop/Unpop"
   action, or an accessible per-cell grid fallback.
-- [ ] **[High]** State: full-vs-popped state is `Canvas`-only (ring vs filled hole, `:558`) with no
-  `stateDescription` → attach per-cell `stateDescription` ("full"/"empty").
-- [ ] **[High]** Live announcements: the "Full X · Empty Y" tally (`:402`) updates per pop and the
+  **Done 2026-07-16** — a touch-free `AccessibleBlisterGrid` overlays one semantics node per blister with a
+  "Pop"/"Restore" `onClick`; sighted tap/zoom fall through unchanged. (Pinch-zoom stays a sighted nicety.)
+- [x] **[High]** State: full-vs-popped state is `Canvas`-only (ring vs filled hole, `:558`) with no
+  `stateDescription` → attach per-cell `stateDescription` ("full"/"empty"). **Done 2026-07-16** — each grid
+  node sets `stateDescription`.
+- [x] **[High]** Live announcements: the "Full X · Empty Y" tally (`:402`) updates per pop and the
   "Finding packs…" `LoadingOverlay` (`:164`) aren't live regions → `liveRegion = LiveRegionMode.Polite`.
-  (The `PopFeedback` haptic at `:384` helps tactile users but isn't speech.)
+  (The `PopFeedback` haptic at `:384` helps tactile users but isn't speech.) **Done 2026-07-16** — tally and
+  loading label are now polite live regions.
 - [x] **[High]** Content descriptions: the shutter `IconButton` (`:296`) has no `contentDescription`
   (decorative child `Box` `:325`) → label "Take photo". **Done 2026-07-16.**
 - [ ] **[Med]** Heading: `Header` titles ("Confirm layout", "Pop blisters", "Total on hand", `:454`) are
