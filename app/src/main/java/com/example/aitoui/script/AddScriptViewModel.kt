@@ -42,8 +42,9 @@ data class AddScriptState(
     val repeats: String = "",
     val validToMillis: Long? = null,
     val instructions: String = "",
-    /** "No. of times already dispensed" from a scanned form; applied as a dispensation on save. */
-    val priorDispensed: Int = 0,
+    /** "No. of times already dispensed" (scanned or entered manually); a positive value is applied as a
+     *  prior dispensation on save. Required. */
+    val priorDispensed: String = "",
     /** Non-null while the medication-resolution dialog is shown. */
     val medicationStep: MedicationResolution? = null,
     /** Non-null while the dispensable-unit-resolution dialog is shown. */
@@ -58,9 +59,10 @@ data class AddScriptState(
     private val dateOfIssueValid get() = dateOfIssue != null
     private val repeatsValid get() = repeats.toIntOrNull() != null
     private val validToValid get() = validToMillis != null
+    private val priorDispensedValid get() = priorDispensed.toIntOrNull() != null
 
     val canSave: Boolean
-        get() = brandValid && activeValid && doseValid && tabletsValid &&
+        get() = brandValid && activeValid && doseValid && tabletsValid && priorDispensedValid &&
             dateOfIssueValid && repeatsValid && validToValid
 }
 
@@ -97,6 +99,7 @@ sealed interface AddScriptAction {
     data class SerialNoChanged(val value: String) : AddScriptAction
     data class SerialNo2Changed(val value: String) : AddScriptAction
     data class DateOfIssueChanged(val millis: Long?) : AddScriptAction
+    data class PriorDispensedChanged(val value: String) : AddScriptAction
     data class RepeatsChanged(val value: String) : AddScriptAction
     data class ValidToChanged(val millis: Long?) : AddScriptAction
     data class InstructionsChanged(val value: String) : AddScriptAction
@@ -137,7 +140,7 @@ class AddScriptViewModel(
             repeats = prefill.repeats?.toString() ?: "",
             validToMillis = prefill.validToMillis,
             instructions = prefill.instructions.orEmpty(),
-            priorDispensed = prefill.priorDispensed,
+            priorDispensed = if (prefill.priorDispensed != 0) prefill.priorDispensed.toString() else "",
         )
     )
     val state: StateFlow<AddScriptState> = _state.asStateFlow()
@@ -157,6 +160,8 @@ class AddScriptViewModel(
             is AddScriptAction.SerialNoChanged -> _state.update { it.copy(serialNo = action.value) }
             is AddScriptAction.SerialNo2Changed -> _state.update { it.copy(serialNo2 = action.value) }
             is AddScriptAction.DateOfIssueChanged -> _state.update { it.copy(dateOfIssue = action.millis) }
+            is AddScriptAction.PriorDispensedChanged ->
+                _state.update { it.copy(priorDispensed = action.value.digitsOnly()) }
             is AddScriptAction.RepeatsChanged -> _state.update { it.copy(repeats = action.value.digitsOnly()) }
             is AddScriptAction.ValidToChanged -> _state.update { it.copy(validToMillis = action.millis) }
             is AddScriptAction.InstructionsChanged -> _state.update { it.copy(instructions = action.value) }
@@ -297,12 +302,13 @@ class AddScriptViewModel(
                 instructions = s.instructions.trim(),
             ),
         )
-        if (s.priorDispensed > 0) {
+        val dispensed = s.priorDispensed.toInt()
+        if (dispensed > 0) {
             dispensationRepository.add(
                 Dispensation(
                     scriptId = scriptId,
                     dispensableUnitId = dispensableUnitId,
-                    number = s.priorDispensed,
+                    number = dispensed,
                     dispensedAtMillis = s.dateOfIssue,
                 ),
             )

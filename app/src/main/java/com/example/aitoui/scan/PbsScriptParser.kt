@@ -23,6 +23,9 @@ object PbsScriptParser {
     // The eRx token: printed as "eRx: <TOKEN>", an 8+ char run of uppercase letters and digits. A fallback
     // serial — on many forms the token is a barcode and doesn't OCR, so it's tried only after [PBS_NUMBER].
     private val ERX_TOKEN = Regex("""(?i)eRx\s*[:>]?\s*([0-9A-Z]{8,})""")
+    // The eRx token as encoded in a barcode/QR: one run of 8+ uppercase letters/digits, nothing else — no
+    // ';' separator, no spaces. Excludes the "G5189;17325W" Rpt-No/PBS-approval barcode on the same form.
+    private val ERX_BARCODE = Regex("""^[0-9A-Z]{8,}$""")
     // Item transcription, e.g. "TENSIG TABLETS 50MG BLISTER (ATENOLOL) **Qty 60**". The strength and quantity
     // allow O/o (a common OCR misread of the digit 0, e.g. "6OMG" for 60mg); [normaliseDigits] repairs them.
     private val ITEM = Regex("""(?i)^(.+?)\s+(\d[\dOo]*(?:[.,]\d+)?)\s*MG\b.*?\(([^)]+)\).*?Qty\s*\**\s*([\dOo]+)""")
@@ -63,6 +66,18 @@ object PbsScriptParser {
     private fun erxToken(lines: List<OcrLine>): String? =
         lines.mapNotNull { ERX_TOKEN.find(it.text)?.groupValues?.get(1) }
             // Keep tokens that mix letters and digits (excludes plain numbers like a reference "208861").
+            .filter { it.any(Char::isDigit) && it.any(Char::isLetter) }
+            .maxByOrNull { it.length }
+
+    /**
+     * Fallback eRx selector for decoded barcode/QR strings, used only when the OCR pass ([erxToken]) found
+     * nothing — the printed "eRx:" token is usually a barcode/QR and doesn't OCR. Keeps values that are a
+     * single pure-alphanumeric run mixing letters and digits (drops the ";"-separated "G5189;17325W"
+     * Rpt/PBS-approval code and any plain-number barcode), then takes the longest — the ~18-char eRx token.
+     */
+    fun erxFromBarcodes(barcodes: List<String>): String? =
+        barcodes.map { it.trim() }
+            .filter { ERX_BARCODE.matches(it) }
             .filter { it.any(Char::isDigit) && it.any(Char::isLetter) }
             .maxByOrNull { it.length }
 
