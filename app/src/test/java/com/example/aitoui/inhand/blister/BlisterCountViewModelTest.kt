@@ -15,70 +15,97 @@ class BlisterCountViewModelTest {
         longMin = -150f, longMax = 150f, shortMin = -40f, shortMax = 40f,
     )
 
-    private fun vmWith(vararg regions: PackRegion) = BlisterCountViewModel().apply { onPacksSegmented(regions.toList()) }
+    /** Seed frames from [regions], then confirm framing and the default format to reach the pop step. */
+    private fun vmPopping(vararg regions: PackRegion) = BlisterCountViewModel().apply {
+        onFramesSeeded(regions.toList())
+        confirmFrames()
+        confirmFormat()
+    }
 
     @Test
-    fun `no packs found stays on capture`() {
-        val vm = BlisterCountViewModel().apply { onPacksSegmented(emptyList()) }
-        assertEquals(BlisterPhase.CAPTURE, vm.state.value.phase)
+    fun `no packs detected still lets you frame one manually`() {
+        val vm = BlisterCountViewModel().apply { onFramesSeeded(emptyList()) }
+        assertEquals(BlisterPhase.FRAME, vm.state.value.phase)
+        assertEquals(1, vm.state.value.frames.size)
         assertEquals(0, vm.state.value.packs.size)
     }
 
     @Test
-    fun `packs found enter layout confirmation, all blisters full by default`() {
-        val vm = vmWith(region())
+    fun `seeding enters the framing step with one frame per detected pack`() {
+        val vm = BlisterCountViewModel().apply { onFramesSeeded(listOf(region(100f), region(400f))) }
+        assertEquals(BlisterPhase.FRAME, vm.state.value.phase)
+        assertEquals(2, vm.state.value.frames.size)
+        assertEquals(0, vm.state.value.selectedFrame)
+        assertEquals(0, vm.state.value.packs.size)
+    }
+
+    @Test
+    fun `confirming the frames builds one pack each and moves to the shared format`() {
+        val vm = BlisterCountViewModel().apply { onFramesSeeded(listOf(region())) }
+        vm.confirmFrames()
         val s = vm.state.value
-        assertEquals(BlisterPhase.CONFIRM_LAYOUT, s.phase)
+        assertEquals(BlisterPhase.FORMAT, s.phase)
         assertEquals(1, s.packs.size)
-        assertEquals(2 to 5, s.currentPack!!.cols to s.currentPack!!.rows)
-        assertEquals(10, s.currentPack!!.fullCount)
+        assertEquals(2 to 5, s.cols to s.rows)
+        assertEquals(10, s.fullCountOf(s.currentPack!!))
         assertEquals(10, s.total)
     }
 
     @Test
-    fun `changing the layout updates the blister count and clears pops`() {
-        val vm = vmWith(region())
-        vm.confirmLayout()
-        vm.popAt(popPoint(vm, 0, 0).first, popPoint(vm, 0, 0).second)
-        vm.setColumns(3) // 3x5 = 15, and pops reset
-        assertEquals(15, vm.state.value.currentPack!!.blisterCount)
-        assertEquals(15, vm.state.value.total)
-        assertEquals(emptySet<CellRef>(), vm.state.value.currentPack!!.popped)
+    fun `deleting the selected frame removes it`() {
+        val vm = BlisterCountViewModel().apply { onFramesSeeded(listOf(region(100f), region(400f))) }
+        vm.selectFrame(0)
+        vm.deleteSelectedFrame()
+        assertEquals(1, vm.state.value.frames.size)
     }
 
     @Test
-    fun `confirmLayout moves to popping`() {
-        val vm = vmWith(region())
-        vm.confirmLayout()
+    fun `add frame appends and selects a new frame`() {
+        val vm = BlisterCountViewModel().apply { onFramesSeeded(listOf(region())) }
+        vm.addFrame()
+        assertEquals(2, vm.state.value.frames.size)
+        assertEquals(1, vm.state.value.selectedFrame)
+    }
+
+    @Test
+    fun `changing the shared format updates the blister count for every pack`() {
+        val vm = BlisterCountViewModel().apply { onFramesSeeded(listOf(region())); confirmFrames() }
+        vm.setColumns(3) // 3x5 = 15
+        assertEquals(15, vm.state.value.blisterCount)
+        vm.confirmFormat()
+        assertEquals(15, vm.state.value.total)
+    }
+
+    @Test
+    fun `confirmFormat moves to popping`() {
+        val vm = BlisterCountViewModel().apply { onFramesSeeded(listOf(region())); confirmFrames() }
+        vm.confirmFormat()
         assertEquals(BlisterPhase.POP, vm.state.value.phase)
     }
 
     @Test
     fun `popping a blister empties it and un-popping refills it`() {
-        val vm = vmWith(region())
-        vm.confirmLayout()
+        val vm = vmPopping(region())
         val (x, y) = popPoint(vm, 0, 0)
 
         assertEquals(PopResult.POPPED, vm.popAt(x, y))
-        assertEquals(9, vm.state.value.currentPack!!.fullCount)
+        assertEquals(9, vm.state.value.fullCountOf(vm.state.value.currentPack!!))
         assertEquals(setOf(CellRef(0, 0)), vm.state.value.currentPack!!.popped)
 
         assertEquals(PopResult.UNPOPPED, vm.popAt(x, y))
-        assertEquals(10, vm.state.value.currentPack!!.fullCount)
+        assertEquals(10, vm.state.value.fullCountOf(vm.state.value.currentPack!!))
     }
 
     @Test
     fun `a tap off the pack does nothing`() {
-        val vm = vmWith(region())
-        vm.confirmLayout()
+        val vm = vmPopping(region())
         assertEquals(PopResult.NONE, vm.popAt(5000f, 5000f))
         assertEquals(10, vm.state.value.total)
     }
 
     @Test
     fun `reset restores every blister`() {
-        val vm = vmWith(region())
-        vm.confirmLayout()
+        val vm = vmPopping(region())
         vm.popAt(popPoint(vm, 1, 0).first, popPoint(vm, 1, 0).second)
         vm.popAt(popPoint(vm, 2, 1).first, popPoint(vm, 2, 1).second)
         assertEquals(8, vm.state.value.total)
@@ -88,14 +115,12 @@ class BlisterCountViewModelTest {
 
     @Test
     fun `nextPack walks through each pack then summarises, totalling across packs`() {
-        val vm = vmWith(region(cx = 100f), region(cx = 400f))
-        vm.confirmLayout()
+        val vm = vmPopping(region(cx = 100f), region(cx = 400f))
         vm.popAt(popPoint(vm, 0, 0).first, popPoint(vm, 0, 0).second) // pack 1: pop one -> 9
 
         vm.nextPack()
-        assertEquals(BlisterPhase.CONFIRM_LAYOUT, vm.state.value.phase)
+        assertEquals(BlisterPhase.POP, vm.state.value.phase)
         assertEquals(1, vm.state.value.currentPackIndex)
-        vm.confirmLayout()
         vm.popAt(popPoint(vm, 3, 1).first, popPoint(vm, 3, 1).second) // pack 2: pop one -> 9
 
         vm.nextPack()
@@ -105,17 +130,19 @@ class BlisterCountViewModelTest {
 
     @Test
     fun `retake clears everything back to capture`() {
-        val vm = vmWith(region())
+        val vm = vmPopping(region())
         vm.retake()
         assertEquals(BlisterPhase.CAPTURE, vm.state.value.phase)
         assertEquals(0, vm.state.value.packs.size)
+        assertEquals(0, vm.state.value.frames.size)
         assertNull(vm.state.value.capturePath)
     }
 
     /** Image-pixel coordinate of the centre of blister ([along], [across]) on the current pack. */
     private fun popPoint(vm: BlisterCountViewModel, along: Int, across: Int): Pair<Float, Float> {
-        val pack = vm.state.value.currentPack!!
-        val p = cellCenter(pack.region, pack.alongLong, pack.alongShort, along, across)
+        val s = vm.state.value
+        val pack = s.currentPack!!
+        val p = cellCenter(pack.region, s.alongLong, s.alongShort, along, across)
         return p.x to p.y
     }
 }
