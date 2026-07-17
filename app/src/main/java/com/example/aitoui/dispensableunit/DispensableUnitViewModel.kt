@@ -47,6 +47,12 @@ class DispensableUnitViewModel(
     private val _state = MutableStateFlow(DispensableUnitState())
     val state: StateFlow<DispensableUnitState> = _state.asStateFlow()
 
+    /** One-shot flag: flips true once a dispensable unit is saved, so the screen can pop back to the list. */
+    private val _saved = MutableStateFlow(false)
+    val saved: StateFlow<Boolean> = _saved.asStateFlow()
+
+    fun consumeSaved() { _saved.value = false }
+
     init {
         // Keep the Medication dropdown's options in sync with the medications table.
         medicationRepository.medications
@@ -88,9 +94,10 @@ class DispensableUnitViewModel(
                     tabletsPerUnit = current.tabletsPerUnit,
                 )
             )
+            // Clear the form for the next entry (keep the loaded medications).
+            _state.update { DispensableUnitState(medications = it.medications) }
+            _saved.value = true                // signal the screen to return to the list
         }
-        // Clear the form for the next entry (keep the loaded medications).
-        _state.update { DispensableUnitState(medications = it.medications) }
     }
 
     private fun String.digitsOnly(): String = filter { it.isDigit() }
