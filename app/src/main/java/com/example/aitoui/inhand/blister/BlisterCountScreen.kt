@@ -14,6 +14,7 @@ import androidx.camera.view.PreviewView
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -53,6 +54,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,6 +62,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
@@ -83,9 +86,16 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.aitoui.BuildConfig
 import com.example.aitoui.counting.CellRef
 import com.example.aitoui.counting.CountImage
+import com.example.aitoui.counting.FrameHit
 import com.example.aitoui.counting.PACK_GRID_MARGIN_LONG
 import com.example.aitoui.counting.PACK_GRID_MARGIN_SHORT
+import com.example.aitoui.counting.PackRegion
 import com.example.aitoui.counting.cellCenter
+import com.example.aitoui.counting.contains
+import com.example.aitoui.counting.corners
+import com.example.aitoui.counting.hitTest
+import com.example.aitoui.counting.rotationHandle
+import com.example.aitoui.counting.topEdgeMidpoint
 import com.example.aitoui.image.ImageStore
 import com.example.aitoui.ui.heading
 import kotlinx.coroutines.Dispatchers
@@ -93,6 +103,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import kotlin.math.abs
+import kotlin.math.atan2
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -102,6 +113,9 @@ private const val ANALYSIS_MAX_DIMENSION = 1200
 
 /** Maximum pinch-zoom on the review image, so dense packs can be popped accurately. */
 private const val MAX_ZOOM = 5f
+
+/** Empty/popped blister marker colour (amber), shared by the pop grid. */
+private val PoppedColor = Color(0xFFFFC24B)
 
 @Composable
 fun BlisterCountRoot(
@@ -113,9 +127,16 @@ fun BlisterCountRoot(
     BlisterCountScreen(
         state = state,
         onAnalyse = viewModel::analyse,
+        onSelectFrame = viewModel::selectFrame,
+        onMoveFrame = viewModel::moveSelectedFrame,
+        onResizeFrame = viewModel::resizeSelectedFrame,
+        onRotateFrame = viewModel::rotateSelectedFrame,
+        onAddFrame = viewModel::addFrame,
+        onDeleteFrame = viewModel::deleteSelectedFrame,
+        onConfirmFrames = viewModel::confirmFrames,
         onSetColumns = viewModel::setColumns,
         onSetRows = viewModel::setRows,
-        onConfirmLayout = viewModel::confirmLayout,
+        onConfirmFormat = viewModel::confirmFormat,
         onPopAt = viewModel::popAt,
         onToggleCell = viewModel::toggleCell,
         onResetPops = viewModel::resetCurrentPops,
@@ -130,9 +151,16 @@ fun BlisterCountRoot(
 fun BlisterCountScreen(
     state: BlisterCountState,
     onAnalyse: (String, CountImage) -> Unit,
+    onSelectFrame: (Int?) -> Unit,
+    onMoveFrame: (Float, Float) -> Unit,
+    onResizeFrame: (Int, Float, Float) -> Unit,
+    onRotateFrame: (Float) -> Unit,
+    onAddFrame: () -> Unit,
+    onDeleteFrame: () -> Unit,
+    onConfirmFrames: () -> Unit,
     onSetColumns: (Int) -> Unit,
     onSetRows: (Int) -> Unit,
-    onConfirmLayout: () -> Unit,
+    onConfirmFormat: () -> Unit,
     onPopAt: (Float, Float) -> PopResult,
     onToggleCell: (CellRef) -> PopResult,
     onResetPops: () -> Unit,
@@ -175,23 +203,28 @@ fun BlisterCountScreen(
 
             state.analysing -> LoadingOverlay("Finding packs…")
 
-            state.packs.isEmpty() -> NoPacksFound(onRetake = onRetake)
+            state.phase == BlisterPhase.FRAME -> FrameEditorView(
+                bitmap = bitmap!!, state = state,
+                onSelectFrame = onSelectFrame, onMoveFrame = onMoveFrame, onResizeFrame = onResizeFrame,
+                onRotateFrame = onRotateFrame, onAddFrame = onAddFrame, onDeleteFrame = onDeleteFrame,
+                onContinue = onConfirmFrames,
+            )
 
-            else -> {
-                val pack = state.currentPack!!
-                when (state.phase) {
-                    BlisterPhase.CONFIRM_LAYOUT -> ConfirmLayoutView(
-                        bitmap = bitmap!!, state = state, pack = pack,
-                        onSetColumns = onSetColumns, onSetRows = onSetRows, onConfirm = onConfirmLayout,
-                    )
-                    BlisterPhase.POP -> PopView(
-                        bitmap = bitmap!!, state = state, pack = pack,
-                        onPopAt = onPopAt, onToggleCell = onToggleCell,
-                        onReset = onResetPops, onNext = onNextPack,
-                    )
-                    else -> LoadingOverlay("…")
-                }
+            state.phase == BlisterPhase.FORMAT -> FormatView(
+                bitmap = bitmap!!, state = state,
+                onSetColumns = onSetColumns, onSetRows = onSetRows, onContinue = onConfirmFormat,
+            )
+
+            state.phase == BlisterPhase.POP -> {
+                val pack = state.currentPack
+                if (pack == null) LoadingOverlay("…")
+                else PopView(
+                    bitmap = bitmap!!, state = state, pack = pack,
+                    onPopAt = onPopAt, onToggleCell = onToggleCell, onReset = onResetPops, onNext = onNextPack,
+                )
             }
+
+            else -> LoadingOverlay("…")
         }
     }
 }
@@ -208,21 +241,6 @@ private fun LoadingOverlay(label: String) {
             label, color = Color.White,
             modifier = Modifier.padding(top = 16.dp).semantics { liveRegion = LiveRegionMode.Polite },
         )
-    }
-}
-
-@Composable
-private fun NoPacksFound(onRetake: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize().safeDrawingPadding().padding(32.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            text = "No packs found. Lay them on a plain surface so they don't touch or overlap, then try again.",
-            color = Color.White, textAlign = TextAlign.Center,
-        )
-        Button(onClick = onRetake, modifier = Modifier.padding(top = 20.dp)) { Text("Retake") }
     }
 }
 
@@ -303,7 +321,7 @@ private fun CameraCapture(onCaptured: (String, CountImage) -> Unit, onBack: () -
             }
         }
         Text(
-            text = "Lay the packs on a plain surface so they don't touch or overlap — foil-up, dome-up, or mixed. Then take a photo.",
+            text = "Lay the packs down and take a photo. They can touch or overlap — you'll frame each one next.",
             color = Color.White, textAlign = TextAlign.Center,
             style = MaterialTheme.typography.bodyMedium,
             // A scrim keeps the white instruction legible over the live preview behind it.
@@ -350,33 +368,217 @@ private fun CameraCapture(onCaptured: (String, CountImage) -> Unit, onBack: () -
     }
 }
 
+/**
+ * Manual framing: the whole captured photo with an oriented rectangle per pack. Corner handles resize the
+ * selected box along its own axes, the handle above it rotates it, and its body drags it; a tap selects a
+ * box or clears the selection. Frames may overlap freely. Produces the [PackRegion]s the counter consumes.
+ */
 @Composable
-private fun ConfirmLayoutView(
+private fun FrameEditorView(
     bitmap: Bitmap,
     state: BlisterCountState,
-    pack: PackState,
-    onSetColumns: (Int) -> Unit,
-    onSetRows: (Int) -> Unit,
-    onConfirm: () -> Unit,
+    onSelectFrame: (Int?) -> Unit,
+    onMoveFrame: (Float, Float) -> Unit,
+    onResizeFrame: (Int, Float, Float) -> Unit,
+    onRotateFrame: (Float) -> Unit,
+    onAddFrame: () -> Unit,
+    onDeleteFrame: () -> Unit,
+    onContinue: () -> Unit,
 ) {
+    val imageBitmap = remember(bitmap) { bitmap.asImageBitmap() }
+    val frameColor = MaterialTheme.colorScheme.primary
+    val imgW = state.imageWidth
+    val imgH = state.imageHeight
+    val latest by rememberUpdatedState(state)
+    var dragMode by remember { mutableStateOf<FrameHit?>(null) }
+    // Reference captured when a rotation drag starts, so the box turns by the drag delta about its centre.
+    var rotCenter by remember { mutableStateOf(Offset.Zero) }
+    var rotStartPointer by remember { mutableFloatStateOf(0f) }
+    var rotStartAngle by remember { mutableFloatStateOf(0f) }
+
     Column(modifier = Modifier.fillMaxSize().safeDrawingPadding().padding(16.dp)) {
         Header(
-            title = "Confirm layout",
-            trailing = if (state.packs.size > 1) "Pack ${state.currentPackIndex + 1} / ${state.packs.size}" else null,
+            title = "Frame the packs",
+            trailing = "${state.frames.size} pack${if (state.frames.size == 1) "" else "s"}",
         )
-        Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
-            PackImageView(bitmap, state.imageWidth, state.imageHeight, pack, interactive = false, onPopAt = { _, _ -> PopResult.NONE })
+        Box(
+            modifier = Modifier.weight(1f).fillMaxWidth().padding(vertical = 12.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (imgW == 0 || imgH == 0) return@Box
+            BoxWithConstraints {
+                val ratio = imgW.toFloat() / imgH
+                val fitByWidth = maxWidth / ratio <= maxHeight
+                val boxW = if (fitByWidth) maxWidth else maxHeight * ratio
+                val boxH = if (fitByWidth) maxWidth / ratio else maxHeight
+
+                Box(
+                    modifier = Modifier
+                        .size(boxW, boxH)
+                        .clipToBounds()
+                        .pointerInput(imgW, imgH) {
+                            val handleRadiusPx = 26.dp.toPx()
+                            val rotationGapPx = 30.dp.toPx()
+                            detectDragGestures(
+                                onDragStart = { start ->
+                                    val s = size.width.toFloat() / imgW
+                                    val px = start.x / s
+                                    val py = start.y / s
+                                    val handleR = handleRadiusPx / s
+                                    val gap = rotationGapPx / s
+                                    val sel = latest.selectedFrame?.let { latest.frames.getOrNull(it) }
+                                    val onHandle = sel?.hitTest(px, py, handleR, gap)
+                                    dragMode = when (onHandle) {
+                                        is FrameHit.Rotate -> {
+                                            rotCenter = Offset(sel.cx, sel.cy)
+                                            rotStartPointer = atan2(py - sel.cy, px - sel.cx)
+                                            rotStartAngle = sel.angleRad
+                                            FrameHit.Rotate
+                                        }
+                                        is FrameHit.Corner -> onHandle
+                                        else -> {
+                                            val idx = latest.frames.indexOfLast { it.contains(px, py) }
+                                            if (idx >= 0) { onSelectFrame(idx); FrameHit.Body } else FrameHit.None
+                                        }
+                                    }
+                                },
+                                onDrag = { change, amount ->
+                                    change.consume()
+                                    val s = size.width.toFloat() / imgW
+                                    val px = change.position.x / s
+                                    val py = change.position.y / s
+                                    when (val m = dragMode) {
+                                        is FrameHit.Rotate -> {
+                                            val cur = atan2(py - rotCenter.y, px - rotCenter.x)
+                                            onRotateFrame(rotStartAngle + (cur - rotStartPointer))
+                                        }
+                                        is FrameHit.Corner -> onResizeFrame(m.index, px, py)
+                                        is FrameHit.Body -> onMoveFrame(amount.x / s, amount.y / s)
+                                        else -> Unit
+                                    }
+                                },
+                                onDragEnd = { dragMode = null },
+                                onDragCancel = { dragMode = null },
+                            )
+                        }
+                        .pointerInput(imgW, imgH) {
+                            detectTapGestures { pos ->
+                                val s = size.width.toFloat() / imgW
+                                val px = pos.x / s
+                                val py = pos.y / s
+                                val idx = latest.frames.indexOfLast { it.contains(px, py) }
+                                onSelectFrame(if (idx >= 0) idx else null)
+                            }
+                        },
+                ) {
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        val s = size.width / imgW
+                        drawImage(
+                            image = imageBitmap,
+                            srcOffset = IntOffset.Zero,
+                            srcSize = IntSize(imgW, imgH),
+                            dstOffset = IntOffset.Zero,
+                            dstSize = IntSize(size.width.roundToInt(), size.height.roundToInt()),
+                        )
+                        val rotationGap = 30.dp.toPx() / s
+                        state.frames.forEachIndexed { i, frame ->
+                            val selected = i == state.selectedFrame
+                            val c = frame.corners().map { Offset(it.x * s, it.y * s) }
+                            val path = Path().apply {
+                                moveTo(c[0].x, c[0].y); lineTo(c[1].x, c[1].y)
+                                lineTo(c[2].x, c[2].y); lineTo(c[3].x, c[3].y); close()
+                            }
+                            if (selected) drawPath(path, frameColor.copy(alpha = 0.14f))
+                            drawPath(
+                                path,
+                                color = if (selected) frameColor else frameColor.copy(alpha = 0.5f),
+                                style = Stroke(width = (if (selected) 2.5f else 2f).dp.toPx()),
+                            )
+                            if (selected) {
+                                // Rotation handle above the box's top edge (whichever edge is highest on screen).
+                                val anchor = frame.topEdgeMidpoint()
+                                val rh = frame.rotationHandle(rotationGap)
+                                drawLine(frameColor, Offset(anchor.x * s, anchor.y * s), Offset(rh.x * s, rh.y * s), strokeWidth = 2.dp.toPx())
+                                drawCircle(Color.White, radius = 8.dp.toPx(), center = Offset(rh.x * s, rh.y * s))
+                                drawCircle(frameColor, radius = 8.dp.toPx(), center = Offset(rh.x * s, rh.y * s), style = Stroke(width = 2.dp.toPx()))
+                            }
+                            // Corner handles: solid for the selected pack, de-emphasised for the rest so an
+                            // unselected frame still reads as a draggable rectangle.
+                            val handleFill = if (selected) Color.White else Color.White.copy(alpha = 0.4f)
+                            val handleRing = if (selected) frameColor else frameColor.copy(alpha = 0.5f)
+                            val handleR = (if (selected) 7f else 5.5f).dp.toPx()
+                            c.forEach { corner ->
+                                drawCircle(handleFill, radius = handleR, center = corner)
+                                drawCircle(handleRing, radius = handleR, center = corner, style = Stroke(width = 2.dp.toPx()))
+                            }
+                        }
+                    }
+                }
+            }
         }
         Text(
-            text = "Set the rows and columns to match the pack.",
+            text = "Tap a pack to select it, then drag its corners to fit and spin the top handle to align. " +
+                "Overlapping is fine.",
             color = Color.White, style = MaterialTheme.typography.bodySmall,
             textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
         )
-        Row(modifier = Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-            Stepper("Columns", pack.cols) { onSetColumns(it) }
-            Stepper("Rows", pack.rows) { onSetRows(it) }
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            OutlinedButton(
+                onClick = onAddFrame, modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+                border = BorderStroke(1.dp, Color.White),
+            ) { Text("+ Add pack") }
+            OutlinedButton(
+                onClick = onDeleteFrame, modifier = Modifier.weight(1f), enabled = state.selectedFrame != null,
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+                border = BorderStroke(1.dp, Color.White.copy(alpha = if (state.selectedFrame != null) 1f else 0.3f)),
+            ) { Text("Delete") }
         }
-        Button(onClick = onConfirm, modifier = Modifier.fillMaxWidth().padding(top = 14.dp)) {
+        Button(
+            onClick = onContinue, modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+            enabled = state.frames.isNotEmpty(),
+        ) { Text("Continue ›") }
+    }
+}
+
+@Composable
+private fun FormatView(
+    bitmap: Bitmap,
+    state: BlisterCountState,
+    onSetColumns: (Int) -> Unit,
+    onSetRows: (Int) -> Unit,
+    onContinue: () -> Unit,
+) {
+    val representative = state.packs.firstOrNull() ?: return
+    Column(modifier = Modifier.fillMaxSize().safeDrawingPadding().padding(16.dp)) {
+        Header(title = "Pack format", trailing = null)
+        Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
+            PackImageView(
+                bitmap, state.imageWidth, state.imageHeight, representative,
+                state.alongLong, state.alongShort, interactive = false, onPopAt = { _, _ -> PopResult.NONE },
+            )
+        }
+        Text(
+            text = "Set the rows and columns for the packs.",
+            color = Color.White, style = MaterialTheme.typography.bodySmall,
+            textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
+        )
+        if (state.packs.size > 1) {
+            Text(
+                text = "Applies to all ${state.packs.size} packs",
+                color = PoppedColor, style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+            )
+        }
+        Row(modifier = Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+            Stepper("Columns", state.cols) { onSetColumns(it) }
+            Stepper("Rows", state.rows) { onSetRows(it) }
+        }
+        Button(onClick = onContinue, modifier = Modifier.fillMaxWidth().padding(top = 14.dp)) {
             Text("Continue ›")
         }
     }
@@ -407,12 +609,12 @@ private fun PopView(
         }
         Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
             PackImageView(
-                bitmap, state.imageWidth, state.imageHeight, pack, interactive = true,
-                onPopAt = { x, y -> onPopAt(x, y).also { playFor(it) } },
+                bitmap, state.imageWidth, state.imageHeight, pack, state.alongLong, state.alongShort,
+                interactive = true, onPopAt = { x, y -> onPopAt(x, y).also { playFor(it) } },
             )
             // Touch-free semantics overlay so TalkBack can navigate and pop each blister (sighted taps
             // fall through to the image beneath).
-            AccessibleBlisterGrid(pack) { cell -> playFor(onToggleCell(cell)) }
+            AccessibleBlisterGrid(state.alongLong, state.alongShort, pack.popped) { cell -> playFor(onToggleCell(cell)) }
         }
         Text(
             text = "Every blister starts full — tap the gone ones to pop them. Pinch to zoom.",
@@ -424,7 +626,7 @@ private fun PopView(
             horizontalArrangement = Arrangement.Center,
         ) {
             Text(
-                text = "Full ${pack.fullCount}   ·   Empty ${pack.popped.size}",
+                text = "Full ${state.fullCountOf(pack)}   ·   Empty ${pack.popped.size}",
                 color = Color.White, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
             )
@@ -451,21 +653,21 @@ private fun PopView(
  * task. Semantics-only (no pointer input), so sighted taps fall through to the image beneath.
  */
 @Composable
-private fun AccessibleBlisterGrid(pack: PackState, onToggle: (CellRef) -> Unit) {
+private fun AccessibleBlisterGrid(alongLong: Int, alongShort: Int, popped: Set<CellRef>, onToggle: (CellRef) -> Unit) {
     Column(modifier = Modifier.fillMaxSize()) {
-        for (along in 0 until pack.alongLong) {
+        for (along in 0 until alongLong) {
             Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
-                for (across in 0 until pack.alongShort) {
+                for (across in 0 until alongShort) {
                     val cell = CellRef(along, across)
-                    val popped = cell in pack.popped
+                    val isPopped = cell in popped
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
                             .semantics(mergeDescendants = true) {
                                 contentDescription = "Blister, row ${along + 1}, column ${across + 1}"
-                                stateDescription = if (popped) "empty" else "full"
-                                onClick(label = if (popped) "Restore" else "Pop") {
+                                stateDescription = if (isPopped) "empty" else "full"
+                                onClick(label = if (isPopped) "Restore" else "Pop") {
                                     onToggle(cell)
                                     true
                                 }
@@ -487,8 +689,8 @@ private fun SummaryView(state: BlisterCountState, onUseTotal: () -> Unit, onReta
                     modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    Text("Pack ${i + 1}  ·  ${pack.cols}×${pack.rows}", color = Color.White)
-                    Text("${pack.fullCount} / ${pack.blisterCount}", color = Color.White, fontWeight = FontWeight.SemiBold)
+                    Text("Pack ${i + 1}  ·  ${state.cols}×${state.rows}", color = Color.White)
+                    Text("${state.fullCountOf(pack)} / ${state.blisterCount}", color = Color.White, fontWeight = FontWeight.SemiBold)
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
@@ -531,10 +733,9 @@ private fun Stepper(label: String, value: Int, onChange: (Int) -> Unit) {
 }
 
 /**
- * The current pack, cropped from the captured frame to fill the view (so confirm/pop happen over one pack,
- * not the whole photo), with its blister grid drawn on top: pinch-to-zoom + pan, and (when [interactive])
- * taps mapped back to image pixels and forwarded to [onPopAt]. Full blisters show a hollow ring; popped ones
- * a filled hole.
+ * The given pack, cropped from the captured frame to fill the view, with its blister grid drawn on top:
+ * pinch-to-zoom + pan, and (when [interactive]) taps mapped back to image pixels and forwarded to [onPopAt].
+ * Full blisters show a hollow ring; popped ones a filled hole. The grid is [alongLong] × [alongShort].
  */
 @Composable
 private fun PackImageView(
@@ -542,11 +743,12 @@ private fun PackImageView(
     imageWidth: Int,
     imageHeight: Int,
     pack: PackState,
+    alongLong: Int,
+    alongShort: Int,
     interactive: Boolean,
     onPopAt: (Float, Float) -> PopResult,
 ) {
     val ringColor = MaterialTheme.colorScheme.primary
-    val poppedColor = Color(0xFFFFC24B)
     val imageBitmap = remember(bitmap) { bitmap.asImageBitmap() }
 
     // Axis-aligned crop around just this pack (padded), so it fills the view.
@@ -565,8 +767,8 @@ private fun PackImageView(
         var offset by remember(bitmap, pack.region) { mutableStateOf(Offset.Zero) }
 
         // Blister marker radius in image pixels: a fraction of the smaller blister pitch.
-        val longPitch = abs(pack.region.longMax - pack.region.longMin) * (1 - 2 * PACK_GRID_MARGIN_LONG) / pack.alongLong
-        val shortPitch = abs(pack.region.shortMax - pack.region.shortMin) * (1 - 2 * PACK_GRID_MARGIN_SHORT) / pack.alongShort
+        val longPitch = abs(pack.region.longMax - pack.region.longMin) * (1 - 2 * PACK_GRID_MARGIN_LONG) / alongLong
+        val shortPitch = abs(pack.region.shortMax - pack.region.shortMin) * (1 - 2 * PACK_GRID_MARGIN_SHORT) / alongShort
         val radiusImg = 0.30f * min(longPitch, shortPitch)
 
         Box(
@@ -610,13 +812,13 @@ private fun PackImageView(
                     val sx = size.width / cropW
                     val sy = size.height / cropH
                     val r = radiusImg * sx
-                    for (along in 0 until pack.alongLong) for (across in 0 until pack.alongShort) {
-                        val c = cellCenter(pack.region, pack.alongLong, pack.alongShort, along, across)
+                    for (along in 0 until alongLong) for (across in 0 until alongShort) {
+                        val c = cellCenter(pack.region, alongLong, alongShort, along, across)
                         val center = Offset((c.x - cropX) * sx, (c.y - cropY) * sy)
-                        val popped = com.example.aitoui.counting.CellRef(along, across) in pack.popped
+                        val popped = CellRef(along, across) in pack.popped
                         if (popped) {
                             drawCircle(color = Color.Black.copy(alpha = 0.55f), radius = r, center = center)
-                            drawCircle(color = poppedColor, radius = r, center = center, style = Stroke(width = r * 0.35f))
+                            drawCircle(color = PoppedColor, radius = r, center = center, style = Stroke(width = r * 0.35f))
                         } else {
                             drawCircle(color = ringColor, radius = r, center = center, style = Stroke(width = r * 0.3f))
                         }
@@ -628,7 +830,7 @@ private fun PackImageView(
 }
 
 /** Axis-aligned pixel crop rect [x, y, w, h] around a pack's oriented box, padded and clamped to the image. */
-private fun packCropRect(region: com.example.aitoui.counting.PackRegion, imageWidth: Int, imageHeight: Int, pad: Float): IntArray {
+private fun packCropRect(region: PackRegion, imageWidth: Int, imageHeight: Int, pad: Float): IntArray {
     var minX = Float.MAX_VALUE; var minY = Float.MAX_VALUE
     var maxX = -Float.MAX_VALUE; var maxY = -Float.MAX_VALUE
     for (lc in floatArrayOf(region.longMin, region.longMax)) {
