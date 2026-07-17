@@ -1,5 +1,7 @@
 package com.example.aitoui.data
 
+import kotlin.math.max
+
 /**
  * Classifies entered medication / dispensable-unit values against existing database records, for the Add
  * Script "resolve on Save" flow. Pure and JVM-testable.
@@ -10,8 +12,12 @@ package com.example.aitoui.data
  */
 object FuzzyMatcher {
 
-    /** Brand OR active this similar (0..1) makes an existing medication a candidate worth offering. */
-    const val SIMILAR = 0.6
+    /**
+     * Brand OR active this similar (0..1) makes an existing medication a candidate worth offering. Kept
+     * deliberately low: the resolve dialog always confirms the pick, so an extra candidate costs a glance
+     * while a missed one costs a duplicate record — so we err towards surfacing more.
+     */
+    const val SIMILAR = 0.45
 
     /** Brand AND active this similar makes it a near-duplicate: creating a new medication is refused. */
     const val BLOCK = 0.9
@@ -29,28 +35,48 @@ object FuzzyMatcher {
         val normBrand = TextSimilarity.normalize(brand)
         val normActive = TextSimilarity.normalize(active)
 
+        // A medication matches exactly when the fields line up as entered, OR when the user has transposed
+        // them — entered brand equals the medication's active ingredient, and entered active its brand.
         val exact = existing.filter {
-            TextSimilarity.normalize(it.brandName) == normBrand &&
-                TextSimilarity.normalize(it.activeIngredient) == normActive
+            val medBrand = TextSimilarity.normalize(it.brandName)
+            val medActive = TextSimilarity.normalize(it.activeIngredient)
+            (medBrand == normBrand && medActive == normActive) ||
+                (medBrand == normActive && medActive == normBrand)
         }
         val exactIds = exact.mapTo(HashSet()) { it.id }
 
         val similar = existing
             .filter { it.id !in exactIds }
-            .map { it to (TextSimilarity.ratio(brand, it.brandName) + TextSimilarity.ratio(active, it.activeIngredient)) }
-            .filter {
-                TextSimilarity.ratio(brand, it.first.brandName) >= SIMILAR ||
-                    TextSimilarity.ratio(active, it.first.activeIngredient) >= SIMILAR
-            }
-            .sortedByDescending { it.second }
+            .map { it to medicationScore(brand, active, it) }
+            .filter { it.second.qualifies }
+            .sortedByDescending { it.second.total }
             .map { it.first }
 
-        val blocked = existing.any {
-            TextSimilarity.ratio(brand, it.brandName) >= BLOCK &&
-                TextSimilarity.ratio(active, it.activeIngredient) >= BLOCK
-        }
+        val blocked = existing.any { medicationScore(brand, active, it).blocks }
+
         return MedicationMatches(exact, similar, blocked)
     }
+
+    /**
+     * Similarity of the entered brand/active to a medication, taking the better of the as-entered and the
+     * swapped orientations so a transposed brand/active still surfaces (and blocks) its medication.
+     */
+    private fun medicationScore(brand: String, active: String, med: Medication): MedicationScore {
+        val brandVsBrand = TextSimilarity.ratio(brand, med.brandName)
+        val activeVsActive = TextSimilarity.ratio(active, med.activeIngredient)
+        val brandVsActive = TextSimilarity.ratio(brand, med.activeIngredient)
+        val activeVsBrand = TextSimilarity.ratio(active, med.brandName)
+        return MedicationScore(
+            total = max(brandVsBrand + activeVsActive, brandVsActive + activeVsBrand),
+            qualifies = brandVsBrand >= SIMILAR || activeVsActive >= SIMILAR ||
+                brandVsActive >= SIMILAR || activeVsBrand >= SIMILAR,
+            blocks = (brandVsBrand >= BLOCK && activeVsActive >= BLOCK) ||
+                (brandVsActive >= BLOCK && activeVsBrand >= BLOCK),
+        )
+    }
+
+    /** The as-entered/swapped similarity of one medication: its ranking [total] and the two thresholds. */
+    private data class MedicationScore(val total: Double, val qualifies: Boolean, val blocks: Boolean)
 
     data class DispensableUnitMatches(
         /** The resolved medication's existing dispensable units, offered to pick from. */

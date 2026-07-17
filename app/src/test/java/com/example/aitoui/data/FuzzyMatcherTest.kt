@@ -45,6 +45,33 @@ class FuzzyMatcherTest {
         assertFalse(r.blocked)
     }
 
+    @Test
+    fun `brand and active swapped is an exact match and blocks a new record`() {
+        // Entered with the fields transposed: brand="Atorvastatin", active="Lipitor".
+        val r = FuzzyMatcher.classifyMedications("Atorvastatin", "Lipitor", meds)
+        assertEquals(listOf(1L), r.exact.map { it.id })
+        assertTrue(r.blocked)
+        assertTrue(r.hasCandidates)
+    }
+
+    @Test
+    fun `a swapped near-duplicate (typo) is not exact but is blocked and offered as similar`() {
+        // Transposed and with a typo in the (swapped) active: brand="Atorvastatn", active="Lipitor".
+        val r = FuzzyMatcher.classifyMedications("Atorvastatn", "Lipitor", meds) // missing an 'i'
+        assertTrue(r.exact.isEmpty())
+        assertTrue(r.blocked)                       // swapped: active~1.0, brand~0.92 -> both >= BLOCK
+        assertEquals(listOf(1L), r.similar.map { it.id })
+    }
+
+    @Test
+    fun `a loosely-matching brand is offered thanks to the lowered SIMILAR threshold`() {
+        // "Lipi" vs "Lipitor" ~= 0.57 — below the old 0.6 cutoff, above the current 0.45.
+        val r = FuzzyMatcher.classifyMedications("Lipi", "Zzz", meds)
+        assertTrue(r.exact.isEmpty())
+        assertFalse(r.blocked)
+        assertEquals(listOf(1L), r.similar.map { it.id })
+    }
+
     private fun unit(formatId: Long, medicationId: Long, dose: String, qty: String) =
         DispensableUnitDetails(formatId, medicationId, "Brand", "Active", dose, qty, null)
 
