@@ -183,6 +183,12 @@ fun AddScriptScreen(
             }
 
             AppTextField(
+                value = state.priorDispensed,
+                onValueChange = { onAction(AddScriptAction.PriorDispensedChanged(it)) },
+                label = "Number of times dispensed",
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            )
+            AppTextField(
                 value = state.repeats,
                 onValueChange = { onAction(AddScriptAction.RepeatsChanged(it)) },
                 label = "Number of repeats",
