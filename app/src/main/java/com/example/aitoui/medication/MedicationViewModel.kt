@@ -35,6 +35,12 @@ class MedicationViewModel(
     private val _state = MutableStateFlow(MedicationState())
     val state: StateFlow<MedicationState> = _state.asStateFlow()
 
+    /** One-shot flag: flips true once a medication is saved, so the screen can pop back to Medications. */
+    private val _saved = MutableStateFlow(false)
+    val saved: StateFlow<Boolean> = _saved.asStateFlow()
+
+    fun consumeSaved() { _saved.value = false }
+
     fun onAction(action: MedicationAction) {
         when (action) {
             is MedicationAction.BrandNameChanged ->
@@ -57,8 +63,9 @@ class MedicationViewModel(
                     activeIngredient = current.activeIngredient.trim(),
                 )
             )
+            _state.value = MedicationState()   // clear the form for the next entry
+            _saved.value = true                // signal the screen to return to Medications
         }
-        _state.value = MedicationState()
     }
 
     companion object {

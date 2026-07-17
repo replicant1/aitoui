@@ -22,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,6 +45,14 @@ fun DispensableUnitRoot(
     viewModel: DispensableUnitViewModel = viewModel(factory = DispensableUnitViewModel.Factory),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // After a dispensable unit is saved, return to the Dispensable Units screen.
+    val saved by viewModel.saved.collectAsStateWithLifecycle()
+    LaunchedEffect(saved) {
+        if (saved) {
+            viewModel.consumeSaved()
+            onBack()
+        }
+    }
     DispensableUnitScreen(
         state = state,
         onAction = viewModel::onAction,
