@@ -142,6 +142,12 @@ class AddScriptViewModel(
     )
     val state: StateFlow<AddScriptState> = _state.asStateFlow()
 
+    /** One-shot flag: flips true once a script is fully saved, so the screen can pop back to Scripts. */
+    private val _saved = MutableStateFlow(false)
+    val saved: StateFlow<Boolean> = _saved.asStateFlow()
+
+    fun consumeSaved() { _saved.value = false }
+
     fun onAction(action: AddScriptAction) {
         when (action) {
             is AddScriptAction.BrandNameChanged -> _state.update { it.copy(brandName = action.value) }
@@ -302,6 +308,7 @@ class AddScriptViewModel(
             )
         }
         _state.update { AddScriptState() }   // clear the form for the next entry
+        _saved.value = true                  // signal the screen to return to Scripts
     }
 
     private fun String.digitsOnly(): String = filter { it.isDigit() }
