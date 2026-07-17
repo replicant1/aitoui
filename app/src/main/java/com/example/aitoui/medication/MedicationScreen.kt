@@ -64,7 +64,7 @@ fun MedicationScreen(
                         onClick = { onAction(MedicationAction.Save) },
                         enabled = state.canSave,
                     ) {
-                        Text("Save")
+                        Text("SAVE")
                     }
                 },
             )
