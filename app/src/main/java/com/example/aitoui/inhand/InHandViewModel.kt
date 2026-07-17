@@ -74,6 +74,12 @@ class InHandViewModel(
     private val _state = MutableStateFlow(InHandState())
     val state: StateFlow<InHandState> = _state.asStateFlow()
 
+    /** One-shot flag: flips true once the in-hand figures are saved, so the screen can pop back to Main. */
+    private val _saved = MutableStateFlow(false)
+    val saved: StateFlow<Boolean> = _saved.asStateFlow()
+
+    fun consumeSaved() { _saved.value = false }
+
     private var nextId = 0L
 
     init {
@@ -170,7 +176,10 @@ class InHandViewModel(
             val quantity = entry.number.toDoubleOrNull() ?: return@mapNotNull null
             InHandItem(medicationId = entry.medicationId, quantity = quantity)
         }
-        viewModelScope.launch { inHandRepository.save(items, todayStartOfDayUtcMillis()) }
+        viewModelScope.launch {
+            inHandRepository.save(items, todayStartOfDayUtcMillis())
+            _saved.value = true              // signal the screen to return to Main
+        }
     }
 
     /** Now, normalised to the start of the day in UTC — the project's convention for stored dates. */

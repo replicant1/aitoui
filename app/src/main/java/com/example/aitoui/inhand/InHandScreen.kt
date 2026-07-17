@@ -79,6 +79,15 @@ fun InHandRoot(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val view = LocalView.current
 
+    // After the in-hand figures are saved, return to the Main screen.
+    val saved by viewModel.saved.collectAsStateWithLifecycle()
+    LaunchedEffect(saved) {
+        if (saved) {
+            viewModel.consumeSaved()
+            onBack()
+        }
+    }
+
     // A count returned from the camera screen lands in the "Number of tablets" field.
     LaunchedEffect(countedTablets) {
         countedTablets?.let {

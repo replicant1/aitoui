@@ -69,6 +69,12 @@ class DailyScheduleViewModel(
     private val _state = MutableStateFlow(DailyScheduleState())
     val state: StateFlow<DailyScheduleState> = _state.asStateFlow()
 
+    /** One-shot flag: flips true once the schedule is saved, so the screen can pop back to Main. */
+    private val _saved = MutableStateFlow(false)
+    val saved: StateFlow<Boolean> = _saved.asStateFlow()
+
+    fun consumeSaved() { _saved.value = false }
+
     private var nextId = 0L
 
     init {
@@ -148,7 +154,10 @@ class DailyScheduleViewModel(
             val quantity = entry.number.toDoubleOrNull() ?: return@mapNotNull null
             DailyScheduleItem(medicationId = entry.medicationId, quantity = quantity)
         }
-        viewModelScope.launch { dailyScheduleRepository.save(items) }
+        viewModelScope.launch {
+            dailyScheduleRepository.save(items)
+            _saved.value = true              // signal the screen to return to Main
+        }
     }
 
     /** Keeps digits and a single decimal point, e.g. so "0.5" is accepted but "0.5.2" is not. */
