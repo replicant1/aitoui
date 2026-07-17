@@ -137,4 +137,37 @@ class PbsScriptParserTest {
         assertNull(r.repeats)
         assertNull(r.brand)
     }
+
+    // --- eRx barcode/QR fallback (used when OCR yields no eRx token) ---
+
+    @Test
+    fun `erxFromBarcodes picks the eRx-shaped token from the CODE-128 and QR codes`() {
+        // The PB038 carries the token in CODE-128 barcode #2 and the QR code (identical), plus a
+        // ";"-separated Rpt-No/PBS-approval barcode that must be ignored.
+        val barcodes = listOf("1TV4J832WYJHBHY3D8", "G5189;17325W", "1TV4J832WYJHBHY3D8")
+        assertEquals("1TV4J832WYJHBHY3D8", PbsScriptParser.erxFromBarcodes(barcodes))
+    }
+
+    @Test
+    fun `erxFromBarcodes excludes the semicolon-separated Rpt and PBS-approval barcode`() {
+        assertNull(PbsScriptParser.erxFromBarcodes(listOf("G5189;17325W")))
+    }
+
+    @Test
+    fun `erxFromBarcodes returns null when there are no barcodes`() {
+        assertNull(PbsScriptParser.erxFromBarcodes(emptyList()))
+    }
+
+    @Test
+    fun `erxFromBarcodes excludes short and plain-number barcodes`() {
+        assertNull(PbsScriptParser.erxFromBarcodes(listOf("17325W", "208861", "123456789012")))
+    }
+
+    @Test
+    fun `erxFromBarcodes prefers the longest shaped token`() {
+        assertEquals(
+            "1TV4J832WYJHBHY3D8",
+            PbsScriptParser.erxFromBarcodes(listOf("AB12CD34", "1TV4J832WYJHBHY3D8")),
+        )
+    }
 }

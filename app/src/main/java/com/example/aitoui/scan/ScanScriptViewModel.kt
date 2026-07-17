@@ -9,6 +9,9 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.aitoui.AitouiApp
 import com.google.android.gms.tasks.Tasks
+import com.google.mlkit.vision.barcode.BarcodeScannerOptions
+import com.google.mlkit.vision.barcode.BarcodeScanning
+import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
@@ -44,8 +47,20 @@ class ScanScriptViewModel(
         _state.update { it.copy(busy = true, error = null) }
         viewModelScope.launch {
             val outcome = runCatching {
-                val lines = withContext(Dispatchers.IO) { recognise(file) }
-                PbsScriptParser.parse(lines)
+                withContext(Dispatchers.IO) {
+                    val parsed = PbsScriptParser.parse(recognise(file))
+                    if (parsed.serialNo2 != null) {
+                        parsed
+                    } else {
+                        // OCR missed the eRx label — decode the form's barcodes/QR (the same [file], still
+                        // present) and take the token from there. Best-effort: a decode failure must not
+                        // turn an otherwise-good OCR parse into an error, so it's caught separately.
+                        val token = runCatching {
+                            PbsScriptParser.erxFromBarcodes(recogniseBarcodes(file))
+                        }.getOrNull()
+                        if (token != null) parsed.copy(serialNo2 = token) else parsed
+                    }
+                }
             }
             file.delete()
             outcome.fold(
@@ -74,6 +89,16 @@ class ScanScriptViewModel(
                 val box = line.boundingBox ?: return@mapNotNull null
                 OcrLine(line.text, box.left, box.top, box.right, box.bottom)
             }
+    }
+
+    /** Decodes the CODE-128 barcodes and QR code on the PB038 into their raw strings. */
+    private fun recogniseBarcodes(file: File): List<String> {
+        val image = InputImage.fromFilePath(app, Uri.fromFile(file))
+        val options = BarcodeScannerOptions.Builder()
+            .setBarcodeFormats(Barcode.FORMAT_CODE_128, Barcode.FORMAT_QR_CODE)
+            .build()
+        val scanner = BarcodeScanning.getClient(options)
+        return Tasks.await(scanner.process(image)).mapNotNull { it.rawValue }
     }
 
     companion object {
