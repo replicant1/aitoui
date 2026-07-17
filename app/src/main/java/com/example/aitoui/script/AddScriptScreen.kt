@@ -106,7 +106,7 @@ fun AddScriptScreen(
                         onClick = { onAction(AddScriptAction.Save) },
                         enabled = state.canSave,
                     ) {
-                        Text("Save")
+                        Text("SAVE")
                     }
                 },
             )

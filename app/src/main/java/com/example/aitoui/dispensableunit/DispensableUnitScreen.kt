@@ -78,7 +78,7 @@ fun DispensableUnitScreen(
                         onClick = { onAction(DispensableUnitAction.Save) },
                         enabled = state.canSave,
                     ) {
-                        Text("Save")
+                        Text("SAVE")
                     }
                 },
             )
