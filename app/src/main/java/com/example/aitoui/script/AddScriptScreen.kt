@@ -32,6 +32,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -62,6 +63,14 @@ fun AddScriptRoot(
     viewModel: AddScriptViewModel = viewModel(factory = AddScriptViewModel.Factory),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // After a script is saved (and both resolution dialogs are done), return to the Scripts screen.
+    val saved by viewModel.saved.collectAsStateWithLifecycle()
+    LaunchedEffect(saved) {
+        if (saved) {
+            viewModel.consumeSaved()
+            onBack()
+        }
+    }
     AddScriptScreen(
         state = state,
         onAction = viewModel::onAction,
