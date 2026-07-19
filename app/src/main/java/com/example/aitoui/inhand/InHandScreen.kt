@@ -216,7 +216,6 @@ fun InHandScreen(
                     Box {
                         IconButton(
                             onClick = { countMenuExpanded = true },
-                            enabled = state.selectedMedicationId != null,
                         ) {
                             Icon(
                                 imageVector = Icons.Filled.PhotoCamera,
