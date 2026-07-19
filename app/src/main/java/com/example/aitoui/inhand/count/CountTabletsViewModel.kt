@@ -39,6 +39,8 @@ data class CountTabletsState(
     val imageHeight: Int = 0,
     val sensitivity: Float = DEFAULT_SENSITIVITY,
     val markers: List<CountPoint> = emptyList(),
+    val canUndo: Boolean = false,
+    val canRedo: Boolean = false,
 ) {
     /** true = reviewing a captured frame; false = live camera preview. */
     val captured: Boolean get() = capturePath != null
@@ -69,6 +71,9 @@ class CountTabletsViewModel(
     /** Cached distance-transform peaks for the current capture, so the slider can re-select without redoing it. */
     private var peaks: PeakField? = null
 
+    /** Undo/redo over the marker set during hand-correction. */
+    private val history = EditHistory<List<CountPoint>>()
+
     /**
      * Enter review of the frame saved at [path] and analyse its pixels ([image]), placing a marker per
      * detected tablet at the current sensitivity. The path is retained so the review survives config changes.
@@ -80,11 +85,15 @@ class CountTabletsViewModel(
                 imageWidth = image.width, imageHeight = image.height,
             )
         }
+        history.clear()
         viewModelScope.launch {
             val field = withContext(Dispatchers.Default) { counter.analyse(image) }
             peaks = field
             _state.update {
-                it.copy(analysing = false, markers = field.select(minHeightFractionFor(it.sensitivity)))
+                it.copy(
+                    analysing = false, markers = field.select(minHeightFractionFor(it.sensitivity)),
+                    canUndo = false, canRedo = false,
+                )
             }
         }
     }
@@ -96,22 +105,40 @@ class CountTabletsViewModel(
         _state.update { it.copy(sensitivity = v, markers = field.select(minHeightFractionFor(v))) }
     }
 
-    /** Accept the detected count and move on to hand-correction. */
+    /** Accept the detected count and move on to hand-correction, starting a fresh undo history. */
     fun confirmDetection() {
-        _state.update { it.copy(phase = CountPhase.EDIT) }
+        history.clear()
+        _state.update { it.copy(phase = CountPhase.EDIT, canUndo = false, canRedo = false) }
     }
 
     /** A tap at image-pixel ([x], [y]) removes the nearest marker within the hit radius, else adds one. */
     fun onTapAt(x: Float, y: Float) {
-        _state.update {
-            it.copy(markers = editMarkers(it.markers, it.imageWidth, it.imageHeight, x, y))
-        }
+        val cur = _state.value
+        val edited = editMarkers(cur.markers, cur.imageWidth, cur.imageHeight, x, y)
+        if (edited === cur.markers) return
+        history.record(cur.markers)
+        _state.value = cur.copy(markers = edited, canUndo = true, canRedo = history.canRedo)
+    }
+
+    /** Revert the last edit. */
+    fun undo() {
+        val cur = _state.value
+        val prev = history.undo(cur.markers) ?: return
+        _state.value = cur.copy(markers = prev, canUndo = history.canUndo, canRedo = history.canRedo)
+    }
+
+    /** Re-apply the last undone edit. */
+    fun redo() {
+        val cur = _state.value
+        val next = history.redo(cur.markers) ?: return
+        _state.value = cur.copy(markers = next, canUndo = history.canUndo, canRedo = history.canRedo)
     }
 
     /** Discard the capture (deleting its file) and return to the live preview. */
     fun retake() {
         deleteCaptureFile()
         peaks = null
+        history.clear()
         _state.value = CountTabletsState()
     }
 
