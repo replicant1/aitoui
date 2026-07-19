@@ -25,7 +25,6 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
@@ -45,8 +44,6 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Redo
-import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -99,12 +96,6 @@ private const val ANALYSIS_MAX_DIMENSION = 1200
 /** Maximum pinch-zoom on the review image, so dense clusters can be corrected accurately. */
 private const val MAX_ZOOM = 10f
 
-/** Fingertip eraser radius (screen dp); its image coverage shrinks as you zoom in. */
-private val ERASER_RADIUS = 24.dp
-
-/** Eraser cursor colour — a warm accent distinct from the blue markers. */
-private val EraseColor = Color(0xFFFF8A5B)
-
 @Composable
 fun CountTabletsRoot(
     onCounted: (Int) -> Unit,
@@ -118,14 +109,9 @@ fun CountTabletsRoot(
         onSensitivity = viewModel::setSensitivity,
         onConfirmDetect = viewModel::confirmDetection,
         onTapAt = viewModel::onTapAt,
-        onUndo = viewModel::undo,
-        onRedo = viewModel::redo,
         onBeginCrop = viewModel::beginCrop,
         onCancelCrop = viewModel::cancelCrop,
         onApplyCrop = viewModel::applyCrop,
-        onToggleErase = viewModel::toggleErase,
-        onEraseStart = viewModel::beginEraseStroke,
-        onEraseAt = viewModel::eraseAt,
         onRetake = viewModel::retake,
         onUseCount = { onCounted(state.count) },
         onBack = onBack,
@@ -139,14 +125,9 @@ fun CountTabletsScreen(
     onSensitivity: (Float) -> Unit,
     onConfirmDetect: () -> Unit,
     onTapAt: (Float, Float) -> Unit,
-    onUndo: () -> Unit,
-    onRedo: () -> Unit,
     onBeginCrop: () -> Unit,
     onCancelCrop: () -> Unit,
     onApplyCrop: (PixelRect) -> Unit,
-    onToggleErase: () -> Unit,
-    onEraseStart: () -> Unit,
-    onEraseAt: (Float, Float, Float) -> Unit,
     onRetake: () -> Unit,
     onUseCount: () -> Unit,
     onBack: () -> Unit,
@@ -194,14 +175,9 @@ fun CountTabletsScreen(
                 onSensitivity = onSensitivity,
                 onConfirmDetect = onConfirmDetect,
                 onTapAt = onTapAt,
-                onUndo = onUndo,
-                onRedo = onRedo,
                 onBeginCrop = onBeginCrop,
                 onCancelCrop = onCancelCrop,
                 onApplyCrop = onApplyCrop,
-                onToggleErase = onToggleErase,
-                onEraseStart = onEraseStart,
-                onEraseAt = onEraseAt,
                 onRetake = onRetake,
                 onUseCount = onUseCount,
             )
@@ -361,14 +337,9 @@ private fun ReviewCapture(
     onSensitivity: (Float) -> Unit,
     onConfirmDetect: () -> Unit,
     onTapAt: (Float, Float) -> Unit,
-    onUndo: () -> Unit,
-    onRedo: () -> Unit,
     onBeginCrop: () -> Unit,
     onCancelCrop: () -> Unit,
     onApplyCrop: (PixelRect) -> Unit,
-    onToggleErase: () -> Unit,
-    onEraseStart: () -> Unit,
-    onEraseAt: (Float, Float, Float) -> Unit,
     onRetake: () -> Unit,
     onUseCount: () -> Unit,
 ) {
@@ -391,11 +362,8 @@ private fun ReviewCapture(
             textAlign = TextAlign.Center,
         )
 
-        // The image + markers are shared by both phases; tap/erase edit only in the EDIT phase.
-        MarkerImage(
-            bitmap = bitmap, state = state, interactive = state.phase == CountPhase.EDIT,
-            onTapAt = onTapAt, onEraseStart = onEraseStart, onEraseAt = onEraseAt,
-        )
+        // The image + markers are shared by both phases; tapping edits only in the EDIT phase.
+        MarkerImage(bitmap = bitmap, state = state, interactive = state.phase == CountPhase.EDIT, onTapAt = onTapAt)
 
         when (state.phase) {
             CountPhase.DETECT -> {
@@ -445,16 +413,8 @@ private fun ReviewCapture(
             }
 
             CountPhase.EDIT -> {
-                EditToolRow(
-                    erasing = state.erasing, onToggleErase = onToggleErase,
-                    canUndo = state.canUndo, canRedo = state.canRedo, onUndo = onUndo, onRedo = onRedo,
-                )
                 Text(
-                    text = if (state.erasing) {
-                        "Press and drag over stray markers to wipe them. Tap “Erasing” to stop."
-                    } else {
-                        "Pinch to zoom. Tap a missed tablet to add it, or tap a marker to remove it."
-                    },
+                    text = "Pinch to zoom. Tap a missed tablet to add it, or tap a marker to remove it.",
                     color = Color.White,
                     style = MaterialTheme.typography.bodySmall,
                     textAlign = TextAlign.Center,
@@ -477,45 +437,6 @@ private fun ReviewCapture(
                     ) { Text("Use ${state.count}") }
                 }
             }
-        }
-    }
-}
-
-/** The hand-correction tool row: the Erase toggle on the left, Undo / Redo on the right (each dims off). */
-@Composable
-private fun EditToolRow(
-    erasing: Boolean,
-    onToggleErase: () -> Unit,
-    canUndo: Boolean,
-    canRedo: Boolean,
-    onUndo: () -> Unit,
-    onRedo: () -> Unit,
-) {
-    val colors = ButtonDefaults.textButtonColors(
-        contentColor = Color.White,
-        disabledContentColor = Color.White.copy(alpha = 0.3f),
-    )
-    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        if (erasing) {
-            Button(
-                onClick = onToggleErase,
-                colors = ButtonDefaults.buttonColors(containerColor = EraseColor, contentColor = Color(0xFF201206)),
-            ) { Text("Erasing") }
-        } else {
-            OutlinedButton(
-                onClick = onToggleErase,
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
-                border = BorderStroke(1.dp, Color.White),
-            ) { Text("Erase") }
-        }
-        Spacer(modifier = Modifier.weight(1f))
-        TextButton(onClick = onUndo, enabled = canUndo, colors = colors) {
-            Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = null, modifier = Modifier.size(18.dp))
-            Text("Undo", modifier = Modifier.padding(start = 6.dp))
-        }
-        TextButton(onClick = onRedo, enabled = canRedo, colors = colors) {
-            Icon(Icons.AutoMirrored.Filled.Redo, contentDescription = null, modifier = Modifier.size(18.dp))
-            Text("Redo", modifier = Modifier.padding(start = 6.dp))
         }
     }
 }
@@ -658,8 +579,6 @@ private fun ColumnScope.MarkerImage(
     state: CountTabletsState,
     interactive: Boolean,
     onTapAt: (Float, Float) -> Unit,
-    onEraseStart: () -> Unit,
-    onEraseAt: (Float, Float, Float) -> Unit,
 ) {
     val markerColor = MaterialTheme.colorScheme.primary
     Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
@@ -673,16 +592,12 @@ private fun ColumnScope.MarkerImage(
             // box point: box = center + scale*(p - center) + offset; taps invert this to image pixels.
             var scale by remember(bitmap) { mutableFloatStateOf(1f) }
             var offset by remember(bitmap) { mutableStateOf(Offset.Zero) }
-            // Live screen position of the eraser while a wipe is in progress (null when not erasing).
-            var erasePointer by remember(bitmap) { mutableStateOf<Offset?>(null) }
 
             Box(
                 modifier = Modifier
                     .size(boxW, boxH)
                     .clipToBounds()
-                    // Zoom/pan, except while erasing (a one-finger drag then wipes instead of pans).
-                    .pointerInput(state.imageWidth, state.imageHeight, state.erasing) {
-                        if (state.erasing) return@pointerInput
+                    .pointerInput(state.imageWidth, state.imageHeight) {
                         detectTransformGestures { centroid, pan, zoom, _ ->
                             val center = Offset(size.width / 2f, size.height / 2f)
                             val newScale = (scale * zoom).coerceIn(1f, MAX_ZOOM)
@@ -694,37 +609,18 @@ private fun ColumnScope.MarkerImage(
                             offset = Offset(panned.x.coerceIn(-maxX, maxX), panned.y.coerceIn(-maxY, maxY))
                         }
                     }
-                    .pointerInput(state.imageWidth, state.imageHeight, interactive, state.erasing) {
-                        val eraseRadiusPx = ERASER_RADIUS.toPx()
-                        fun toImage(pos: Offset): Pair<Float, Float> {
-                            val center = Offset(size.width / 2f, size.height / 2f)
-                            val content = (pos - center - offset) / scale + center
-                            return content.x / size.width * state.imageWidth to content.y / size.height * state.imageHeight
-                        }
-                        fun radiusImg() = eraseRadiusPx / scale * state.imageWidth / size.width
-                        when {
-                            interactive && state.erasing -> detectDragGestures(
-                                onDragStart = { pos ->
-                                    erasePointer = pos
-                                    onEraseStart()
-                                    val (ix, iy) = toImage(pos)
-                                    onEraseAt(ix, iy, radiusImg())
-                                },
-                                onDrag = { change, _ ->
-                                    change.consume()
-                                    erasePointer = change.position
-                                    val (ix, iy) = toImage(change.position)
-                                    onEraseAt(ix, iy, radiusImg())
-                                },
-                                onDragEnd = { erasePointer = null },
-                                onDragCancel = { erasePointer = null },
-                            )
-                            interactive -> detectTapGestures { pos ->
-                                val (ix, iy) = toImage(pos)
-                                onTapAt(ix, iy)
+                    .then(
+                        if (!interactive) Modifier else Modifier.pointerInput(state.imageWidth, state.imageHeight) {
+                            detectTapGestures { pos ->
+                                val center = Offset(size.width / 2f, size.height / 2f)
+                                val content = (pos - center - offset) / scale + center
+                                onTapAt(
+                                    content.x / size.width * state.imageWidth,
+                                    content.y / size.height * state.imageHeight,
+                                )
                             }
-                        }
-                    },
+                        },
+                    ),
             ) {
                 Box(
                     modifier = Modifier
@@ -768,22 +664,6 @@ private fun ColumnScope.MarkerImage(
                             val cy = m.y / state.imageHeight * size.height
                             drawCircle(color = markerColor, radius = r, center = Offset(cx, cy), style = Stroke(width = r * 0.5f))
                             drawCircle(color = markerColor, radius = r * 0.35f, center = Offset(cx, cy))
-                        }
-                    }
-                }
-                // Eraser cursor (screen space, not zoomed): a fingertip circle with cross-hairs poking past
-                // it, so the finger doesn't hide where the eraser is.
-                if (state.erasing) {
-                    Canvas(modifier = Modifier.matchParentSize()) {
-                        erasePointer?.let { p ->
-                            val rad = ERASER_RADIUS.toPx()
-                            drawCircle(EraseColor.copy(alpha = 0.15f), rad, p)
-                            drawCircle(EraseColor, rad, p, style = Stroke(width = 2.dp.toPx()))
-                            val gap = rad + 8.dp.toPx(); val len = 16.dp.toPx(); val sw = 2.5f.dp.toPx()
-                            drawLine(EraseColor, Offset(p.x, p.y - gap - len), Offset(p.x, p.y - gap), strokeWidth = sw)
-                            drawLine(EraseColor, Offset(p.x, p.y + gap), Offset(p.x, p.y + gap + len), strokeWidth = sw)
-                            drawLine(EraseColor, Offset(p.x - gap - len, p.y), Offset(p.x - gap, p.y), strokeWidth = sw)
-                            drawLine(EraseColor, Offset(p.x + gap, p.y), Offset(p.x + gap + len, p.y), strokeWidth = sw)
                         }
                     }
                 }

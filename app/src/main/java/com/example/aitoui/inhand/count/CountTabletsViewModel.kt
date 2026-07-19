@@ -13,7 +13,6 @@ import com.example.aitoui.counting.PixelRect
 import com.example.aitoui.counting.clampedTo
 import com.example.aitoui.counting.cropped
 import com.example.aitoui.counting.editMarkers
-import com.example.aitoui.counting.eraseMarkersNear
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -44,12 +43,8 @@ data class CountTabletsState(
     val imageHeight: Int = 0,
     val sensitivity: Float = DEFAULT_SENSITIVITY,
     val markers: List<CountPoint> = emptyList(),
-    val canUndo: Boolean = false,
-    val canRedo: Boolean = false,
     /** The applied crop in full-image pixels, or null for the whole frame. Detection runs within it. */
     val cropRect: PixelRect? = null,
-    /** In the EDIT phase: true = the eraser tool is active (drag wipes markers); false = tap add/remove. */
-    val erasing: Boolean = false,
 ) {
     /** true = reviewing a captured frame; false = live camera preview. */
     val captured: Boolean get() = capturePath != null
@@ -83,12 +78,6 @@ class CountTabletsViewModel(
     /** The full captured image, retained so a crop can re-run detection on a sub-region. */
     private var original: CountImage? = null
 
-    /** Undo/redo over the marker set during hand-correction. */
-    private val history = EditHistory<List<CountPoint>>()
-
-    /** Whether the current erase drag has already snapshotted its pre-stroke markers (one undo step / stroke). */
-    private var eraseStrokeRecorded = false
-
     /**
      * Enter review of the frame saved at [path] and analyse its pixels ([image]), placing a marker per
      * detected tablet at the current sensitivity. The path is retained so the review survives config changes.
@@ -101,12 +90,11 @@ class CountTabletsViewModel(
                 imageWidth = image.width, imageHeight = image.height,
             )
         }
-        history.clear()
         viewModelScope.launch {
             val field = withContext(Dispatchers.Default) { counter.analyse(image) }
             peaks = field
             _state.update {
-                it.copy(analysing = false, markers = selectAt(field, it.sensitivity, null), canUndo = false, canRedo = false)
+                it.copy(analysing = false, markers = selectAt(field, it.sensitivity, null))
             }
         }
     }
@@ -137,12 +125,11 @@ class CountTabletsViewModel(
         val src = original ?: return
         val clamped = rect.clampedTo(src.width, src.height)
         _state.update { it.copy(phase = CountPhase.DETECT, analysing = true, cropRect = clamped) }
-        history.clear()
         viewModelScope.launch {
             val field = withContext(Dispatchers.Default) { counter.analyse(src.cropped(clamped)) }
             peaks = field
             _state.update {
-                it.copy(analysing = false, markers = selectAt(field, it.sensitivity, clamped), canUndo = false, canRedo = false)
+                it.copy(analysing = false, markers = selectAt(field, it.sensitivity, clamped))
             }
         }
     }
@@ -153,55 +140,16 @@ class CountTabletsViewModel(
         return if (crop == null) pts else pts.map { CountPoint(it.x + crop.left, it.y + crop.top) }
     }
 
-    /** Accept the detected count and move on to hand-correction, starting a fresh undo history. */
+    /** Accept the detected count and move on to hand-correction. */
     fun confirmDetection() {
-        history.clear()
-        _state.update { it.copy(phase = CountPhase.EDIT, erasing = false, canUndo = false, canRedo = false) }
-    }
-
-    /** Toggle the eraser tool on/off (EDIT phase). */
-    fun toggleErase() {
-        _state.update { it.copy(erasing = !it.erasing) }
-    }
-
-    /** Begin an erase drag: the next removal in this stroke snapshots the pre-stroke markers for undo. */
-    fun beginEraseStroke() {
-        eraseStrokeRecorded = false
-    }
-
-    /** Erase markers within [radius] image-pixels of ([x], [y]); the whole drag stroke is one undo step. */
-    fun eraseAt(x: Float, y: Float, radius: Float) {
-        val cur = _state.value
-        val after = eraseMarkersNear(cur.markers, x, y, radius)
-        if (after === cur.markers) return
-        if (!eraseStrokeRecorded) {
-            history.record(cur.markers)
-            eraseStrokeRecorded = true
-        }
-        _state.value = cur.copy(markers = after, canUndo = true, canRedo = history.canRedo)
+        _state.update { it.copy(phase = CountPhase.EDIT) }
     }
 
     /** A tap at image-pixel ([x], [y]) removes the nearest marker within the hit radius, else adds one. */
     fun onTapAt(x: Float, y: Float) {
-        val cur = _state.value
-        val edited = editMarkers(cur.markers, cur.imageWidth, cur.imageHeight, x, y)
-        if (edited === cur.markers) return
-        history.record(cur.markers)
-        _state.value = cur.copy(markers = edited, canUndo = true, canRedo = history.canRedo)
-    }
-
-    /** Revert the last edit. */
-    fun undo() {
-        val cur = _state.value
-        val prev = history.undo(cur.markers) ?: return
-        _state.value = cur.copy(markers = prev, canUndo = history.canUndo, canRedo = history.canRedo)
-    }
-
-    /** Re-apply the last undone edit. */
-    fun redo() {
-        val cur = _state.value
-        val next = history.redo(cur.markers) ?: return
-        _state.value = cur.copy(markers = next, canUndo = history.canUndo, canRedo = history.canRedo)
+        _state.update {
+            it.copy(markers = editMarkers(it.markers, it.imageWidth, it.imageHeight, x, y))
+        }
     }
 
     /** Discard the capture (deleting its file) and return to the live preview. */
@@ -209,7 +157,6 @@ class CountTabletsViewModel(
         deleteCaptureFile()
         peaks = null
         original = null
-        history.clear()
         _state.value = CountTabletsState()
     }
 
