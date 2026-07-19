@@ -97,7 +97,7 @@ import kotlin.math.roundToInt
 private const val ANALYSIS_MAX_DIMENSION = 1200
 
 /** Maximum pinch-zoom on the review image, so dense clusters can be corrected accurately. */
-private const val MAX_ZOOM = 5f
+private const val MAX_ZOOM = 10f
 
 /** Fingertip eraser radius (screen dp); its image coverage shrinks as you zoom in. */
 private val ERASER_RADIUS = 24.dp
