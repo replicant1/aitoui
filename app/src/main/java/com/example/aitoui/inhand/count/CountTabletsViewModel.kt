@@ -13,6 +13,7 @@ import com.example.aitoui.counting.PixelRect
 import com.example.aitoui.counting.clampedTo
 import com.example.aitoui.counting.cropped
 import com.example.aitoui.counting.editMarkers
+import com.example.aitoui.counting.eraseMarkersNear
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -47,6 +48,8 @@ data class CountTabletsState(
     val canRedo: Boolean = false,
     /** The applied crop in full-image pixels, or null for the whole frame. Detection runs within it. */
     val cropRect: PixelRect? = null,
+    /** In the EDIT phase: true = the eraser tool is active (drag wipes markers); false = tap add/remove. */
+    val erasing: Boolean = false,
 ) {
     /** true = reviewing a captured frame; false = live camera preview. */
     val captured: Boolean get() = capturePath != null
@@ -82,6 +85,9 @@ class CountTabletsViewModel(
 
     /** Undo/redo over the marker set during hand-correction. */
     private val history = EditHistory<List<CountPoint>>()
+
+    /** Whether the current erase drag has already snapshotted its pre-stroke markers (one undo step / stroke). */
+    private var eraseStrokeRecorded = false
 
     /**
      * Enter review of the frame saved at [path] and analyse its pixels ([image]), placing a marker per
@@ -150,7 +156,29 @@ class CountTabletsViewModel(
     /** Accept the detected count and move on to hand-correction, starting a fresh undo history. */
     fun confirmDetection() {
         history.clear()
-        _state.update { it.copy(phase = CountPhase.EDIT, canUndo = false, canRedo = false) }
+        _state.update { it.copy(phase = CountPhase.EDIT, erasing = false, canUndo = false, canRedo = false) }
+    }
+
+    /** Toggle the eraser tool on/off (EDIT phase). */
+    fun toggleErase() {
+        _state.update { it.copy(erasing = !it.erasing) }
+    }
+
+    /** Begin an erase drag: the next removal in this stroke snapshots the pre-stroke markers for undo. */
+    fun beginEraseStroke() {
+        eraseStrokeRecorded = false
+    }
+
+    /** Erase markers within [radius] image-pixels of ([x], [y]); the whole drag stroke is one undo step. */
+    fun eraseAt(x: Float, y: Float, radius: Float) {
+        val cur = _state.value
+        val after = eraseMarkersNear(cur.markers, x, y, radius)
+        if (after === cur.markers) return
+        if (!eraseStrokeRecorded) {
+            history.record(cur.markers)
+            eraseStrokeRecorded = true
+        }
+        _state.value = cur.copy(markers = after, canUndo = true, canRedo = history.canRedo)
     }
 
     /** A tap at image-pixel ([x], [y]) removes the nearest marker within the hit radius, else adds one. */

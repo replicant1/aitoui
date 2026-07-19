@@ -17,6 +17,24 @@ class MarkerEditingTest {
     }
 
     @Test
+    fun `the eraser removes every marker within its radius and keeps the rest`() {
+        val markers = listOf(
+            CountPoint(100f, 100f),  // inside
+            CountPoint(115f, 108f),  // inside (~17px away)
+            CountPoint(140f, 100f),  // just outside (40px away, radius 25)
+            CountPoint(500f, 500f),  // far away
+        )
+        val result = eraseMarkersNear(markers, x = 100f, y = 100f, radius = 25f)
+        assertEquals(listOf(CountPoint(140f, 100f), CountPoint(500f, 500f)), result)
+    }
+
+    @Test
+    fun `the eraser returns the same list when nothing is within reach`() {
+        val markers = listOf(CountPoint(500f, 500f))
+        assertTrue(eraseMarkersNear(markers, 100f, 100f, 25f) === markers)
+    }
+
+    @Test
     fun `tapping on an existing marker removes it`() {
         val markers = listOf(CountPoint(100f, 100f), CountPoint(500f, 500f))
         val result = editMarkers(markers, w, h, 105f, 98f) // within 32px of the first

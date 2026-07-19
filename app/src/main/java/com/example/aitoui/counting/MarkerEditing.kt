@@ -28,5 +28,15 @@ fun editMarkers(
     }
 }
 
+/**
+ * Removes every marker within [radius] image-pixels of ([x], [y]) — the fingertip eraser, applied at each
+ * position along a drag. Returns the same list instance when nothing is within reach, so callers can skip a
+ * no-op update. Pure and JVM-testable.
+ */
+fun eraseMarkersNear(markers: List<CountPoint>, x: Float, y: Float, radius: Float): List<CountPoint> {
+    val kept = markers.filter { distance(it, x, y) > radius }
+    return if (kept.size == markers.size) markers else kept
+}
+
 private fun distance(p: CountPoint, x: Float, y: Float): Double =
     hypot((p.x - x).toDouble(), (p.y - y).toDouble())
