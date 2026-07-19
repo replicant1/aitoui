@@ -181,12 +181,21 @@ private fun MedicationRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Text(
-                text = item.supply?.let { humanizeDuration(it.totalDays) } ?: "—",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.primary,
-            )
+            if (item.supply != null) {
+                Text(
+                    text = humanizeDuration(item.supply.totalDays),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            } else {
+                // No daily_schedule entry ⇒ no consumption rate ⇒ nothing to compute a run-out from.
+                Text(
+                    text = "No daily dose",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
         // Bottom block: the two supply lines, full width, left-justified below the thumbnail.
         item.supply?.let { supply ->
