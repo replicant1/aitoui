@@ -45,8 +45,10 @@ class InventoryViewModel(
             val dailyByMedication = schedule
                 .groupBy { it.medicationId }
                 .mapValues { (_, rows) -> rows.sumOf { it.quantity } }
-            // In-hand tablets are keyed by medication (one row per medication).
-            val inHandByMedication = inHand.associate { it.medicationId to it.quantity }
+            // A medication can have several in-hand rows (e.g. separate counts/stashes), so sum them per medication.
+            val inHandByMedication = inHand
+                .groupBy { it.medicationId }
+                .mapValues { (_, rows) -> rows.sumOf { it.quantity } }
             val supply = computeSupply(
                 units = formats,
                 scripts = scripts,
