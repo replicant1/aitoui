@@ -8,6 +8,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.aitoui.counting.CellRef
 import com.example.aitoui.counting.CountImage
 import com.example.aitoui.counting.FrameBox
+import com.example.aitoui.counting.GridAdjust
 import com.example.aitoui.counting.PackRegion
 import com.example.aitoui.counting.centeredFrame
 import com.example.aitoui.counting.movedBy
@@ -35,13 +36,15 @@ enum class BlisterPhase { CAPTURE, FRAME, FORMAT, POP, SUMMARY }
 enum class PopResult { POPPED, UNPOPPED, NONE }
 
 /**
- * One pack being counted: its squared-up [region] and which blisters have been popped (emptied). The grid
- * (rows × columns) is shared across all packs, so it lives on [BlisterCountState], not here. Every blister
- * starts full, so [popped] starts empty.
+ * One pack being counted: its squared-up [region], a per-pack manual [adjust] that slides/stretches the grid
+ * onto the real blisters, and which blisters have been popped (emptied). The grid *format* (rows × columns)
+ * is shared across all packs, so it lives on [BlisterCountState]; the alignment nudge is per-pack because each
+ * pack sits differently in the frame. Every blister starts full, so [popped] starts empty.
  */
 @Stable
 data class PackState(
     val region: PackRegion,
+    val adjust: GridAdjust = GridAdjust.None,
     val popped: Set<CellRef> = emptySet(),
 )
 
@@ -170,13 +173,16 @@ class BlisterCountViewModel : ViewModel() {
     fun setColumns(cols: Int) = updateFormat(cols = cols)
     fun setRows(rows: Int) = updateFormat(rows = rows)
 
-    /** Changing the shared grid clears every pack's pops (their addresses may no longer exist). */
+    /**
+     * Changing the shared grid clears every pack's pops (their addresses may no longer exist) and its manual
+     * alignment (a nudge tuned for one spacing no longer means anything at another).
+     */
     private fun updateFormat(cols: Int? = null, rows: Int? = null) {
         _state.update {
             it.copy(
                 cols = (cols ?: it.cols).coerceIn(1, MAX_DIM),
                 rows = (rows ?: it.rows).coerceIn(1, MAX_DIM),
-                packs = it.packs.map { pack -> pack.copy(popped = emptySet()) },
+                packs = it.packs.map { pack -> pack.copy(popped = emptySet(), adjust = GridAdjust.None) },
             )
         }
     }
@@ -210,6 +216,17 @@ class BlisterCountViewModel : ViewModel() {
 
     /** Restore every blister in the current pack to full. */
     fun resetCurrentPops() = updateCurrentPack { it.copy(popped = emptySet()) }
+
+    /** Slide the current pack's grid by ([dx], [dy]) image-pixels to line the circles up with the blisters. */
+    fun panCurrentGrid(dx: Float, dy: Float) = updateCurrentPack {
+        it.copy(adjust = it.adjust.copy(dx = it.adjust.dx + dx, dy = it.adjust.dy + dy))
+    }
+
+    /** Multiply the current pack's grid spacing by [factor] (a pinch), clamped to sane bounds. */
+    fun scaleCurrentGridSpacing(factor: Float) = updateCurrentPack {
+        val spacing = (it.adjust.spacing * factor).coerceIn(GridAdjust.MIN_SPACING, GridAdjust.MAX_SPACING)
+        it.copy(adjust = it.adjust.copy(spacing = spacing))
+    }
 
     /** Advance to the next pack (still popping), or to the summary after the last pack. */
     fun nextPack() {

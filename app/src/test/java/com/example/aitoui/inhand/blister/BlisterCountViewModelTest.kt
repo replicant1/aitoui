@@ -1,6 +1,7 @@
 package com.example.aitoui.inhand.blister
 
 import com.example.aitoui.counting.CellRef
+import com.example.aitoui.counting.GridAdjust
 import com.example.aitoui.counting.PackRegion
 import com.example.aitoui.counting.cellCenter
 import org.junit.Assert.assertEquals
@@ -126,6 +127,36 @@ class BlisterCountViewModelTest {
         vm.nextPack()
         assertEquals(BlisterPhase.SUMMARY, vm.state.value.phase)
         assertEquals(18, vm.state.value.total) // 9 + 9
+    }
+
+    @Test
+    fun `panning accumulates onto the current pack's grid, leaving other packs untouched`() {
+        val vm = vmPopping(region(cx = 100f), region(cx = 400f))
+        vm.panCurrentGrid(10f, -4f)
+        vm.panCurrentGrid(5f, 1f)
+        val adjust = vm.state.value.currentPack!!.adjust
+        assertEquals(15f, adjust.dx, 1e-4f)
+        assertEquals(-3f, adjust.dy, 1e-4f)
+        assertEquals(GridAdjust.None, vm.state.value.packs[1].adjust) // second pack unchanged
+    }
+
+    @Test
+    fun `scaling multiplies the current pack's spacing and clamps to bounds`() {
+        val vm = vmPopping(region())
+        vm.scaleCurrentGridSpacing(1.5f)
+        assertEquals(1.5f, vm.state.value.currentPack!!.adjust.spacing, 1e-4f)
+        // Pinch far past the ceiling — spacing saturates at MAX_SPACING rather than running away.
+        repeat(10) { vm.scaleCurrentGridSpacing(2f) }
+        assertEquals(GridAdjust.MAX_SPACING, vm.state.value.currentPack!!.adjust.spacing, 1e-4f)
+    }
+
+    @Test
+    fun `changing the format resets any manual grid alignment`() {
+        val vm = vmPopping(region())
+        vm.panCurrentGrid(20f, 20f)
+        vm.scaleCurrentGridSpacing(1.4f)
+        vm.setRows(6) // re-formatting invalidates a nudge tuned for the old spacing
+        assertEquals(GridAdjust.None, vm.state.value.packs[0].adjust)
     }
 
     @Test
