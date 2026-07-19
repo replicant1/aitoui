@@ -14,9 +14,12 @@ import androidx.camera.view.PreviewView
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -65,8 +68,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
@@ -90,7 +93,8 @@ import com.example.aitoui.counting.FrameHit
 import com.example.aitoui.counting.PACK_GRID_MARGIN_LONG
 import com.example.aitoui.counting.PACK_GRID_MARGIN_SHORT
 import com.example.aitoui.counting.PackRegion
-import com.example.aitoui.counting.cellCenter
+import com.example.aitoui.counting.adjustedCellCenter
+import com.example.aitoui.counting.adjustedCellHit
 import com.example.aitoui.counting.contains
 import com.example.aitoui.counting.corners
 import com.example.aitoui.counting.hitTest
@@ -110,9 +114,6 @@ import kotlin.math.roundToInt
 
 /** Longest edge (px) the capture is downscaled to before segmenting — fast and threshold-stable. */
 private const val ANALYSIS_MAX_DIMENSION = 1200
-
-/** Maximum pinch-zoom on the review image, so dense packs can be popped accurately. */
-private const val MAX_ZOOM = 5f
 
 /** Empty/popped blister marker colour (amber), shared by the pop grid. */
 private val PoppedColor = Color(0xFFFFC24B)
@@ -137,8 +138,9 @@ fun BlisterCountRoot(
         onSetColumns = viewModel::setColumns,
         onSetRows = viewModel::setRows,
         onConfirmFormat = viewModel::confirmFormat,
-        onPopAt = viewModel::popAt,
         onToggleCell = viewModel::toggleCell,
+        onPanGrid = viewModel::panCurrentGrid,
+        onScaleGrid = viewModel::scaleCurrentGridSpacing,
         onResetPops = viewModel::resetCurrentPops,
         onNextPack = viewModel::nextPack,
         onRetake = viewModel::retake,
@@ -161,8 +163,9 @@ fun BlisterCountScreen(
     onSetColumns: (Int) -> Unit,
     onSetRows: (Int) -> Unit,
     onConfirmFormat: () -> Unit,
-    onPopAt: (Float, Float) -> PopResult,
     onToggleCell: (CellRef) -> PopResult,
+    onPanGrid: (Float, Float) -> Unit,
+    onScaleGrid: (Float) -> Unit,
     onResetPops: () -> Unit,
     onNextPack: () -> Unit,
     onRetake: () -> Unit,
@@ -220,7 +223,8 @@ fun BlisterCountScreen(
                 if (pack == null) LoadingOverlay("…")
                 else PopView(
                     bitmap = bitmap!!, state = state, pack = pack,
-                    onPopAt = onPopAt, onToggleCell = onToggleCell, onReset = onResetPops, onNext = onNextPack,
+                    onToggleCell = onToggleCell, onPanGrid = onPanGrid, onScaleGrid = onScaleGrid,
+                    onReset = onResetPops, onNext = onNextPack,
                 )
             }
 
@@ -558,7 +562,8 @@ private fun FormatView(
         Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
             PackImageView(
                 bitmap, state.imageWidth, state.imageHeight, representative,
-                state.alongLong, state.alongShort, interactive = false, onPopAt = { _, _ -> PopResult.NONE },
+                state.alongLong, state.alongShort, interactive = false,
+                onPopCell = { PopResult.NONE }, onPanGrid = { _, _ -> }, onScaleGrid = { },
             )
         }
         Text(
@@ -589,8 +594,9 @@ private fun PopView(
     bitmap: Bitmap,
     state: BlisterCountState,
     pack: PackState,
-    onPopAt: (Float, Float) -> PopResult,
     onToggleCell: (CellRef) -> PopResult,
+    onPanGrid: (Float, Float) -> Unit,
+    onScaleGrid: (Float) -> Unit,
     onReset: () -> Unit,
     onNext: () -> Unit,
 ) {
@@ -610,14 +616,17 @@ private fun PopView(
         Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
             PackImageView(
                 bitmap, state.imageWidth, state.imageHeight, pack, state.alongLong, state.alongShort,
-                interactive = true, onPopAt = { x, y -> onPopAt(x, y).also { playFor(it) } },
+                interactive = true,
+                onPopCell = { cell -> playFor(onToggleCell(cell)) },
+                onPanGrid = onPanGrid, onScaleGrid = onScaleGrid,
             )
             // Touch-free semantics overlay so TalkBack can navigate and pop each blister (sighted taps
             // fall through to the image beneath).
             AccessibleBlisterGrid(state.alongLong, state.alongShort, pack.popped) { cell -> playFor(onToggleCell(cell)) }
         }
         Text(
-            text = "Every blister starts full — tap the gone ones to pop them. Pinch to zoom.",
+            text = "Drag the grid to line the circles up with the blisters, and pinch to match their spacing. " +
+                "Then tap the empty blisters to pop them.",
             color = Color.White, style = MaterialTheme.typography.bodySmall,
             textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
         )
@@ -733,9 +742,13 @@ private fun Stepper(label: String, value: Int, onChange: (Int) -> Unit) {
 }
 
 /**
- * The given pack, cropped from the captured frame to fill the view, with its blister grid drawn on top:
- * pinch-to-zoom + pan, and (when [interactive]) taps mapped back to image pixels and forwarded to [onPopAt].
- * Full blisters show a hollow ring; popped ones a filled hole. The grid is [alongLong] × [alongShort].
+ * The given pack, cropped from the captured frame to fill the view, with its blister grid drawn on top.
+ *
+ * When [interactive], the grid can be hand-aligned to the real blisters: a one-finger drag that *starts on
+ * empty space* pans the whole grid ([onPanGrid]); a two-finger pinch scales the spacing between blister
+ * centres ([onScaleGrid]) — equally along both axes, without resizing the circles; and a touch that *starts
+ * on a circle* pops that blister ([onPopCell]). Full blisters show a hollow ring; popped ones a filled hole.
+ * The grid is [alongLong] × [alongShort].
  */
 @Composable
 private fun PackImageView(
@@ -746,7 +759,9 @@ private fun PackImageView(
     alongLong: Int,
     alongShort: Int,
     interactive: Boolean,
-    onPopAt: (Float, Float) -> PopResult,
+    onPopCell: (CellRef) -> Unit,
+    onPanGrid: (Float, Float) -> Unit,
+    onScaleGrid: (Float) -> Unit,
 ) {
     val ringColor = MaterialTheme.colorScheme.primary
     val imageBitmap = remember(bitmap) { bitmap.asImageBitmap() }
@@ -757,16 +772,18 @@ private fun PackImageView(
     }
     val cropX = crop[0]; val cropY = crop[1]; val cropW = crop[2]; val cropH = crop[3]
 
+    // The gesture coroutine outlives individual recompositions, so it reads the live adjust through this
+    // handle rather than the stale value captured when the pointer pipeline last (re)started.
+    val latestAdjust by rememberUpdatedState(pack.adjust)
+
     BoxWithConstraints {
         val ratio = cropW.toFloat() / cropH
         val fitByWidth = maxWidth / ratio <= maxHeight
         val boxW = if (fitByWidth) maxWidth else maxHeight * ratio
         val boxH = if (fitByWidth) maxWidth / ratio else maxHeight
 
-        var scale by remember(bitmap, pack.region) { mutableFloatStateOf(1f) }
-        var offset by remember(bitmap, pack.region) { mutableStateOf(Offset.Zero) }
-
-        // Blister marker radius in image pixels: a fraction of the smaller blister pitch.
+        // Blister marker radius in image pixels: a fraction of the smaller blister pitch. Fixed — spacing
+        // changes move the centres apart, never the circles' size.
         val longPitch = abs(pack.region.longMax - pack.region.longMin) * (1 - 2 * PACK_GRID_MARGIN_LONG) / alongLong
         val shortPitch = abs(pack.region.shortMax - pack.region.shortMin) * (1 - 2 * PACK_GRID_MARGIN_SHORT) / alongShort
         val radiusImg = 0.30f * min(longPitch, shortPitch)
@@ -775,53 +792,66 @@ private fun PackImageView(
             modifier = Modifier
                 .size(boxW, boxH)
                 .clipToBounds()
-                .pointerInput(pack.region) {
-                    detectTransformGestures { centroid, pan, zoom, _ ->
-                        val center = Offset(size.width / 2f, size.height / 2f)
-                        val newScale = (scale * zoom).coerceIn(1f, MAX_ZOOM)
-                        val z = newScale / scale
-                        val panned = offset * z + (centroid - center) * (1f - z) + pan
-                        val maxX = (newScale - 1f).coerceAtLeast(0f) * size.width / 2f
-                        val maxY = (newScale - 1f).coerceAtLeast(0f) * size.height / 2f
-                        scale = newScale
-                        offset = Offset(panned.x.coerceIn(-maxX, maxX), panned.y.coerceIn(-maxY, maxY))
-                    }
-                }
-                .pointerInput(interactive, pack.region) {
+                .pointerInput(interactive, pack.region, alongLong, alongShort) {
                     if (!interactive) return@pointerInput
-                    detectTapGestures { pos ->
-                        val center = Offset(size.width / 2f, size.height / 2f)
-                        val content = (pos - center - offset) / scale + center
-                        onPopAt(cropX + content.x / size.width * cropW, cropY + content.y / size.height * cropH)
+                    awaitEachGesture {
+                        // Image pixels per view pixel (equal on both axes — the box matches the crop's ratio).
+                        val toImg = cropW.toFloat() / size.width
+                        val down = awaitFirstDown()
+                        val startX = cropX + down.position.x * toImg
+                        val startY = cropY + down.position.y * toImg
+                        val hit = adjustedCellHit(
+                            pack.region, alongLong, alongShort, startX, startY, latestAdjust, radiusImg * 1.15f,
+                        )
+                        if (hit != null) {
+                            // Landed on a circle → pop it, then swallow the rest of this gesture.
+                            onPopCell(hit)
+                            down.consume()
+                            do {
+                                val event = awaitPointerEvent()
+                                event.changes.forEach { it.consume() }
+                            } while (event.changes.any { it.pressed })
+                            return@awaitEachGesture
+                        }
+                        // Started on empty space → pan (one finger) or scale spacing (two fingers). Once a
+                        // second finger appears the gesture stays a pinch, so lifting back to one finger
+                        // doesn't lurch into a pan.
+                        var pinching = false
+                        do {
+                            val event = awaitPointerEvent()
+                            if (event.changes.count { it.pressed } >= 2) pinching = true
+                            if (pinching) {
+                                val zoom = event.calculateZoom()
+                                if (zoom != 1f) onScaleGrid(zoom)
+                            } else {
+                                val pan = event.calculatePan()
+                                if (pan != Offset.Zero) onPanGrid(pan.x * toImg, pan.y * toImg)
+                            }
+                            event.changes.forEach { if (it.positionChanged()) it.consume() }
+                        } while (event.changes.any { it.pressed })
                     }
                 },
         ) {
-            Box(
-                modifier = Modifier.matchParentSize().graphicsLayer {
-                    scaleX = scale; scaleY = scale; translationX = offset.x; translationY = offset.y
-                },
-            ) {
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    drawImage(
-                        image = imageBitmap,
-                        srcOffset = IntOffset(cropX, cropY),
-                        srcSize = IntSize(cropW, cropH),
-                        dstOffset = IntOffset.Zero,
-                        dstSize = IntSize(size.width.roundToInt(), size.height.roundToInt()),
-                    )
-                    val sx = size.width / cropW
-                    val sy = size.height / cropH
-                    val r = radiusImg * sx
-                    for (along in 0 until alongLong) for (across in 0 until alongShort) {
-                        val c = cellCenter(pack.region, alongLong, alongShort, along, across)
-                        val center = Offset((c.x - cropX) * sx, (c.y - cropY) * sy)
-                        val popped = CellRef(along, across) in pack.popped
-                        if (popped) {
-                            drawCircle(color = Color.Black.copy(alpha = 0.55f), radius = r, center = center)
-                            drawCircle(color = PoppedColor, radius = r, center = center, style = Stroke(width = r * 0.35f))
-                        } else {
-                            drawCircle(color = ringColor, radius = r, center = center, style = Stroke(width = r * 0.3f))
-                        }
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                drawImage(
+                    image = imageBitmap,
+                    srcOffset = IntOffset(cropX, cropY),
+                    srcSize = IntSize(cropW, cropH),
+                    dstOffset = IntOffset.Zero,
+                    dstSize = IntSize(size.width.roundToInt(), size.height.roundToInt()),
+                )
+                val sx = size.width / cropW
+                val sy = size.height / cropH
+                val r = radiusImg * sx
+                for (along in 0 until alongLong) for (across in 0 until alongShort) {
+                    val c = adjustedCellCenter(pack.region, alongLong, alongShort, along, across, pack.adjust)
+                    val center = Offset((c.x - cropX) * sx, (c.y - cropY) * sy)
+                    val popped = CellRef(along, across) in pack.popped
+                    if (popped) {
+                        drawCircle(color = Color.Black.copy(alpha = 0.55f), radius = r, center = center)
+                        drawCircle(color = PoppedColor, radius = r, center = center, style = Stroke(width = r * 0.35f))
+                    } else {
+                        drawCircle(color = ringColor, radius = r, center = center, style = Stroke(width = r * 0.3f))
                     }
                 }
             }

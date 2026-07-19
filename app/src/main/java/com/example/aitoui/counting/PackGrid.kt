@@ -12,6 +12,66 @@ const val PACK_GRID_MARGIN_SHORT = 0.10f
 /** A blister address: [along] indexes the long axis (0 until alongLong), [across] the short axis. */
 data class CellRef(val along: Int, val across: Int)
 
+/**
+ * A manual nudge of the whole blister grid over one pack, so the user can slide the circles onto the real
+ * blisters and stretch/squeeze their spacing to fit. [dx]/[dy] translate every centre in image pixels;
+ * [spacing] scales every centre's distance from the pack centroid equally along both axes (1 = unchanged).
+ * The blister radius is deliberately unaffected — only the gaps between centres change.
+ */
+data class GridAdjust(val dx: Float = 0f, val dy: Float = 0f, val spacing: Float = 1f) {
+    companion object {
+        val None = GridAdjust()
+
+        /** Sensible bounds so a pinch can't collapse the grid to a point or fling it apart. */
+        const val MIN_SPACING = 0.4f
+        const val MAX_SPACING = 3f
+    }
+}
+
+/** Centre of blister ([along], [across]) with a manual [adjust] applied, in image pixels. */
+fun adjustedCellCenter(
+    region: PackRegion,
+    alongLong: Int,
+    alongShort: Int,
+    along: Int,
+    across: Int,
+    adjust: GridAdjust,
+): CountPoint {
+    val base = cellCenter(region, alongLong, alongShort, along, across)
+    return CountPoint(
+        region.cx + (base.x - region.cx) * adjust.spacing + adjust.dx,
+        region.cy + (base.y - region.cy) * adjust.spacing + adjust.dy,
+    )
+}
+
+/**
+ * The blister whose [adjust]ed centre lies within [radius] image-pixels of ([x], [y]), or null when the point
+ * is off every circle. Unlike [tapToCell] (which snaps a tap anywhere on the pack to the nearest blister),
+ * this is a strict on-a-circle hit test — it's what tells a "pop" (a touch that lands on a blister) from a
+ * "pan" (a touch that starts on empty space and drags the grid).
+ */
+fun adjustedCellHit(
+    region: PackRegion,
+    alongLong: Int,
+    alongShort: Int,
+    x: Float,
+    y: Float,
+    adjust: GridAdjust,
+    radius: Float,
+): CellRef? {
+    var best: CellRef? = null
+    var bestD2 = radius * radius
+    for (along in 0 until alongLong) for (across in 0 until alongShort) {
+        val c = adjustedCellCenter(region, alongLong, alongShort, along, across, adjust)
+        val d2 = (c.x - x) * (c.x - x) + (c.y - y) * (c.y - y)
+        if (d2 <= bestD2) {
+            bestD2 = d2
+            best = CellRef(along, across)
+        }
+    }
+    return best
+}
+
 /** Centre of blister ([along], [across]) in image pixels. */
 fun cellCenter(region: PackRegion, alongLong: Int, alongShort: Int, along: Int, across: Int): CountPoint {
     val f = cellFraction(along, alongLong, PACK_GRID_MARGIN_LONG)
