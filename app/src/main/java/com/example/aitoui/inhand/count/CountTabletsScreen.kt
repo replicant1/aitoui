@@ -14,16 +14,20 @@ import androidx.camera.view.PreviewView
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
@@ -56,31 +60,37 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.aitoui.BuildConfig
 import com.example.aitoui.counting.CountImage
+import com.example.aitoui.counting.PixelRect
 import com.example.aitoui.image.ImageStore
 import com.example.aitoui.ui.heading
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import kotlin.math.roundToInt
 
 /** Longest edge (px) the capture is downscaled to before counting — fast and threshold-stable. */
 private const val ANALYSIS_MAX_DIMENSION = 1200
@@ -103,6 +113,9 @@ fun CountTabletsRoot(
         onTapAt = viewModel::onTapAt,
         onUndo = viewModel::undo,
         onRedo = viewModel::redo,
+        onBeginCrop = viewModel::beginCrop,
+        onCancelCrop = viewModel::cancelCrop,
+        onApplyCrop = viewModel::applyCrop,
         onRetake = viewModel::retake,
         onUseCount = { onCounted(state.count) },
         onBack = onBack,
@@ -118,6 +131,9 @@ fun CountTabletsScreen(
     onTapAt: (Float, Float) -> Unit,
     onUndo: () -> Unit,
     onRedo: () -> Unit,
+    onBeginCrop: () -> Unit,
+    onCancelCrop: () -> Unit,
+    onApplyCrop: (PixelRect) -> Unit,
     onRetake: () -> Unit,
     onUseCount: () -> Unit,
     onBack: () -> Unit,
@@ -167,6 +183,9 @@ fun CountTabletsScreen(
                 onTapAt = onTapAt,
                 onUndo = onUndo,
                 onRedo = onRedo,
+                onBeginCrop = onBeginCrop,
+                onCancelCrop = onCancelCrop,
+                onApplyCrop = onApplyCrop,
                 onRetake = onRetake,
                 onUseCount = onUseCount,
             )
@@ -328,9 +347,19 @@ private fun ReviewCapture(
     onTapAt: (Float, Float) -> Unit,
     onUndo: () -> Unit,
     onRedo: () -> Unit,
+    onBeginCrop: () -> Unit,
+    onCancelCrop: () -> Unit,
+    onApplyCrop: (PixelRect) -> Unit,
     onRetake: () -> Unit,
     onUseCount: () -> Unit,
 ) {
+    if (state.phase == CountPhase.CROP) {
+        CropView(
+            bitmap = bitmap, imageWidth = state.imageWidth, imageHeight = state.imageHeight,
+            initial = state.cropRect, onApply = onApplyCrop, onCancel = onCancelCrop,
+        )
+        return
+    }
     Column(modifier = Modifier.fillMaxSize().safeDrawingPadding().padding(16.dp)) {
         Text(
             text = if (state.analysing) "Counting…" else "${state.count} tablets",
@@ -370,7 +399,7 @@ private fun ReviewCapture(
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     OutlinedButton(
                         onClick = onRetake,
@@ -378,6 +407,13 @@ private fun ReviewCapture(
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
                         border = BorderStroke(1.dp, Color.White),
                     ) { Text("Retake") }
+                    OutlinedButton(
+                        onClick = onBeginCrop,
+                        enabled = !state.analysing,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+                        border = BorderStroke(1.dp, Color.White),
+                    ) { Text(if (state.cropRect == null) "Crop" else "Re-crop") }
                     Button(
                         onClick = onConfirmDetect,
                         enabled = !state.analysing,
@@ -433,6 +469,134 @@ private fun UndoRedoBar(canUndo: Boolean, canRedo: Boolean, onUndo: () -> Unit, 
             Text("Redo", modifier = Modifier.padding(start = 6.dp))
         }
     }
+}
+
+/**
+ * Frame a rectangle over the full photo to restrict detection to it — dim outside, four corner handles to
+ * resize, and a body drag to move. Applying re-runs detection inside the box (which recomputes the threshold
+ * locally — the key to counting tablets on a busy or textured surface).
+ */
+@Composable
+private fun CropView(
+    bitmap: Bitmap,
+    imageWidth: Int,
+    imageHeight: Int,
+    initial: PixelRect?,
+    onApply: (PixelRect) -> Unit,
+    onCancel: () -> Unit,
+) {
+    val density = LocalDensity.current
+    var l by remember { mutableFloatStateOf(initial?.let { it.left.toFloat() / imageWidth } ?: 0.12f) }
+    var t by remember { mutableFloatStateOf(initial?.let { it.top.toFloat() / imageHeight } ?: 0.12f) }
+    var r by remember { mutableFloatStateOf(initial?.let { it.right.toFloat() / imageWidth } ?: 0.88f) }
+    var b by remember { mutableFloatStateOf(initial?.let { it.bottom.toFloat() / imageHeight } ?: 0.88f) }
+    val minFrac = 0.06f
+
+    Column(modifier = Modifier.fillMaxSize().safeDrawingPadding().padding(16.dp)) {
+        Text(
+            text = "Crop to the tablets",
+            color = Color.White, style = MaterialTheme.typography.headlineSmall,
+            modifier = Modifier.fillMaxWidth().heading(), textAlign = TextAlign.Center,
+        )
+        Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
+            BoxWithConstraints {
+                val ratio = imageWidth.toFloat() / imageHeight.coerceAtLeast(1)
+                val fitByWidth = maxWidth / ratio <= maxHeight
+                val vw = if (fitByWidth) maxWidth else maxHeight * ratio
+                val vh = if (fitByWidth) maxWidth / ratio else maxHeight
+                var boxPx by remember { mutableStateOf(Offset.Zero) }
+
+                Box(
+                    modifier = Modifier.size(vw, vh).clipToBounds()
+                        .onSizeChanged { boxPx = Offset(it.width.toFloat(), it.height.toFloat()) },
+                ) {
+                    androidx.compose.foundation.Image(
+                        bitmap = bitmap.asImageBitmap(), contentDescription = "Captured tablets",
+                        contentScale = ContentScale.FillBounds, modifier = Modifier.fillMaxSize(),
+                    )
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        val cl = l * size.width; val ct = t * size.height; val cr = r * size.width; val cb = b * size.height
+                        val dim = Color.Black.copy(alpha = 0.5f)
+                        drawRect(dim, Offset(0f, 0f), Size(size.width, ct))
+                        drawRect(dim, Offset(0f, cb), Size(size.width, size.height - cb))
+                        drawRect(dim, Offset(0f, ct), Size(cl, cb - ct))
+                        drawRect(dim, Offset(cr, ct), Size(size.width - cr, cb - ct))
+                        drawRect(Color.White, Offset(cl, ct), Size(cr - cl, cb - ct), style = Stroke(width = 2.dp.toPx()))
+                    }
+                    // Move the whole box.
+                    Box(
+                        modifier = Modifier
+                            .offset { IntOffset((l * boxPx.x).roundToInt(), (t * boxPx.y).roundToInt()) }
+                            .size(
+                                width = with(density) { ((r - l) * boxPx.x).toDp() },
+                                height = with(density) { ((b - t) * boxPx.y).toDp() },
+                            )
+                            .pointerInput(boxPx) {
+                                detectDragGestures { _, d ->
+                                    if (boxPx.x <= 0f || boxPx.y <= 0f) return@detectDragGestures
+                                    val w = r - l; val h = b - t
+                                    val nl = (l + d.x / boxPx.x).coerceIn(0f, 1f - w)
+                                    val nt = (t + d.y / boxPx.y).coerceIn(0f, 1f - h)
+                                    l = nl; t = nt; r = nl + w; b = nt + h
+                                }
+                            },
+                    )
+                    CropHandle(l, t, boxPx) { dx, dy -> l = (l + dx).coerceIn(0f, r - minFrac); t = (t + dy).coerceIn(0f, b - minFrac) }
+                    CropHandle(r, t, boxPx) { dx, dy -> r = (r + dx).coerceIn(l + minFrac, 1f); t = (t + dy).coerceIn(0f, b - minFrac) }
+                    CropHandle(l, b, boxPx) { dx, dy -> l = (l + dx).coerceIn(0f, r - minFrac); b = (b + dy).coerceIn(t + minFrac, 1f) }
+                    CropHandle(r, b, boxPx) { dx, dy -> r = (r + dx).coerceIn(l + minFrac, 1f); b = (b + dy).coerceIn(t + minFrac, 1f) }
+                }
+            }
+        }
+        Text(
+            text = "Drag the box over just the tablets, then Apply — detection re-runs inside it.",
+            color = Color.White, style = MaterialTheme.typography.bodySmall,
+            textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            OutlinedButton(
+                onClick = onCancel,
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+                border = BorderStroke(1.dp, Color.White),
+            ) { Text("Cancel") }
+            Button(onClick = { onApply(fracToRect(l, t, r, b, imageWidth, imageHeight)) }, modifier = Modifier.weight(1f)) {
+                Text("Apply crop")
+            }
+        }
+    }
+}
+
+/** A draggable corner handle at image-fraction ([fx], [fy]); reports the drag as a fraction of the box. */
+@Composable
+private fun BoxScope.CropHandle(fx: Float, fy: Float, boxPx: Offset, onDrag: (Float, Float) -> Unit) {
+    val density = LocalDensity.current
+    val touch = 44.dp
+    Box(
+        modifier = Modifier
+            .offset {
+                val tp = with(density) { touch.toPx() }
+                IntOffset((fx * boxPx.x - tp / 2f).roundToInt(), (fy * boxPx.y - tp / 2f).roundToInt())
+            }
+            .size(touch)
+            .pointerInput(boxPx) {
+                detectDragGestures { _, d ->
+                    if (boxPx.x > 0f && boxPx.y > 0f) onDrag(d.x / boxPx.x, d.y / boxPx.y)
+                }
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(modifier = Modifier.size(22.dp).clip(CircleShape).background(Color.White).border(2.dp, Color(0xFF2F6FED), CircleShape))
+    }
+}
+
+private fun fracToRect(l: Float, t: Float, r: Float, b: Float, imageWidth: Int, imageHeight: Int): PixelRect {
+    val left = (l * imageWidth).roundToInt()
+    val top = (t * imageHeight).roundToInt()
+    return PixelRect(left, top, (r * imageWidth).roundToInt() - left, (b * imageHeight).roundToInt() - top)
 }
 
 /**
@@ -511,6 +675,18 @@ private fun ColumnScope.MarkerImage(
                             .fillMaxSize()
                             .semantics { contentDescription = "${state.markers.size} tablet markers" },
                     ) {
+                        // If a crop is active, dim the excluded surround so it's clear where detection ran.
+                        state.cropRect?.let { cr ->
+                            val cl = cr.left.toFloat() / state.imageWidth * size.width
+                            val ct = cr.top.toFloat() / state.imageHeight * size.height
+                            val cRight = cr.right.toFloat() / state.imageWidth * size.width
+                            val cBottom = cr.bottom.toFloat() / state.imageHeight * size.height
+                            val dim = Color.Black.copy(alpha = 0.4f)
+                            drawRect(dim, Offset(0f, 0f), Size(size.width, ct))
+                            drawRect(dim, Offset(0f, cBottom), Size(size.width, size.height - cBottom))
+                            drawRect(dim, Offset(0f, ct), Size(cl, cBottom - ct))
+                            drawRect(dim, Offset(cRight, ct), Size(size.width - cRight, cBottom - ct))
+                        }
                         // Markers are drawn in unscaled box space; the graphicsLayer zooms them with the image.
                         val r = size.minDimension * 0.018f / scale
                         state.markers.forEach { m ->

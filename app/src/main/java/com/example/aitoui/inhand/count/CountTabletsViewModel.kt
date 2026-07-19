@@ -9,6 +9,9 @@ import com.example.aitoui.counting.CountImage
 import com.example.aitoui.counting.CountPoint
 import com.example.aitoui.counting.PeakField
 import com.example.aitoui.counting.PeakTabletCounter
+import com.example.aitoui.counting.PixelRect
+import com.example.aitoui.counting.clampedTo
+import com.example.aitoui.counting.cropped
 import com.example.aitoui.counting.editMarkers
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,15 +22,16 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 
-/** Steps of the review: tune the auto-detection, then hand-correct the markers. */
-enum class CountPhase { DETECT, EDIT }
+/** Steps of the review: tune the auto-detection (optionally cropping to it), then hand-correct the markers. */
+enum class CountPhase { DETECT, CROP, EDIT }
 
 /**
  * @property capturePath absolute path of the captured JPEG being reviewed, or null while in live preview.
  *   Held here (rather than the decoded Bitmap in composition) so the review survives configuration changes
  *   such as rotation; the composable re-decodes the file for display.
- * @property sensitivity detection slider in 0..1; higher raises the peak-height floor, so faint false peaks
- *   (glare, clutter) drop out and the count falls. See [CountTabletsViewModel.minHeightFractionFor].
+ * @property sensitivity detection slider in 0..1; higher raises an *absolute* peak-height floor (in image
+ *   pixels), so small false peaks — glare speckle, woven-cloth texture — drop out and the count falls, even
+ *   when they dominate the median. See [CountTabletsViewModel.absoluteFloorFor].
  * @property markers detected/edited tablet centres in image-pixel coordinates; the count is [count].
  */
 @Stable
@@ -41,14 +45,16 @@ data class CountTabletsState(
     val markers: List<CountPoint> = emptyList(),
     val canUndo: Boolean = false,
     val canRedo: Boolean = false,
+    /** The applied crop in full-image pixels, or null for the whole frame. Detection runs within it. */
+    val cropRect: PixelRect? = null,
 ) {
     /** true = reviewing a captured frame; false = live camera preview. */
     val captured: Boolean get() = capturePath != null
     val count: Int get() = markers.size
 
     companion object {
-        /** Default slider position, chosen so the initial count matches the counter's default floor (0.30). */
-        const val DEFAULT_SENSITIVITY = 0.4f
+        /** Default slider position: a ~2px absolute floor, matching the counter's original behaviour. */
+        const val DEFAULT_SENSITIVITY = 0.1f
     }
 }
 
@@ -68,8 +74,11 @@ class CountTabletsViewModel(
     private val _state = MutableStateFlow(CountTabletsState())
     val state: StateFlow<CountTabletsState> = _state.asStateFlow()
 
-    /** Cached distance-transform peaks for the current capture, so the slider can re-select without redoing it. */
+    /** Cached distance-transform peaks for the current (possibly cropped) region, so the slider re-selects cheaply. */
     private var peaks: PeakField? = null
+
+    /** The full captured image, retained so a crop can re-run detection on a sub-region. */
+    private var original: CountImage? = null
 
     /** Undo/redo over the marker set during hand-correction. */
     private val history = EditHistory<List<CountPoint>>()
@@ -79,9 +88,10 @@ class CountTabletsViewModel(
      * detected tablet at the current sensitivity. The path is retained so the review survives config changes.
      */
     fun analyse(path: String, image: CountImage) {
+        original = image
         _state.update {
             it.copy(
-                capturePath = path, analysing = true, phase = CountPhase.DETECT,
+                capturePath = path, analysing = true, phase = CountPhase.DETECT, cropRect = null,
                 imageWidth = image.width, imageHeight = image.height,
             )
         }
@@ -90,10 +100,7 @@ class CountTabletsViewModel(
             val field = withContext(Dispatchers.Default) { counter.analyse(image) }
             peaks = field
             _state.update {
-                it.copy(
-                    analysing = false, markers = field.select(minHeightFractionFor(it.sensitivity)),
-                    canUndo = false, canRedo = false,
-                )
+                it.copy(analysing = false, markers = selectAt(field, it.sensitivity, null), canUndo = false, canRedo = false)
             }
         }
     }
@@ -102,7 +109,42 @@ class CountTabletsViewModel(
     fun setSensitivity(value: Float) {
         val v = value.coerceIn(0f, 1f)
         val field = peaks ?: run { _state.update { it.copy(sensitivity = v) }; return }
-        _state.update { it.copy(sensitivity = v, markers = field.select(minHeightFractionFor(v))) }
+        _state.update { it.copy(sensitivity = v, markers = selectAt(field, v, it.cropRect)) }
+    }
+
+    /** Enter the crop step: draw a rectangle over the full frame to restrict detection to it. */
+    fun beginCrop() {
+        if (original != null) _state.update { it.copy(phase = CountPhase.CROP) }
+    }
+
+    /** Leave the crop step without changing anything. */
+    fun cancelCrop() {
+        _state.update { it.copy(phase = CountPhase.DETECT) }
+    }
+
+    /**
+     * Apply [rect] (in full-image pixels): re-run detection on just that region — recomputing the threshold
+     * locally, which is what lets tablets be counted on a busy or textured surface — then offset the markers
+     * back into full-image coordinates. Returns to the detection step so the slider can re-tune.
+     */
+    fun applyCrop(rect: PixelRect) {
+        val src = original ?: return
+        val clamped = rect.clampedTo(src.width, src.height)
+        _state.update { it.copy(phase = CountPhase.DETECT, analysing = true, cropRect = clamped) }
+        history.clear()
+        viewModelScope.launch {
+            val field = withContext(Dispatchers.Default) { counter.analyse(src.cropped(clamped)) }
+            peaks = field
+            _state.update {
+                it.copy(analysing = false, markers = selectAt(field, it.sensitivity, clamped), canUndo = false, canRedo = false)
+            }
+        }
+    }
+
+    /** Markers from [field] at [sensitivity]'s absolute floor, offset into full-image coords by [crop]. */
+    private fun selectAt(field: PeakField, sensitivity: Float, crop: PixelRect?): List<CountPoint> {
+        val pts = field.select(absoluteFloorPx = absoluteFloorFor(sensitivity))
+        return if (crop == null) pts else pts.map { CountPoint(it.x + crop.left, it.y + crop.top) }
     }
 
     /** Accept the detected count and move on to hand-correction, starting a fresh undo history. */
@@ -138,6 +180,7 @@ class CountTabletsViewModel(
     fun retake() {
         deleteCaptureFile()
         peaks = null
+        original = null
         history.clear()
         _state.value = CountTabletsState()
     }
@@ -152,12 +195,15 @@ class CountTabletsViewModel(
     }
 
     companion object {
-        /** Maps the slider (0..1) to the counter's min-height fraction: higher slider ⇒ higher floor ⇒ fewer. */
-        internal fun minHeightFractionFor(sensitivity: Float): Double =
-            (MIN_FLOOR + sensitivity.coerceIn(0f, 1f) * (MAX_FLOOR - MIN_FLOOR)).toDouble()
+        /**
+         * Maps the slider (0..1) to an absolute peak-height floor in image pixels: higher slider ⇒ taller
+         * floor ⇒ fewer markers. Linear from 0 to [MAX_FLOOR_PX], so the default (0.1) ≈ 2px — the counter's
+         * original noise floor — and the top end drops anything shorter than a real tablet's distance peak.
+         */
+        internal fun absoluteFloorFor(sensitivity: Float): Double =
+            (sensitivity.coerceIn(0f, 1f) * MAX_FLOOR_PX).toDouble()
 
-        private const val MIN_FLOOR = 0.10f
-        private const val MAX_FLOOR = 0.60f
+        private const val MAX_FLOOR_PX = 20f
 
         val Factory = viewModelFactory {
             initializer { CountTabletsViewModel() }

@@ -21,13 +21,21 @@ class PeakField internal constructor(
     val peakCount: Int get() = maxima.size
 
     /**
-     * Choose tablet centres from the peaks. Peaks shorter than [minHeightFraction] of the median height (or
-     * [minHeightPx], whichever is larger) are dropped as glare/speckle; the survivors are thinned by
-     * non-maximum suppression at a radius of [suppressionFactor] × median height.
+     * Choose tablet centres from the peaks. A peak is dropped unless it clears the height floor, which is the
+     * larger of a *relative* threshold ([minHeightFraction] × median height) and an *absolute* one
+     * ([absoluteFloorPx], in image pixels). The absolute floor is what rescues a textured background: when
+     * the surface (e.g. a woven cloth) fills the peak population with tiny false peaks, they dominate the
+     * median, so the relative threshold collapses — but a real tablet's peak is many pixels tall, so an
+     * absolute floor still separates them. Survivors are thinned by non-maximum suppression at a radius of
+     * [suppressionFactor] × median height.
      */
-    fun select(minHeightFraction: Double, suppressionFactor: Double = 2.0): List<CountPoint> {
+    fun select(
+        minHeightFraction: Double = 0.30,
+        absoluteFloorPx: Double = minHeightPx,
+        suppressionFactor: Double = 2.0,
+    ): List<CountPoint> {
         if (maxima.isEmpty()) return emptyList()
-        val floor = max(minHeightPx, minHeightFraction * medianHeight).toFloat()
+        val floor = max(minHeightFraction * medianHeight, absoluteFloorPx).toFloat()
         val radius = max(3.0, suppressionFactor * medianHeight)
         val candidates = maxima.filter { it.d >= floor }.sortedByDescending { it.d }
         return suppress(candidates, radius, width).map { CountPoint(it.x, it.y) }
@@ -100,7 +108,7 @@ class PeakTabletCounter(
 ) : TabletCounter {
 
     override fun count(image: CountImage, reference: ReferenceImage?): List<CountPoint> =
-        analyse(image).select(minHeightFraction, suppressionFactor)
+        analyse(image).select(minHeightFraction = minHeightFraction, suppressionFactor = suppressionFactor)
 
     /**
      * The expensive, sensitivity-independent stage: build the foreground mask, its distance transform, and

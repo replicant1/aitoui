@@ -72,6 +72,20 @@ class PeakTabletCounterTest {
     }
 
     @Test
+    fun `an absolute floor drops small peaks even when they dominate the median`() {
+        // Small "texture" specks (peak ~3) set a low median; one real tablet (peak ~14) stands far above.
+        val image = solid(300, 300)
+        fillCapsule(image, 150, 150, 12, 14) // the real tablet
+        for ((x, y) in listOf(30 to 30, 70 to 30, 30 to 70, 270 to 40, 40 to 270, 270 to 270)) {
+            fillCapsule(image, x, y, halfLen = 0, radius = 3) // a small disc, peak ~3
+        }
+        val field = counter.analyse(image)
+        // A relative floor is useless here (median is tiny), but an absolute floor keeps only the tablet.
+        assertEquals(1, field.select(minHeightFraction = 0.0, absoluteFloorPx = 8.0).size)
+        assertTrue(field.select(minHeightFraction = 0.0, absoluteFloorPx = 2.0).size > 1)
+    }
+
+    @Test
     fun `selecting is monotonic — a higher floor never yields more markers`() {
         val image = solid(300, 300)
         fillCapsule(image, 70, 70, 12, 14)

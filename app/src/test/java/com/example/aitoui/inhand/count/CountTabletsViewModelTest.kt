@@ -7,25 +7,24 @@ import org.junit.Test
 class CountTabletsViewModelTest {
 
     @Test
-    fun `the default sensitivity maps to the counter's default floor`() {
-        // 0.4 on the slider must reproduce the counter's built-in 0.30 min-height fraction, so the
-        // initial count is unchanged from before the slider existed.
-        val floor = CountTabletsViewModel.minHeightFractionFor(CountTabletsState.DEFAULT_SENSITIVITY)
-        assertEquals(0.30, floor, 1e-6)
+    fun `the default sensitivity is a low absolute floor, near the counter's original noise floor`() {
+        // ~2px keeps the initial count essentially unchanged from before the slider existed.
+        val floor = CountTabletsViewModel.absoluteFloorFor(CountTabletsState.DEFAULT_SENSITIVITY)
+        assertEquals(2.0, floor, 1e-6)
     }
 
     @Test
-    fun `the slider spans the intended floor range`() {
-        assertEquals(0.10, CountTabletsViewModel.minHeightFractionFor(0f), 1e-6)
-        assertEquals(0.60, CountTabletsViewModel.minHeightFractionFor(1f), 1e-6)
+    fun `the slider spans zero to the maximum floor`() {
+        assertEquals(0.0, CountTabletsViewModel.absoluteFloorFor(0f), 1e-6)
+        assertEquals(20.0, CountTabletsViewModel.absoluteFloorFor(1f), 1e-6)
     }
 
     @Test
-    fun `a higher slider value maps to a higher floor and is clamped`() {
+    fun `a higher slider value maps to a taller floor and is clamped`() {
         assertTrue(
-            CountTabletsViewModel.minHeightFractionFor(0.7f) > CountTabletsViewModel.minHeightFractionFor(0.3f),
+            CountTabletsViewModel.absoluteFloorFor(0.7f) > CountTabletsViewModel.absoluteFloorFor(0.3f),
         )
-        assertEquals(0.60, CountTabletsViewModel.minHeightFractionFor(5f), 1e-6) // clamped to 1.0
-        assertEquals(0.10, CountTabletsViewModel.minHeightFractionFor(-5f), 1e-6) // clamped to 0.0
+        assertEquals(20.0, CountTabletsViewModel.absoluteFloorFor(5f), 1e-6) // clamped to 1.0
+        assertEquals(0.0, CountTabletsViewModel.absoluteFloorFor(-5f), 1e-6) // clamped to 0.0
     }
 }
