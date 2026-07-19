@@ -3,6 +3,73 @@ package com.example.aitoui.counting
 import kotlin.math.max
 import kotlin.math.min
 
+/** A local maximum of the distance transform: a candidate tablet centre at ([x], [y]) of height [d]. */
+internal class Peak(val x: Float, val y: Float, val d: Float)
+
+/**
+ * The result of [PeakTabletCounter.analyse] — the distance-transform peaks and their median height, from
+ * which a marker set is chosen by [select]. Splitting the pipeline this way lets a caller run the expensive
+ * analysis once (mask + distance transform + local maxima) and then re-[select] cheaply as the user drags a
+ * sensitivity slider, since sensitivity only affects the final height filter and suppression.
+ */
+class PeakField internal constructor(
+    private val maxima: List<Peak>,
+    private val medianHeight: Double,
+    private val width: Int,
+    private val minHeightPx: Double,
+) {
+    val peakCount: Int get() = maxima.size
+
+    /**
+     * Choose tablet centres from the peaks. Peaks shorter than [minHeightFraction] of the median height (or
+     * [minHeightPx], whichever is larger) are dropped as glare/speckle; the survivors are thinned by
+     * non-maximum suppression at a radius of [suppressionFactor] × median height.
+     */
+    fun select(minHeightFraction: Double, suppressionFactor: Double = 2.0): List<CountPoint> {
+        if (maxima.isEmpty()) return emptyList()
+        val floor = max(minHeightPx, minHeightFraction * medianHeight).toFloat()
+        val radius = max(3.0, suppressionFactor * medianHeight)
+        val candidates = maxima.filter { it.d >= floor }.sortedByDescending { it.d }
+        return suppress(candidates, radius, width).map { CountPoint(it.x, it.y) }
+    }
+
+    /**
+     * Greedy non-maximum suppression: taking peaks tallest-first, keep one only if no already-kept peak lies
+     * within [radius]. A uniform grid (cell = radius) keeps the neighbour search near O(n).
+     */
+    private fun suppress(candidates: List<Peak>, radius: Double, w: Int): List<Peak> {
+        val cell = radius
+        val gridW = (w / cell).toInt() + 1
+        val grid = HashMap<Int, MutableList<Peak>>()
+        val kept = ArrayList<Peak>()
+        val r2 = radius * radius
+
+        for (p in candidates) {
+            val gx = (p.x / cell).toInt()
+            val gy = (p.y / cell).toInt()
+            var ok = true
+            neighbours@ for (cy in gy - 1..gy + 1) {
+                for (cx in gx - 1..gx + 1) {
+                    val bucket = grid[cy * gridW + cx] ?: continue
+                    for (q in bucket) {
+                        val dx = (p.x - q.x).toDouble()
+                        val dy = (p.y - q.y).toDouble()
+                        if (dx * dx + dy * dy <= r2) {
+                            ok = false
+                            break@neighbours
+                        }
+                    }
+                }
+            }
+            if (ok) {
+                kept.add(p)
+                grid.getOrPut(gy * gridW + gx) { ArrayList() }.add(p)
+            }
+        }
+        return kept
+    }
+}
+
 /**
  * Counts tablets by finding peaks in a distance transform — a lightweight watershed that separates touching
  * tablets, which plain blob detection ([BlobTabletCounter]) merges into a single count.
@@ -16,6 +83,9 @@ import kotlin.math.min
  * Pure Kotlin, dependency-free (no OpenCV / ML Kit). Callers should down-scale large camera frames (e.g. to
  * ~1200px on the long edge) before constructing the [CountImage]. Remaining errors — heavily overlapping
  * tablets that merge, or glare that splits one — are handled by the user's tap-to-add / tap-to-remove.
+ *
+ * The pipeline is split into [analyse] (expensive, sensitivity-independent) and [PeakField.select] (cheap),
+ * so the UI can re-tune the count live with a slider without recomputing the distance transform.
  */
 class PeakTabletCounter(
     /** Suppression radius as a multiple of the median peak height (≈ a tablet's half-width). Larger merges
@@ -29,24 +99,23 @@ class PeakTabletCounter(
     private val minHeightPx: Double = 2.0,
 ) : TabletCounter {
 
-    private class Peak(val x: Float, val y: Float, val d: Float)
+    override fun count(image: CountImage, reference: ReferenceImage?): List<CountPoint> =
+        analyse(image).select(minHeightFraction, suppressionFactor)
 
-    override fun count(image: CountImage, reference: ReferenceImage?): List<CountPoint> {
+    /**
+     * The expensive, sensitivity-independent stage: build the foreground mask, its distance transform, and
+     * the local maxima. Cache the returned [PeakField] and call [PeakField.select] to (re)choose markers.
+     */
+    fun analyse(image: CountImage): PeakField {
         val w = image.width
         val h = image.height
         val n = w * h
-        if (n == 0) return emptyList()
+        if (n == 0) return PeakField(emptyList(), 0.0, w, minHeightPx)
 
         val dist = distanceTransform(foregroundMask(image), w, h)
         val maxima = localMaxima(dist, w, h)
-        if (maxima.isEmpty()) return emptyList()
-
-        val medianHeight = medianOf(maxima)
-        val floor = max(minHeightPx, minHeightFraction * medianHeight).toFloat()
-        val radius = max(3.0, suppressionFactor * medianHeight)
-
-        val candidates = maxima.filter { it.d >= floor }.sortedByDescending { it.d }
-        return suppress(candidates, radius, w).map { CountPoint(it.x, it.y) }
+        val median = if (maxima.isEmpty()) 0.0 else medianOf(maxima)
+        return PeakField(maxima, median, w, minHeightPx)
     }
 
     /**
@@ -110,42 +179,6 @@ class PeakTabletCounter(
             }
         }
         return peaks
-    }
-
-    /**
-     * Greedy non-maximum suppression: taking peaks tallest-first, keep one only if no already-kept peak lies
-     * within [radius]. A uniform grid (cell = radius) keeps the neighbour search near O(n).
-     */
-    private fun suppress(candidates: List<Peak>, radius: Double, w: Int): List<Peak> {
-        val cell = radius
-        val gridW = (w / cell).toInt() + 1
-        val grid = HashMap<Int, MutableList<Peak>>()
-        val kept = ArrayList<Peak>()
-        val r2 = radius * radius
-
-        for (p in candidates) {
-            val gx = (p.x / cell).toInt()
-            val gy = (p.y / cell).toInt()
-            var ok = true
-            neighbours@ for (cy in gy - 1..gy + 1) {
-                for (cx in gx - 1..gx + 1) {
-                    val bucket = grid[cy * gridW + cx] ?: continue
-                    for (q in bucket) {
-                        val dx = (p.x - q.x).toDouble()
-                        val dy = (p.y - q.y).toDouble()
-                        if (dx * dx + dy * dy <= r2) {
-                            ok = false
-                            break@neighbours
-                        }
-                    }
-                }
-            }
-            if (ok) {
-                kept.add(p)
-                grid.getOrPut(gy * gridW + gx) { ArrayList() }.add(p)
-            }
-        }
-        return kept
     }
 
     private fun medianOf(peaks: List<Peak>): Double {

@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -35,6 +36,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
@@ -94,6 +96,8 @@ fun CountTabletsRoot(
     CountTabletsScreen(
         state = state,
         onAnalyse = viewModel::analyse,
+        onSensitivity = viewModel::setSensitivity,
+        onConfirmDetect = viewModel::confirmDetection,
         onTapAt = viewModel::onTapAt,
         onRetake = viewModel::retake,
         onUseCount = { onCounted(state.count) },
@@ -105,6 +109,8 @@ fun CountTabletsRoot(
 fun CountTabletsScreen(
     state: CountTabletsState,
     onAnalyse: (String, CountImage) -> Unit,
+    onSensitivity: (Float) -> Unit,
+    onConfirmDetect: () -> Unit,
     onTapAt: (Float, Float) -> Unit,
     onRetake: () -> Unit,
     onUseCount: () -> Unit,
@@ -150,6 +156,8 @@ fun CountTabletsScreen(
             else -> ReviewCapture(
                 bitmap = capturedBitmap!!,
                 state = state,
+                onSensitivity = onSensitivity,
+                onConfirmDetect = onConfirmDetect,
                 onTapAt = onTapAt,
                 onRetake = onRetake,
                 onUseCount = onUseCount,
@@ -307,12 +315,12 @@ private fun CameraPreview(
 private fun ReviewCapture(
     bitmap: Bitmap,
     state: CountTabletsState,
+    onSensitivity: (Float) -> Unit,
+    onConfirmDetect: () -> Unit,
     onTapAt: (Float, Float) -> Unit,
     onRetake: () -> Unit,
     onUseCount: () -> Unit,
 ) {
-    val markerColor = MaterialTheme.colorScheme.primary
-
     Column(modifier = Modifier.fillMaxSize().safeDrawingPadding().padding(16.dp)) {
         Text(
             text = if (state.analysing) "Counting…" else "${state.count} tablets",
@@ -325,35 +333,120 @@ private fun ReviewCapture(
             textAlign = TextAlign.Center,
         )
 
-        Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
-            BoxWithConstraints {
-                val ratio = state.imageWidth.toFloat() / state.imageHeight.coerceAtLeast(1)
-                val fitByWidth = maxWidth / ratio <= maxHeight
-                val boxW = if (fitByWidth) maxWidth else maxHeight * ratio
-                val boxH = if (fitByWidth) maxWidth / ratio else maxHeight
+        // The image + markers are shared by both phases; tapping edits only in the EDIT phase.
+        MarkerImage(bitmap = bitmap, state = state, interactive = state.phase == CountPhase.EDIT, onTapAt = onTapAt)
 
-                // Transient view-only zoom/pan; resets when a new frame is decoded. Content point p maps to
-                // box point: box = center + scale*(p - center) + offset; taps invert this to image pixels.
-                var scale by remember(bitmap) { mutableFloatStateOf(1f) }
-                var offset by remember(bitmap) { mutableStateOf(Offset.Zero) }
+        when (state.phase) {
+            CountPhase.DETECT -> {
+                Text(
+                    text = "Slide to drop stray marks from glare or clutter, then move on.",
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodySmall,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("Sensitivity", color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.bodySmall)
+                    Slider(
+                        value = state.sensitivity,
+                        onValueChange = onSensitivity,
+                        enabled = !state.analysing,
+                        modifier = Modifier.weight(1f).padding(start = 12.dp)
+                            .semantics { contentDescription = "Detection sensitivity" },
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    OutlinedButton(
+                        onClick = onRetake,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+                        border = BorderStroke(1.dp, Color.White),
+                    ) { Text("Retake") }
+                    Button(
+                        onClick = onConfirmDetect,
+                        enabled = !state.analysing,
+                        modifier = Modifier.weight(1f),
+                    ) { Text("Next ›") }
+                }
+            }
 
-                Box(
-                    modifier = Modifier
-                        .size(boxW, boxH)
-                        .clipToBounds()
-                        .pointerInput(state.imageWidth, state.imageHeight) {
-                            detectTransformGestures { centroid, pan, zoom, _ ->
-                                val center = Offset(size.width / 2f, size.height / 2f)
-                                val newScale = (scale * zoom).coerceIn(1f, MAX_ZOOM)
-                                val z = newScale / scale
-                                val panned = offset * z + (centroid - center) * (1f - z) + pan
-                                val maxX = (newScale - 1f).coerceAtLeast(0f) * size.width / 2f
-                                val maxY = (newScale - 1f).coerceAtLeast(0f) * size.height / 2f
-                                scale = newScale
-                                offset = Offset(panned.x.coerceIn(-maxX, maxX), panned.y.coerceIn(-maxY, maxY))
-                            }
+            CountPhase.EDIT -> {
+                Text(
+                    text = "Pinch to zoom. Tap a missed tablet to add it, or tap a marker to remove it.",
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodySmall,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    OutlinedButton(
+                        onClick = onRetake,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+                        border = BorderStroke(1.dp, Color.White),
+                    ) { Text("Retake") }
+                    Button(
+                        onClick = onUseCount,
+                        enabled = !state.analysing,
+                        modifier = Modifier.weight(1f),
+                    ) { Text("Use ${state.count}") }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * The captured frame with a correctable marker on each detected tablet, filling the available height.
+ * Pinch-to-zoom + pan always; taps map back to image pixels and call [onTapAt] only when [interactive].
+ */
+@Composable
+private fun ColumnScope.MarkerImage(
+    bitmap: Bitmap,
+    state: CountTabletsState,
+    interactive: Boolean,
+    onTapAt: (Float, Float) -> Unit,
+) {
+    val markerColor = MaterialTheme.colorScheme.primary
+    Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
+        BoxWithConstraints {
+            val ratio = state.imageWidth.toFloat() / state.imageHeight.coerceAtLeast(1)
+            val fitByWidth = maxWidth / ratio <= maxHeight
+            val boxW = if (fitByWidth) maxWidth else maxHeight * ratio
+            val boxH = if (fitByWidth) maxWidth / ratio else maxHeight
+
+            // Transient view-only zoom/pan; resets when a new frame is decoded. Content point p maps to
+            // box point: box = center + scale*(p - center) + offset; taps invert this to image pixels.
+            var scale by remember(bitmap) { mutableFloatStateOf(1f) }
+            var offset by remember(bitmap) { mutableStateOf(Offset.Zero) }
+
+            Box(
+                modifier = Modifier
+                    .size(boxW, boxH)
+                    .clipToBounds()
+                    .pointerInput(state.imageWidth, state.imageHeight) {
+                        detectTransformGestures { centroid, pan, zoom, _ ->
+                            val center = Offset(size.width / 2f, size.height / 2f)
+                            val newScale = (scale * zoom).coerceIn(1f, MAX_ZOOM)
+                            val z = newScale / scale
+                            val panned = offset * z + (centroid - center) * (1f - z) + pan
+                            val maxX = (newScale - 1f).coerceAtLeast(0f) * size.width / 2f
+                            val maxY = (newScale - 1f).coerceAtLeast(0f) * size.height / 2f
+                            scale = newScale
+                            offset = Offset(panned.x.coerceIn(-maxX, maxX), panned.y.coerceIn(-maxY, maxY))
                         }
-                        .pointerInput(state.imageWidth, state.imageHeight) {
+                    }
+                    .then(
+                        if (!interactive) Modifier else Modifier.pointerInput(state.imageWidth, state.imageHeight) {
                             detectTapGestures { pos ->
                                 val center = Offset(size.width / 2f, size.height / 2f)
                                 val content = (pos - center - offset) / scale + center
@@ -363,77 +456,42 @@ private fun ReviewCapture(
                                 )
                             }
                         },
+                    ),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .graphicsLayer {
+                            scaleX = scale
+                            scaleY = scale
+                            translationX = offset.x
+                            translationY = offset.y
+                        },
                 ) {
-                    Box(
+                    androidx.compose.foundation.Image(
+                        bitmap = bitmap.asImageBitmap(),
+                        contentDescription = "Captured tablets",
+                        contentScale = ContentScale.FillBounds,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    Canvas(
+                        // The markers are Canvas-only; surface how many there are so a screen reader
+                        // can perceive the counted total (individual positions stay a visual aid).
                         modifier = Modifier
-                            .matchParentSize()
-                            .graphicsLayer {
-                                scaleX = scale
-                                scaleY = scale
-                                translationX = offset.x
-                                translationY = offset.y
-                            },
+                            .fillMaxSize()
+                            .semantics { contentDescription = "${state.markers.size} tablet markers" },
                     ) {
-                        androidx.compose.foundation.Image(
-                            bitmap = bitmap.asImageBitmap(),
-                            contentDescription = "Captured tablets",
-                            contentScale = ContentScale.FillBounds,
-                            modifier = Modifier.fillMaxSize(),
-                        )
-                        Canvas(
-                            // The markers are Canvas-only; surface how many there are so a screen reader
-                            // can perceive the counted total (individual positions stay a visual aid).
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .semantics {
-                                    contentDescription = "${state.markers.size} tablet markers"
-                                },
-                        ) {
-                            // Markers are drawn in unscaled box space; the graphicsLayer zooms them with the image.
-                            val r = size.minDimension * 0.018f / scale
-                            state.markers.forEach { m ->
-                                val cx = m.x / state.imageWidth * size.width
-                                val cy = m.y / state.imageHeight * size.height
-                                drawCircle(
-                                    color = markerColor,
-                                    radius = r,
-                                    center = Offset(cx, cy),
-                                    style = Stroke(width = r * 0.5f),
-                                )
-                                drawCircle(
-                                    color = markerColor,
-                                    radius = r * 0.35f,
-                                    center = Offset(cx, cy),
-                                )
-                            }
+                        // Markers are drawn in unscaled box space; the graphicsLayer zooms them with the image.
+                        val r = size.minDimension * 0.018f / scale
+                        state.markers.forEach { m ->
+                            val cx = m.x / state.imageWidth * size.width
+                            val cy = m.y / state.imageHeight * size.height
+                            drawCircle(color = markerColor, radius = r, center = Offset(cx, cy), style = Stroke(width = r * 0.5f))
+                            drawCircle(color = markerColor, radius = r * 0.35f, center = Offset(cx, cy))
                         }
                     }
                 }
             }
-        }
-
-        Text(
-            text = "Pinch to zoom. Tap a missed tablet to add it, or tap a marker to remove it.",
-            color = Color.White,
-            style = MaterialTheme.typography.bodySmall,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            OutlinedButton(
-                onClick = onRetake,
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
-                border = BorderStroke(1.dp, Color.White),
-            ) { Text("Retake") }
-            Button(
-                onClick = onUseCount,
-                enabled = !state.analysing,
-                modifier = Modifier.weight(1f),
-            ) { Text("Use ${state.count}") }
         }
     }
 }

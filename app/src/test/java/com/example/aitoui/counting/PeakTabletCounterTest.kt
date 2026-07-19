@@ -50,6 +50,38 @@ class PeakTabletCounterTest {
         assertEquals(1, counter.count(image).size)
     }
 
+    @Test
+    fun `analyse then select at the default floor matches count`() {
+        val image = solid(300, 300)
+        fillCapsule(image, 70, 70, 12, 14)
+        fillCapsule(image, 220, 90, 12, 14)
+        fillCapsule(image, 150, 230, 12, 14)
+        assertEquals(counter.count(image).size, counter.analyse(image).select(0.30).size)
+    }
+
+    @Test
+    fun `a higher sensitivity floor drops a faint (smaller) tablet`() {
+        // Two full-size tablets set the median height; a much smaller one has a shallow peak.
+        val image = solid(300, 300)
+        fillCapsule(image, 70, 70, 12, 14)
+        fillCapsule(image, 220, 90, 12, 14)
+        fillCapsule(image, 150, 230, 4, 6) // small -> peak ~6 vs median ~14
+        val field = counter.analyse(image)
+        assertEquals(3, field.select(0.10).size) // low floor keeps the faint one
+        assertEquals(2, field.select(0.60).size) // high floor drops it
+    }
+
+    @Test
+    fun `selecting is monotonic — a higher floor never yields more markers`() {
+        val image = solid(300, 300)
+        fillCapsule(image, 70, 70, 12, 14)
+        fillCapsule(image, 220, 90, 12, 14)
+        fillCapsule(image, 150, 230, 4, 6)
+        val field = counter.analyse(image)
+        assertTrue(field.select(0.10).size >= field.select(0.35).size)
+        assertTrue(field.select(0.35).size >= field.select(0.60).size)
+    }
+
     private fun solid(w: Int, h: Int) = CountImage(w, h, IntArray(w * h) { background })
 
     /** Paint a filled light capsule (stadium): all pixels within [radius] of the horizontal centre segment. */
