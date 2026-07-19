@@ -40,6 +40,8 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Redo
+import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -99,6 +101,8 @@ fun CountTabletsRoot(
         onSensitivity = viewModel::setSensitivity,
         onConfirmDetect = viewModel::confirmDetection,
         onTapAt = viewModel::onTapAt,
+        onUndo = viewModel::undo,
+        onRedo = viewModel::redo,
         onRetake = viewModel::retake,
         onUseCount = { onCounted(state.count) },
         onBack = onBack,
@@ -112,6 +116,8 @@ fun CountTabletsScreen(
     onSensitivity: (Float) -> Unit,
     onConfirmDetect: () -> Unit,
     onTapAt: (Float, Float) -> Unit,
+    onUndo: () -> Unit,
+    onRedo: () -> Unit,
     onRetake: () -> Unit,
     onUseCount: () -> Unit,
     onBack: () -> Unit,
@@ -159,6 +165,8 @@ fun CountTabletsScreen(
                 onSensitivity = onSensitivity,
                 onConfirmDetect = onConfirmDetect,
                 onTapAt = onTapAt,
+                onUndo = onUndo,
+                onRedo = onRedo,
                 onRetake = onRetake,
                 onUseCount = onUseCount,
             )
@@ -318,6 +326,8 @@ private fun ReviewCapture(
     onSensitivity: (Float) -> Unit,
     onConfirmDetect: () -> Unit,
     onTapAt: (Float, Float) -> Unit,
+    onUndo: () -> Unit,
+    onRedo: () -> Unit,
     onRetake: () -> Unit,
     onUseCount: () -> Unit,
 ) {
@@ -377,6 +387,7 @@ private fun ReviewCapture(
             }
 
             CountPhase.EDIT -> {
+                UndoRedoBar(canUndo = state.canUndo, canRedo = state.canRedo, onUndo = onUndo, onRedo = onRedo)
                 Text(
                     text = "Pinch to zoom. Tap a missed tablet to add it, or tap a marker to remove it.",
                     color = Color.White,
@@ -401,6 +412,25 @@ private fun ReviewCapture(
                     ) { Text("Use ${state.count}") }
                 }
             }
+        }
+    }
+}
+
+/** Undo / Redo actions for the hand-correction phase, right-aligned; each dims when unavailable. */
+@Composable
+private fun UndoRedoBar(canUndo: Boolean, canRedo: Boolean, onUndo: () -> Unit, onRedo: () -> Unit) {
+    val colors = ButtonDefaults.textButtonColors(
+        contentColor = Color.White,
+        disabledContentColor = Color.White.copy(alpha = 0.3f),
+    )
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+        TextButton(onClick = onUndo, enabled = canUndo, colors = colors) {
+            Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = null, modifier = Modifier.size(18.dp))
+            Text("Undo", modifier = Modifier.padding(start = 6.dp))
+        }
+        TextButton(onClick = onRedo, enabled = canRedo, colors = colors) {
+            Icon(Icons.AutoMirrored.Filled.Redo, contentDescription = null, modifier = Modifier.size(18.dp))
+            Text("Redo", modifier = Modifier.padding(start = 6.dp))
         }
     }
 }
