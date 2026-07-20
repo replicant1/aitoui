@@ -54,13 +54,36 @@ data class InHandState(
         get() = selectedMedicationId != null && (numberOfTablets.toDoubleOrNull() ?: 0.0) > 0.0
     val canDelete: Boolean get() = selectedId != null
 
-    /** True when rows have been added or removed since the list was last loaded/saved (staging fields ignored). */
+    /** True when a medication appears in more than one row, so merging would collapse them. */
+    val canMerge: Boolean
+        get() = tabletsInHand.groupingBy { it.medicationId }.eachCount().any { it.value > 1 }
+
+    /** True when rows have been added, removed or merged since the list was last loaded/saved. */
     val hasUnsavedChanges: Boolean get() = listSignature(tabletsInHand) != savedSignature
 }
 
 /** Order-independent signature of a saved list: one "medicationId:number" per row, sorted. */
 internal fun listSignature(rows: List<InHandEntry>): List<String> =
     rows.map { "${it.medicationId}:${it.number}" }.sorted()
+
+/**
+ * Collapses in-hand rows for the same medication into a single row, summing their quantities. Dose per
+ * tablet is a function of the medication (it comes from the medication's dispensable unit), so grouping by
+ * medication is equivalent to grouping by medication and dose. First-appearance order is preserved, and each
+ * merged row keeps the first grouped row's id and brand.
+ */
+internal fun collateInHand(rows: List<InHandEntry>): List<InHandEntry> {
+    val groups = LinkedHashMap<Long, MutableList<InHandEntry>>()
+    for (row in rows) groups.getOrPut(row.medicationId) { mutableListOf() }.add(row)
+    return groups.values.map { group ->
+        val total = group.sumOf { it.number.toDoubleOrNull() ?: 0.0 }
+        group.first().copy(number = total.formatQuantity())
+    }
+}
+
+/** Drops a trailing ".0" so whole quantities show as "2" rather than "2.0". */
+internal fun Double.formatQuantity(): String =
+    if (this == toLong().toDouble()) toLong().toString() else toString()
 
 /** User intents emitted by the In Hand screen. */
 sealed interface InHandAction {
@@ -71,6 +94,8 @@ sealed interface InHandAction {
     data object Add : InHandAction
     data class RowSelected(val id: Long) : InHandAction
     data object Delete : InHandAction
+    /** Collapse rows for the same medication into one, summing their quantities. */
+    data object Merge : InHandAction
     data object Save : InHandAction
 }
 
@@ -171,6 +196,10 @@ class InHandViewModel(
                 )
             }
 
+            InHandAction.Merge -> _state.update { current ->
+                current.copy(tabletsInHand = collateInHand(current.tabletsInHand), selectedId = null)
+            }
+
             InHandAction.Save -> save()
         }
     }
@@ -208,10 +237,6 @@ class InHandViewModel(
         return if (firstDot == -1) filtered
         else filtered.substring(0, firstDot + 1) + filtered.substring(firstDot + 1).replace(".", "")
     }
-
-    /** Drops a trailing ".0" so whole quantities show as "2" rather than "2.0". */
-    private fun Double.formatQuantity(): String =
-        if (this == toLong().toDouble()) toLong().toString() else toString()
 
     companion object {
         val Factory = viewModelFactory {
