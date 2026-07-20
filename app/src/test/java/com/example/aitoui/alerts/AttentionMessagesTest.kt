@@ -52,7 +52,7 @@ class AttentionMessagesTest {
             listOf(supply(brand = "Cartia", inHandDays = 3, totalDays = 3, requiresPrescription = false)),
         )
         assertEquals(listOf(AttentionKind.LOW_IN_HAND_NON_PRESCRIPTION_MEDICATION), messages.map { it.kind })
-        assertEquals("Less than 2 weeks of Cartia left — get more from chemist.", messages.single().text)
+        assertEquals("Less than 2 weeks of Cartia left.\nGet more from chemist.", messages.single().text)
     }
 
     @Test
@@ -82,7 +82,7 @@ class AttentionMessagesTest {
         val messages = attentionMessages(listOf(supply(brand = "Lipitor", inHandDays = 3, fills = 0, totalDays = 3)))
         assertTrue(AttentionKind.LOW_IN_HAND_PRESCRIPTION_MEDICATION_WITHOUT_SCRIPTS in messages.map { it.kind })
         assertEquals(
-            "Less than 2 weeks of Lipitor left with no scripts remaining — go to doctor for new scripts.",
+            "Less than 2 weeks of Lipitor left with no scripts remaining.\nGo to doctor for new scripts.",
             messages.single { it.kind == AttentionKind.LOW_IN_HAND_PRESCRIPTION_MEDICATION_WITHOUT_SCRIPTS }.text,
         )
     }
@@ -104,7 +104,7 @@ class AttentionMessagesTest {
         val messages = attentionMessages(listOf(supply(brand = "Cartia", inHandDays = 5, fills = 5, totalDays = 300)))
         assertEquals(listOf(AttentionKind.LOW_IN_HAND_PRESCRIPTION_MEDICATION_WITH_SCRIPTS), messages.map { it.kind })
         // The time remaining uses the Inventory screen's humaniser (5 days → "5 days").
-        assertEquals("You have only 5 days of Cartia in hand — get a script filled.", messages.single().text)
+        assertEquals("You have only 5 days of Cartia in hand.\nGet a script filled.", messages.single().text)
     }
 
     @Test
@@ -112,7 +112,7 @@ class AttentionMessagesTest {
         // 10 days in hand at the default rate → the humaniser expresses it as weeks.
         val text = attentionMessages(listOf(supply(brand = "Tensig", inHandDays = 10, fills = 3, totalDays = 300)))
             .single { it.kind == AttentionKind.LOW_IN_HAND_PRESCRIPTION_MEDICATION_WITH_SCRIPTS }.text
-        assertEquals("You have only 1.4 weeks of Tensig in hand — get a script filled.", text)
+        assertEquals("You have only 1.4 weeks of Tensig in hand.\nGet a script filled.", text)
     }
 
     @Test

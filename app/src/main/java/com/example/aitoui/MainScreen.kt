@@ -355,11 +355,11 @@ private fun MainScreenWithMessagesPreview() {
                 messages = listOf(
                     AttentionMessage(
                         AttentionKind.NO_SCRIPTS_FOR_PRESCRIPTION_MEDICATION,
-                        "You have no scripts for Lipitor left — go to doctor for new scripts.",
+                        "You have no scripts for Lipitor left.\nGo to doctor for new scripts.",
                     ),
                     AttentionMessage(
                         AttentionKind.LOW_IN_HAND_PRESCRIPTION_MEDICATION_WITH_SCRIPTS,
-                        "You have only 1.4 weeks of Cartia in hand — get a script filled.",
+                        "You have only 1.4 weeks of Cartia in hand.\nGet a script filled.",
                     ),
                 ),
             ),
