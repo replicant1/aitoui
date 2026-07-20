@@ -356,7 +356,7 @@ private fun MainScreenWithMessagesPreview() {
                     AttentionMessage(AttentionKind.NO_SCRIPTS, "You have no scripts for Lipitor left."),
                     AttentionMessage(
                         AttentionKind.LOW_IN_HAND_HAS_SCRIPTS,
-                        "You're about to run out of Cartia in hand — get a script dispensed.",
+                        "You have only 1.4 weeks of Cartia in hand.",
                     ),
                 ),
             ),

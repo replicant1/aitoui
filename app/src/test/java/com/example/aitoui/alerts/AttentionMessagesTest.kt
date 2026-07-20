@@ -35,12 +35,20 @@ class AttentionMessagesTest {
     }
 
     @Test
-    fun `low in hand while scripts remain nudges to get one dispensed`() {
-        // Plenty of total supply (lots of scripts), but only 10 days in hand.
-        assertEquals(
-            listOf(AttentionKind.LOW_IN_HAND_HAS_SCRIPTS),
-            kinds(supply(inHandDays = 10, fills = 5, totalDays = 300)),
-        )
+    fun `low in hand while scripts remain reports the in-hand time remaining`() {
+        // Plenty of total supply (lots of scripts), but only 5 days in hand.
+        val messages = attentionMessages(listOf(supply(brand = "Cartia", inHandDays = 5, fills = 5, totalDays = 300)))
+        assertEquals(listOf(AttentionKind.LOW_IN_HAND_HAS_SCRIPTS), messages.map { it.kind })
+        // The time remaining uses the Inventory screen's humaniser (5 days → "5 days").
+        assertEquals("You have only 5 days of Cartia in hand.", messages.single().text)
+    }
+
+    @Test
+    fun `the in-hand time is humanised into weeks like the Inventory screen`() {
+        // 10 days in hand at the default rate → the humaniser expresses it as weeks.
+        val text = attentionMessages(listOf(supply(brand = "Tensig", inHandDays = 10, fills = 3, totalDays = 300)))
+            .single { it.kind == AttentionKind.LOW_IN_HAND_HAS_SCRIPTS }.text
+        assertEquals("You have only 1.4 weeks of Tensig in hand.", text)
     }
 
     @Test

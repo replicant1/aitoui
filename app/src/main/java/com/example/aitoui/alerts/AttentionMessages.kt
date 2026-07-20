@@ -111,7 +111,7 @@ fun attentionMessages(
         if (s.inHandDays <= warningDays && s.undispensedFills > 0) {
             messages += AttentionMessage(
                 AttentionKind.LOW_IN_HAND_HAS_SCRIPTS,
-                "You're about to run out of ${s.brandName} in hand — get a script dispensed.",
+                "You have only ${humanizeDuration(s.inHandDays)} of ${s.brandName} in hand.",
             )
         }
     }
