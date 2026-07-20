@@ -105,7 +105,7 @@ fun attentionMessages(
         if (s.undispensedFills == 0 && s.requiresPrescription) {
             messages += AttentionMessage(
                 AttentionKind.NO_SCRIPTS,
-                "You have no scripts for ${s.brandName} left.",
+                "You have no scripts for ${s.brandName} left — go to doctor for new scripts.",
             )
         }
         if (s.totalDays < warningDays) {
