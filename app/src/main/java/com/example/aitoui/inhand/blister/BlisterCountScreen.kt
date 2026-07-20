@@ -413,10 +413,8 @@ private fun FrameEditorView(
     var rotStartAngle by remember { mutableFloatStateOf(0f) }
 
     Column(modifier = Modifier.fillMaxSize().safeDrawingPadding().padding(16.dp)) {
-        Header(
-            title = "Frame the packs",
-            trailing = "${state.frames.size} pack${if (state.frames.size == 1) "" else "s"}",
-        )
+        // No pack count here — each pack now carries its own number, which makes the total obvious.
+        Header(title = "Frame the packs", trailing = null)
         Box(
             modifier = Modifier.weight(1f).fillMaxWidth().padding(vertical = 12.dp),
             contentAlignment = Alignment.Center,
