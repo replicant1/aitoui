@@ -152,5 +152,29 @@ fun PackRegion.toFrameBox(): FrameBox {
 fun centeredFrame(imageWidth: Int, imageHeight: Int, halfW: Float, halfH: Float): FrameBox =
     FrameBox(imageWidth / 2f, imageHeight / 2f, halfW, halfH, 0f)
 
+/**
+ * The order the framed packs should be numbered and popped in: row-major — top rows first, then left-to-right
+ * within a row. Boxes whose centres sit within a (median) pack half-height of each other count as one row, so
+ * a slightly uneven row still reads left-to-right rather than zig-zagging; well-separated rows fall through to
+ * an approximately top-to-bottom, clockwise-ish order. Returns the frame indices in that order (empty in,
+ * empty out).
+ */
+fun rowMajorOrder(boxes: List<FrameBox>): List<Int> {
+    if (boxes.isEmpty()) return emptyList()
+    // Rotation-aware vertical half-extent: how far the box reaches above/below its centre on screen.
+    fun verticalHalf(b: FrameBox): Float =
+        abs(b.halfW * sin(b.angleRad.toDouble()).toFloat()) + abs(b.halfH * cos(b.angleRad.toDouble()).toFloat())
+
+    val band = boxes.map { verticalHalf(it) }.sorted().let { it[it.size / 2] } // median → the row-grouping tolerance
+    val topToBottom = boxes.indices.sortedBy { boxes[it].cy }
+    val rows = mutableListOf<MutableList<Int>>()
+    for (i in topToBottom) {
+        val row = rows.lastOrNull()
+        if (row == null || boxes[i].cy - boxes[row.first()].cy > band) rows.add(mutableListOf(i))
+        else row.add(i)
+    }
+    return rows.flatMap { row -> row.sortedBy { boxes[it].cx } }
+}
+
 private fun dist(ax: Float, ay: Float, bx: Float, by: Float): Float =
     hypot((ax - bx).toDouble(), (ay - by).toDouble()).toFloat()

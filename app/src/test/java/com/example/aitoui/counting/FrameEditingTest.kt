@@ -120,4 +120,40 @@ class FrameEditingTest {
         assertClose(150f, box.halfW) // long axis becomes width
         assertClose(40f, box.halfH)
     }
+
+    // --- Row-major pack ordering ---
+
+    /** A tall, portrait pack (long axis vertical) centred at ([cx], [cy]). */
+    private fun pack(cx: Float, cy: Float) = FrameBox(cx, cy, halfW = 30f, halfH = 100f, angleRad = 0f)
+
+    @Test
+    fun `empty input yields empty order`() {
+        assertEquals(emptyList<Int>(), rowMajorOrder(emptyList()))
+    }
+
+    @Test
+    fun `a single row of packs is ordered left to right`() {
+        // Three side-by-side packs at roughly the same height, given out of order.
+        val boxes = listOf(pack(400f, 100f), pack(100f, 110f), pack(250f, 95f))
+        assertEquals(listOf(1, 2, 0), rowMajorOrder(boxes)) // x = 100, 250, 400
+    }
+
+    @Test
+    fun `stacked rows go top-to-bottom, left-to-right within each row`() {
+        // Two rows of two. Row 1 near y=100, row 2 near y=500 (well past the ~100px half-height band).
+        val topLeft = pack(100f, 100f)
+        val topRight = pack(300f, 90f)
+        val bottomLeft = pack(120f, 500f)
+        val bottomRight = pack(310f, 510f)
+        val boxes = listOf(bottomRight, topLeft, bottomLeft, topRight) // shuffled
+        // Expected visual order: topLeft, topRight, bottomLeft, bottomRight → their indices 1, 3, 2, 0.
+        assertEquals(listOf(1, 3, 2, 0), rowMajorOrder(boxes))
+    }
+
+    @Test
+    fun `slight vertical jitter within a row does not split it`() {
+        // Centres differ in y by less than half a pack-height (200px tall → ~100px band): still one row.
+        val boxes = listOf(pack(100f, 100f), pack(300f, 150f), pack(500f, 80f))
+        assertEquals(listOf(0, 1, 2), rowMajorOrder(boxes)) // stays left-to-right, not reordered by y
+    }
 }

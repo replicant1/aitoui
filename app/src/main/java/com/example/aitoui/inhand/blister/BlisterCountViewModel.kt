@@ -13,6 +13,7 @@ import com.example.aitoui.counting.PackRegion
 import com.example.aitoui.counting.centeredFrame
 import com.example.aitoui.counting.movedBy
 import com.example.aitoui.counting.resizedByCorner
+import com.example.aitoui.counting.rowMajorOrder
 import com.example.aitoui.counting.segmentPacks
 import com.example.aitoui.counting.tapToCell
 import com.example.aitoui.counting.toFrameBox
@@ -156,12 +157,16 @@ class BlisterCountViewModel : ViewModel() {
         }
     }
 
-    /** Turn the framed rectangles into packs and move on to setting the shared format. */
+    /**
+     * Turn the framed rectangles into packs and move on to setting the shared format. Packs are ordered
+     * row-major (see [rowMajorOrder]) so the number shown on each pack in the framing step is the order it's
+     * popped in.
+     */
     fun confirmFrames() {
         _state.update { s ->
             if (s.frames.isEmpty()) return@update s
             s.copy(
-                packs = s.frames.map { PackState(region = it.toPackRegion()) },
+                packs = rowMajorOrder(s.frames).map { PackState(region = s.frames[it].toPackRegion()) },
                 currentPackIndex = 0,
                 phase = BlisterPhase.FORMAT,
             )
