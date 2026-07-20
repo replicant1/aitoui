@@ -5,4 +5,6 @@ data class Medication(
     val id: Long = 0,
     val brandName: String,
     val activeIngredient: String,
+    /** Whether the medication needs a prescription to obtain. */
+    val requiresPrescription: Boolean = true,
 )

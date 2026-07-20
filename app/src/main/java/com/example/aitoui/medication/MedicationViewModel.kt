@@ -18,16 +18,20 @@ import kotlinx.coroutines.launch
 data class MedicationState(
     val brandName: String = "",
     val activeIngredient: String = "",
+    /** Whether the medication needs a prescription. Defaults to true (the common case). */
+    val requiresPrescription: Boolean = true,
 ) {
     val canSave: Boolean get() = brandName.isNotBlank() && activeIngredient.isNotBlank()
 
-    /** True once anything has been typed into this blank entry form. */
-    val hasUnsavedChanges: Boolean get() = brandName.isNotBlank() || activeIngredient.isNotBlank()
+    /** True once anything has been typed into, or a default changed on, this blank entry form. */
+    val hasUnsavedChanges: Boolean
+        get() = brandName.isNotBlank() || activeIngredient.isNotBlank() || !requiresPrescription
 }
 
 sealed interface MedicationAction {
     data class BrandNameChanged(val value: String) : MedicationAction
     data class ActiveIngredientChanged(val value: String) : MedicationAction
+    data class RequiresPrescriptionChanged(val value: Boolean) : MedicationAction
     data object Save : MedicationAction
 }
 
@@ -52,6 +56,9 @@ class MedicationViewModel(
             is MedicationAction.ActiveIngredientChanged ->
                 _state.update { it.copy(activeIngredient = action.value) }
 
+            is MedicationAction.RequiresPrescriptionChanged ->
+                _state.update { it.copy(requiresPrescription = action.value) }
+
             MedicationAction.Save -> save()
         }
     }
@@ -64,6 +71,7 @@ class MedicationViewModel(
                 Medication(
                     brandName = current.brandName.trim(),
                     activeIngredient = current.activeIngredient.trim(),
+                    requiresPrescription = current.requiresPrescription,
                 )
             )
             _state.value = MedicationState()   // clear the form for the next entry

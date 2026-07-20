@@ -16,4 +16,14 @@ class MedicationStateTest {
         assertTrue(MedicationState(brandName = "Panadol").hasUnsavedChanges)
         assertTrue(MedicationState(activeIngredient = "Paracetamol").hasUnsavedChanges)
     }
+
+    @Test
+    fun `requires-prescription defaults to true`() {
+        assertTrue(MedicationState().requiresPrescription)
+    }
+
+    @Test
+    fun `turning off requires-prescription is an unsaved change`() {
+        assertTrue(MedicationState(requiresPrescription = false).hasUnsavedChanges)
+    }
 }
