@@ -3,16 +3,23 @@ package com.example.aitoui.alerts
 import com.example.aitoui.data.DispensableUnitDetails
 import com.example.aitoui.data.ScriptDetails
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MedicationSuppliesTest {
 
-    private fun unit(medId: Long, formatId: Long, tabletsPerUnit: String, brand: String = "Brand$medId") =
-        DispensableUnitDetails(
-            formatId = formatId, medicationId = medId, brandName = brand, activeIngredient = "Active",
-            dosePerTablet = "10", tabletsPerUnit = tabletsPerUnit, imagePath = null,
-        )
+    private fun unit(
+        medId: Long,
+        formatId: Long,
+        tabletsPerUnit: String,
+        brand: String = "Brand$medId",
+        requiresPrescription: Boolean = true,
+    ) = DispensableUnitDetails(
+        formatId = formatId, medicationId = medId, brandName = brand, activeIngredient = "Active",
+        dosePerTablet = "10", tabletsPerUnit = tabletsPerUnit, imagePath = null,
+        requiresPrescription = requiresPrescription,
+    )
 
     private fun script(medId: Long, formatId: Long, tabletsPerUnit: String, repeats: Int, dispensed: Int) =
         ScriptDetails(
@@ -35,6 +42,19 @@ class MedicationSuppliesTest {
         assertEquals(10, s.inHandDays)        // 10 tablets / 1 per day
         assertEquals(3, s.undispensedFills)   // repeats + 1 - dispensed
         assertEquals(100, s.totalDays)        // 10 in hand + (3 * 30) undispensed
+        assertTrue(s.requiresPrescription)    // carried through from the unit's medication
+    }
+
+    @Test
+    fun `carries the medication's requiresPrescription flag through`() {
+        val supplies = medicationSupplies(
+            units = listOf(unit(medId = 1, formatId = 10, tabletsPerUnit = "30", requiresPrescription = false)),
+            scripts = emptyList(),
+            dailyByMedication = mapOf(1L to 1.0),
+            inHandByMedication = mapOf(1L to 30.0),
+            daysSinceGathered = 0.0,
+        )
+        assertFalse(supplies.single().requiresPrescription)
     }
 
     @Test

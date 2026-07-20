@@ -10,7 +10,7 @@ const val DEFAULT_WARNING_DAYS = 14
 
 /** The kinds of attention message, so the UI can pick an icon and tests can assert precisely. */
 enum class AttentionKind {
-    /** Taking the medication, but no undispensed script repeats remain. */
+    /** Taking a prescription medication, but no undispensed script repeats remain. */
     NO_SCRIPTS,
 
     /** Less than the warning window of total supply (in hand + undispensed scripts) remains. */
@@ -35,6 +35,8 @@ data class MedicationSupply(
     val undispensedFills: Int,
     /** Whole days before running out counting both in hand and undispensed scripts. */
     val totalDays: Int,
+    /** Whether the medication needs a prescription; script-availability messages only apply when true. */
+    val requiresPrescription: Boolean = true,
 )
 
 /**
@@ -52,6 +54,7 @@ fun medicationSupplies(
     daysSinceGathered: Double,
 ): List<MedicationSupply> {
     val brandByMedication = units.associate { it.medicationId to it.brandName }
+    val rxByMedication = units.associate { it.medicationId to it.requiresPrescription }
     val scriptsByMedication = scripts.groupBy { it.medicationId }
 
     val result = mutableListOf<MedicationSupply>()
@@ -76,6 +79,7 @@ fun medicationSupplies(
             inHandDays = inHandDays,
             undispensedFills = undispensedFills,
             totalDays = inHandDays + undispensedDays,
+            requiresPrescription = rxByMedication[medicationId] ?: true,
         )
     }
     return result
@@ -96,7 +100,9 @@ fun attentionMessages(
     val window = humanizeDuration(warningDays)
     val messages = mutableListOf<AttentionMessage>()
     for (s in supplies.sortedBy { it.brandName.lowercase() }) {
-        if (s.undispensedFills == 0) {
+        // Only prescription medications can have scripts, so the "no scripts left" nudge is meaningless
+        // for over-the-counter ones.
+        if (s.undispensedFills == 0 && s.requiresPrescription) {
             messages += AttentionMessage(
                 AttentionKind.NO_SCRIPTS,
                 "You have no scripts for ${s.brandName} left.",

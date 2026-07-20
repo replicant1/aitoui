@@ -11,6 +11,7 @@ class AttentionMessagesTest {
         inHandDays: Int = 100,
         fills: Int = 2,
         totalDays: Int = 100,
+        requiresPrescription: Boolean = true,
     ) = MedicationSupply(
         medicationId = 1,
         brandName = brand,
@@ -18,6 +19,7 @@ class AttentionMessagesTest {
         inHandDays = inHandDays,
         undispensedFills = fills,
         totalDays = totalDays,
+        requiresPrescription = requiresPrescription,
     )
 
     private fun kinds(vararg s: MedicationSupply) = attentionMessages(s.toList()).map { it.kind }
@@ -28,10 +30,28 @@ class AttentionMessagesTest {
     }
 
     @Test
-    fun `no undispensed scripts raises the no-scripts message`() {
+    fun `no undispensed scripts raises the no-scripts message for a prescription medication`() {
         val messages = attentionMessages(listOf(supply(brand = "Lipitor", inHandDays = 100, fills = 0, totalDays = 100)))
         assertEquals(listOf(AttentionKind.NO_SCRIPTS), messages.map { it.kind })
         assertTrue(messages.single().text.contains("Lipitor"))
+    }
+
+    @Test
+    fun `a non-prescription medication never raises the no-scripts message`() {
+        // Over-the-counter medication with no scripts and plenty of stock → no message at all.
+        assertTrue(
+            attentionMessages(
+                listOf(supply(brand = "Cartia", inHandDays = 100, fills = 0, totalDays = 100, requiresPrescription = false)),
+            ).isEmpty(),
+        )
+    }
+
+    @Test
+    fun `a non-prescription medication still raises supply messages`() {
+        // The prescription guard only affects "no scripts" — low-supply warnings still apply.
+        val ks = kinds(supply(brand = "Cartia", inHandDays = 3, fills = 0, totalDays = 3, requiresPrescription = false))
+        assertTrue(AttentionKind.NO_SCRIPTS !in ks)
+        assertTrue(AttentionKind.LOW_TOTAL_SUPPLY in ks)
     }
 
     @Test
