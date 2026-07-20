@@ -312,12 +312,24 @@ fun InHandScreen(
                 }
             }
 
-            Button(
-                onClick = { onAction(InHandAction.Delete) },
-                enabled = state.canDelete,
-                modifier = Modifier.width(actionButtonWidth),
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Text("DELETE")
+                Button(
+                    onClick = { onAction(InHandAction.Delete) },
+                    enabled = state.canDelete,
+                    modifier = Modifier.width(actionButtonWidth),
+                ) {
+                    Text("DELETE")
+                }
+                Button(
+                    onClick = { onAction(InHandAction.Merge) },
+                    enabled = state.canMerge,
+                    modifier = Modifier.width(actionButtonWidth),
+                ) {
+                    Text("MERGE")
+                }
             }
         }
     }
