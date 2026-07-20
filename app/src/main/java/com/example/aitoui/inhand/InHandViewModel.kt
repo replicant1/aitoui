@@ -44,6 +44,8 @@ data class InHandState(
     val selectedId: Long? = null,
     /** When the persisted in-hand figures were gathered (UTC start-of-day millis), or null if never saved. */
     val gatheredDate: Long? = null,
+    /** Sorted signature of the list as last persisted, to detect unsaved add/deletes. See [hasUnsavedChanges]. */
+    val savedSignature: List<String> = emptyList(),
 ) {
     val selectedMedicationName: String
         get() = medications.firstOrNull { it.id == selectedMedicationId }?.brandName ?: ""
@@ -51,7 +53,14 @@ data class InHandState(
     val canAdd: Boolean
         get() = selectedMedicationId != null && (numberOfTablets.toDoubleOrNull() ?: 0.0) > 0.0
     val canDelete: Boolean get() = selectedId != null
+
+    /** True when rows have been added or removed since the list was last loaded/saved (staging fields ignored). */
+    val hasUnsavedChanges: Boolean get() = listSignature(tabletsInHand) != savedSignature
 }
+
+/** Order-independent signature of a saved list: one "medicationId:number" per row, sorted. */
+internal fun listSignature(rows: List<InHandEntry>): List<String> =
+    rows.map { "${it.medicationId}:${it.number}" }.sorted()
 
 /** User intents emitted by the In Hand screen. */
 sealed interface InHandAction {
@@ -87,16 +96,15 @@ class InHandViewModel(
         viewModelScope.launch {
             val saved = inHandRepository.getAll()
             _state.update { current ->
-                current.copy(
-                    tabletsInHand = saved.map { item ->
-                        InHandEntry(
-                            id = nextId++,
-                            medicationId = item.medicationId,
-                            brand = item.brandName,
-                            number = item.quantity.formatQuantity(),
-                        )
-                    },
-                )
+                val loaded = saved.map { item ->
+                    InHandEntry(
+                        id = nextId++,
+                        medicationId = item.medicationId,
+                        brand = item.brandName,
+                        number = item.quantity.formatQuantity(),
+                    )
+                }
+                current.copy(tabletsInHand = loaded, savedSignature = listSignature(loaded))
             }
         }
 

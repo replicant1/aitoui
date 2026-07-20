@@ -38,6 +38,8 @@ data class DailyScheduleState(
     val numberOfTablets: String = "",
     val tabletsTaken: List<DailyScheduleEntry> = emptyList(),
     val selectedId: Long? = null,
+    /** Sorted signature of the list as last persisted, to detect unsaved add/deletes. See [hasUnsavedChanges]. */
+    val savedSignature: List<String> = emptyList(),
 ) {
     val selectedUnit: DispensableUnitDetails?
         get() = units.firstOrNull { it.formatId == selectedUnitId }
@@ -49,7 +51,14 @@ data class DailyScheduleState(
     val canAdd: Boolean
         get() = selectedUnit != null && (numberOfTablets.toDoubleOrNull() ?: 0.0) > 0.0
     val canDelete: Boolean get() = selectedId != null
+
+    /** True when rows have been added or removed since the list was last loaded/saved (staging fields ignored). */
+    val hasUnsavedChanges: Boolean get() = scheduleSignature(tabletsTaken) != savedSignature
 }
+
+/** Order-independent signature of a saved list: one "medicationId:number" per row, sorted. */
+internal fun scheduleSignature(rows: List<DailyScheduleEntry>): List<String> =
+    rows.map { "${it.medicationId}:${it.number}" }.sorted()
 
 /** User intents emitted by the Daily Schedule screen. */
 sealed interface DailyScheduleAction {
@@ -82,16 +91,15 @@ class DailyScheduleViewModel(
         viewModelScope.launch {
             val saved = dailyScheduleRepository.getAll()
             _state.update { current ->
-                current.copy(
-                    tabletsTaken = saved.map { item ->
-                        DailyScheduleEntry(
-                            id = nextId++,
-                            medicationId = item.medicationId,
-                            brand = item.brandName,
-                            number = item.quantity.formatQuantity(),
-                        )
-                    },
-                )
+                val loaded = saved.map { item ->
+                    DailyScheduleEntry(
+                        id = nextId++,
+                        medicationId = item.medicationId,
+                        brand = item.brandName,
+                        number = item.quantity.formatQuantity(),
+                    )
+                }
+                current.copy(tabletsTaken = loaded, savedSignature = scheduleSignature(loaded))
             }
         }
 
