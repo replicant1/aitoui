@@ -10,8 +10,6 @@ import com.example.aitoui.data.DispensableUnitDetails
 import com.example.aitoui.data.DispensableUnitRepository
 import com.example.aitoui.data.InHandItem
 import com.example.aitoui.data.InHandRepository
-import com.example.aitoui.data.Medication
-import com.example.aitoui.data.MedicationRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,10 +20,10 @@ import kotlinx.coroutines.launch
 import java.util.Calendar
 import java.util.TimeZone
 
-/** A single row in the in-hand list. */
+/** A single row in the in-hand list: [number] tablets of a specific dispensable unit (dose/format). */
 data class InHandEntry(
     val id: Long,
-    val medicationId: Long,
+    val dispensableUnitId: Long,
     val brand: String,
     val number: String,
 ) {
@@ -35,10 +33,10 @@ data class InHandEntry(
 
 /** Screen state for the In Hand screen. */
 data class InHandState(
-    val medications: List<Medication> = emptyList(),
-    /** Dispensable units keyed by medication, used to show each list row's photo and dose. */
+    /** Dispensable units offered in the dropdown, each with its photo, dose and brand. */
     val units: List<DispensableUnitDetails> = emptyList(),
-    val selectedMedicationId: Long? = null,
+    /** The chosen unit's formatId, if any. */
+    val selectedUnitId: Long? = null,
     val numberOfTablets: String = "",
     val tabletsInHand: List<InHandEntry> = emptyList(),
     val selectedId: Long? = null,
@@ -47,34 +45,35 @@ data class InHandState(
     /** Sorted signature of the list as last persisted, to detect unsaved add/deletes. See [hasUnsavedChanges]. */
     val savedSignature: List<String> = emptyList(),
 ) {
-    val selectedMedicationName: String
-        get() = medications.firstOrNull { it.id == selectedMedicationId }?.brandName ?: ""
+    val selectedUnit: DispensableUnitDetails?
+        get() = units.firstOrNull { it.formatId == selectedUnitId }
+
+    /** Text shown in the closed dropdown, e.g. "Panadol (500mg)". */
+    val selectedUnitLabel: String get() = selectedUnit?.label ?: ""
 
     val canAdd: Boolean
-        get() = selectedMedicationId != null && (numberOfTablets.toDoubleOrNull() ?: 0.0) > 0.0
+        get() = selectedUnit != null && (numberOfTablets.toDoubleOrNull() ?: 0.0) > 0.0
     val canDelete: Boolean get() = selectedId != null
 
-    /** True when a medication appears in more than one row, so merging would collapse them. */
+    /** True when a dispensable unit appears in more than one row, so merging would collapse them. */
     val canMerge: Boolean
-        get() = tabletsInHand.groupingBy { it.medicationId }.eachCount().any { it.value > 1 }
+        get() = tabletsInHand.groupingBy { it.dispensableUnitId }.eachCount().any { it.value > 1 }
 
     /** True when rows have been added, removed or merged since the list was last loaded/saved. */
     val hasUnsavedChanges: Boolean get() = listSignature(tabletsInHand) != savedSignature
 }
 
-/** Order-independent signature of a saved list: one "medicationId:number" per row, sorted. */
+/** Order-independent signature of a saved list: one "dispensableUnitId:number" per row, sorted. */
 internal fun listSignature(rows: List<InHandEntry>): List<String> =
-    rows.map { "${it.medicationId}:${it.number}" }.sorted()
+    rows.map { "${it.dispensableUnitId}:${it.number}" }.sorted()
 
 /**
- * Collapses in-hand rows for the same medication into a single row, summing their quantities. Dose per
- * tablet is a function of the medication (it comes from the medication's dispensable unit), so grouping by
- * medication is equivalent to grouping by medication and dose. First-appearance order is preserved, and each
- * merged row keeps the first grouped row's id and brand.
+ * Collapses in-hand rows for the same dispensable unit into a single row, summing their quantities.
+ * First-appearance order is preserved, and each merged row keeps the first grouped row's id and brand.
  */
 internal fun collateInHand(rows: List<InHandEntry>): List<InHandEntry> {
     val groups = LinkedHashMap<Long, MutableList<InHandEntry>>()
-    for (row in rows) groups.getOrPut(row.medicationId) { mutableListOf() }.add(row)
+    for (row in rows) groups.getOrPut(row.dispensableUnitId) { mutableListOf() }.add(row)
     return groups.values.map { group ->
         val total = group.sumOf { it.number.toDoubleOrNull() ?: 0.0 }
         group.first().copy(number = total.formatQuantity())
@@ -87,20 +86,19 @@ internal fun Double.formatQuantity(): String =
 
 /** User intents emitted by the In Hand screen. */
 sealed interface InHandAction {
-    data class MedicationSelected(val id: Long) : InHandAction
+    data class UnitSelected(val formatId: Long) : InHandAction
     data class NumberOfTabletsChanged(val value: String) : InHandAction
     /** A camera-counted tablet total, dropped into the "Number of tablets" field for the user to ADD. */
     data class TabletsCounted(val count: Int) : InHandAction
     data object Add : InHandAction
     data class RowSelected(val id: Long) : InHandAction
     data object Delete : InHandAction
-    /** Collapse rows for the same medication into one, summing their quantities. */
+    /** Collapse rows for the same dispensable unit into one, summing their quantities. */
     data object Merge : InHandAction
     data object Save : InHandAction
 }
 
 class InHandViewModel(
-    medicationRepository: MedicationRepository,
     dispensableUnitRepository: DispensableUnitRepository,
     private val inHandRepository: InHandRepository,
 ) : ViewModel() {
@@ -124,7 +122,7 @@ class InHandViewModel(
                 val loaded = saved.map { item ->
                     InHandEntry(
                         id = nextId++,
-                        medicationId = item.medicationId,
+                        dispensableUnitId = item.dispensableUnitId,
                         brand = item.brandName,
                         number = item.quantity.formatQuantity(),
                     )
@@ -133,21 +131,14 @@ class InHandViewModel(
             }
         }
 
-        medicationRepository.medications
-            .onEach { meds ->
+        // Dispensable units offered in the dropdown (with photo/dose); drop a selection whose unit is gone.
+        dispensableUnitRepository.formatsWithMedication
+            .onEach { units ->
                 _state.update { current ->
-                    val stillExists = meds.any { it.id == current.selectedMedicationId }
-                    current.copy(
-                        medications = meds,
-                        selectedMedicationId = current.selectedMedicationId.takeIf { stillExists },
-                    )
+                    val stillExists = units.any { it.formatId == current.selectedUnitId }
+                    current.copy(units = units, selectedUnitId = current.selectedUnitId.takeIf { stillExists })
                 }
             }
-            .launchIn(viewModelScope)
-
-        // Keep the dispensable units on hand so each list row can show its photo and dose.
-        dispensableUnitRepository.formatsWithMedication
-            .onEach { units -> _state.update { it.copy(units = units) } }
             .launchIn(viewModelScope)
 
         // Track the date the persisted figures were gathered, for the list title.
@@ -158,8 +149,8 @@ class InHandViewModel(
 
     fun onAction(action: InHandAction) {
         when (action) {
-            is InHandAction.MedicationSelected ->
-                _state.update { it.copy(selectedMedicationId = action.id) }
+            is InHandAction.UnitSelected ->
+                _state.update { it.copy(selectedUnitId = action.formatId) }
 
             is InHandAction.NumberOfTabletsChanged ->
                 _state.update { it.copy(numberOfTablets = action.value.decimalOnly()) }
@@ -169,17 +160,16 @@ class InHandViewModel(
 
             InHandAction.Add -> _state.update { current ->
                 if (!current.canAdd) return@update current
-                val medication = current.medications.firstOrNull { it.id == current.selectedMedicationId }
-                    ?: return@update current
+                val unit = current.selectedUnit ?: return@update current
                 val entry = InHandEntry(
                     id = nextId++,
-                    medicationId = medication.id,
-                    brand = medication.brandName,
+                    dispensableUnitId = unit.formatId,
+                    brand = unit.brandName,
                     number = current.numberOfTablets,
                 )
                 // Append the new row and clear the inputs.
                 current.copy(
-                    selectedMedicationId = null,
+                    selectedUnitId = null,
                     numberOfTablets = "",
                     tabletsInHand = current.tabletsInHand + entry,
                 )
@@ -211,7 +201,7 @@ class InHandViewModel(
     private fun save() {
         val items = _state.value.tabletsInHand.mapNotNull { entry ->
             val quantity = entry.number.toDoubleOrNull() ?: return@mapNotNull null
-            InHandItem(medicationId = entry.medicationId, quantity = quantity)
+            InHandItem(dispensableUnitId = entry.dispensableUnitId, quantity = quantity)
         }
         viewModelScope.launch {
             inHandRepository.save(items, todayStartOfDayUtcMillis())
@@ -242,11 +232,7 @@ class InHandViewModel(
         val Factory = viewModelFactory {
             initializer {
                 val app = this[APPLICATION_KEY] as AitouiApp
-                InHandViewModel(
-                    app.medicationRepository,
-                    app.dispensableUnitRepository,
-                    app.inHandRepository,
-                )
+                InHandViewModel(app.dispensableUnitRepository, app.inHandRepository)
             }
         }
     }

@@ -151,8 +151,8 @@ object DatabaseSeeder {
         // Seed the tablets currently in hand, per medication, gathered "today".
         inHandRepository.save(
             IN_HAND.mapNotNull { seed ->
-                val medicationId = medicationIdByBrand[seed.brand] ?: return@mapNotNull null
-                InHandItem(medicationId = medicationId, quantity = seed.quantity)
+                val unitId = unitIdByBrand[seed.brand] ?: return@mapNotNull null
+                InHandItem(dispensableUnitId = unitId, quantity = seed.quantity)
             },
             gatheredAtMillis = nowMillis,
         )
