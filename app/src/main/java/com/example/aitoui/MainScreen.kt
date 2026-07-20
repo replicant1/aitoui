@@ -359,7 +359,7 @@ private fun MainScreenWithMessagesPreview() {
                     ),
                     AttentionMessage(
                         AttentionKind.LOW_IN_HAND_PRESCRIPTION_MEDICATION_WITH_SCRIPTS,
-                        "You have only 1.4 weeks of Cartia in hand.",
+                        "You have only 1.4 weeks of Cartia in hand — get a script filled.",
                     ),
                 ),
             ),

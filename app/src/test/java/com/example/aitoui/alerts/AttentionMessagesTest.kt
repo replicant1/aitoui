@@ -67,7 +67,7 @@ class AttentionMessagesTest {
         val messages = attentionMessages(listOf(supply(brand = "Cartia", inHandDays = 5, fills = 5, totalDays = 300)))
         assertEquals(listOf(AttentionKind.LOW_IN_HAND_PRESCRIPTION_MEDICATION_WITH_SCRIPTS), messages.map { it.kind })
         // The time remaining uses the Inventory screen's humaniser (5 days → "5 days").
-        assertEquals("You have only 5 days of Cartia in hand.", messages.single().text)
+        assertEquals("You have only 5 days of Cartia in hand — get a script filled.", messages.single().text)
     }
 
     @Test
@@ -75,7 +75,7 @@ class AttentionMessagesTest {
         // 10 days in hand at the default rate → the humaniser expresses it as weeks.
         val text = attentionMessages(listOf(supply(brand = "Tensig", inHandDays = 10, fills = 3, totalDays = 300)))
             .single { it.kind == AttentionKind.LOW_IN_HAND_PRESCRIPTION_MEDICATION_WITH_SCRIPTS }.text
-        assertEquals("You have only 1.4 weeks of Tensig in hand.", text)
+        assertEquals("You have only 1.4 weeks of Tensig in hand — get a script filled.", text)
     }
 
     @Test

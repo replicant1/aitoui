@@ -120,7 +120,7 @@ fun attentionMessages(
         if (s.inHandDays <= warningDays && s.undispensedFills > 0 && s.requiresPrescription) {
             messages += AttentionMessage(
                 AttentionKind.LOW_IN_HAND_PRESCRIPTION_MEDICATION_WITH_SCRIPTS,
-                "You have only ${humanizeDuration(s.inHandDays)} of ${s.brandName} in hand.",
+                "You have only ${humanizeDuration(s.inHandDays)} of ${s.brandName} in hand — get a script filled.",
             )
         }
     }
