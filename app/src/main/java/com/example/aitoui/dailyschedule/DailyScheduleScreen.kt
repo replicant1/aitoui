@@ -148,9 +148,9 @@ fun DailyScheduleScreen(
                 AppTextField(
                     value = state.selectedMedicationName,
                     onValueChange = {},
-                    label = "Medication",
+                    label = "Dispensable Unit",
                     readOnly = true,
-                    placeholder = "Select a medication",
+                    placeholder = "Select a dispensable unit",
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = medicationExpanded) },
                     supportingText = if (state.units.isEmpty()) {
                         "No dispensable units yet — add one first"
