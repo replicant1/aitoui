@@ -117,25 +117,25 @@ fun attentionMessages(
         if (s.undispensedFills == 0 && s.requiresPrescription) {
             messages += AttentionMessage(
                 AttentionKind.NO_SCRIPTS_FOR_PRESCRIPTION_MEDICATION,
-                "You have no scripts for ${s.brandName} left — go to doctor for new scripts.",
+                "You have no scripts for ${s.brandName} left.\nGo to doctor for new scripts.",
             )
         }
         if (s.inHandDays <= warningDays && s.undispensedFills > 0 && s.requiresPrescription) {
             messages += AttentionMessage(
                 AttentionKind.LOW_IN_HAND_PRESCRIPTION_MEDICATION_WITH_SCRIPTS,
-                "You have only ${humanizeDuration(s.inHandDays)} of ${s.brandName} in hand — get a script filled.",
+                "You have only ${humanizeDuration(s.inHandDays)} of ${s.brandName} in hand.\nGet a script filled.",
             )
         }
         if (s.totalDays < warningDays && s.requiresPrescription && s.undispensedFills == 0) {
             messages += AttentionMessage(
                 AttentionKind.LOW_IN_HAND_PRESCRIPTION_MEDICATION_WITHOUT_SCRIPTS,
-                "Less than $window of ${s.brandName} left with no scripts remaining — go to doctor for new scripts.",
+                "Less than $window of ${s.brandName} left with no scripts remaining.\nGo to doctor for new scripts.",
             )
         }
         if (!s.requiresPrescription && s.inHandDays < warningDays) {
             messages += AttentionMessage(
                 AttentionKind.LOW_IN_HAND_NON_PRESCRIPTION_MEDICATION,
-                "Less than $window of ${s.brandName} left — get more from chemist.",
+                "Less than $window of ${s.brandName} left.\nGet more from chemist.",
             )
         }
     }
