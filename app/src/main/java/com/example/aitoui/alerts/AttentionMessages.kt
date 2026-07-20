@@ -21,6 +21,12 @@ enum class AttentionKind {
      * available to dispense.
      */
     LOW_IN_HAND_PRESCRIPTION_MEDICATION_WITH_SCRIPTS,
+
+    /**
+     * A prescription medication with less than the warning window of total supply (in hand + scripts) and no
+     * undispensed scripts left to fall back on — a new prescription is needed.
+     */
+    LOW_IN_HAND_PRESCRIPTION_MEDICATION_WITHOUT_SCRIPTS,
 }
 
 /** One attention message shown on the main screen: a [kind] (drives the icon) and ready-to-show [text]. */
@@ -93,8 +99,8 @@ fun medicationSupplies(
  * medications being taken are considered (they're the only ones in [supplies]). [warningDays] is the
  * "running low" window (default [DEFAULT_WARNING_DAYS]).
  *
- * The three rules are independent, so a single medication can raise more than one message (e.g. no scripts
- * *and* less than two weeks left). Add new rules here as more message types are defined.
+ * The rules are independent, so a single medication can raise more than one message (e.g. no scripts *and*
+ * less than two weeks left). Add new rules here as more message types are defined.
  */
 fun attentionMessages(
     supplies: List<MedicationSupply>,
@@ -121,6 +127,12 @@ fun attentionMessages(
             messages += AttentionMessage(
                 AttentionKind.LOW_IN_HAND_PRESCRIPTION_MEDICATION_WITH_SCRIPTS,
                 "You have only ${humanizeDuration(s.inHandDays)} of ${s.brandName} in hand — get a script filled.",
+            )
+        }
+        if (s.totalDays < warningDays && s.requiresPrescription && s.undispensedFills == 0) {
+            messages += AttentionMessage(
+                AttentionKind.LOW_IN_HAND_PRESCRIPTION_MEDICATION_WITHOUT_SCRIPTS,
+                "Less than $window of ${s.brandName} left with no scripts remaining — go to doctor for new scripts.",
             )
         }
     }

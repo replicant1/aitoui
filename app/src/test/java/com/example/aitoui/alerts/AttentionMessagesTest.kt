@@ -62,6 +62,27 @@ class AttentionMessagesTest {
     }
 
     @Test
+    fun `a low prescription medication with no scripts left raises the go-to-doctor message`() {
+        val messages = attentionMessages(listOf(supply(brand = "Lipitor", inHandDays = 3, fills = 0, totalDays = 3)))
+        assertTrue(AttentionKind.LOW_IN_HAND_PRESCRIPTION_MEDICATION_WITHOUT_SCRIPTS in messages.map { it.kind })
+        assertEquals(
+            "Less than 2 weeks of Lipitor left with no scripts remaining — go to doctor for new scripts.",
+            messages.single { it.kind == AttentionKind.LOW_IN_HAND_PRESCRIPTION_MEDICATION_WITHOUT_SCRIPTS }.text,
+        )
+    }
+
+    @Test
+    fun `the go-to-doctor message needs a prescription, no scripts, and under two weeks total`() {
+        val kind = AttentionKind.LOW_IN_HAND_PRESCRIPTION_MEDICATION_WITHOUT_SCRIPTS
+        // Has scripts to fall back on → no.
+        assertTrue(kind !in kinds(supply(inHandDays = 3, fills = 2, totalDays = 3)))
+        // Over-the-counter → no.
+        assertTrue(kind !in kinds(supply(inHandDays = 3, fills = 0, totalDays = 3, requiresPrescription = false)))
+        // Two weeks or more of total supply → no.
+        assertTrue(kind !in kinds(supply(inHandDays = 100, fills = 0, totalDays = 100)))
+    }
+
+    @Test
     fun `low in hand while scripts remain reports the in-hand time remaining`() {
         // Plenty of total supply (lots of scripts), but only 5 days in hand.
         val messages = attentionMessages(listOf(supply(brand = "Cartia", inHandDays = 5, fills = 5, totalDays = 300)))
