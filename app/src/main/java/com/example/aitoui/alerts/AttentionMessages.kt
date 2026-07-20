@@ -13,9 +13,6 @@ enum class AttentionKind {
     /** Taking a prescription medication, but no undispensed script repeats remain. */
     NO_SCRIPTS_FOR_PRESCRIPTION_MEDICATION,
 
-    /** Less than the warning window of total supply (in hand + undispensed scripts) remains. */
-    LOW_TOTAL_SUPPLY,
-
     /**
      * A prescription medication with the warning window or less in hand, but undispensed scripts still
      * available to dispense.
@@ -115,12 +112,6 @@ fun attentionMessages(
             messages += AttentionMessage(
                 AttentionKind.NO_SCRIPTS_FOR_PRESCRIPTION_MEDICATION,
                 "You have no scripts for ${s.brandName} left — go to doctor for new scripts.",
-            )
-        }
-        if (s.totalDays < warningDays) {
-            messages += AttentionMessage(
-                AttentionKind.LOW_TOTAL_SUPPLY,
-                "Less than $window of ${s.brandName} left — in hand and scripts combined.",
             )
         }
         if (s.inHandDays <= warningDays && s.undispensedFills > 0 && s.requiresPrescription) {

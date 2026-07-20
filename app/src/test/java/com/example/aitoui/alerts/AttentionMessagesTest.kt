@@ -47,11 +47,10 @@ class AttentionMessagesTest {
     }
 
     @Test
-    fun `a non-prescription medication still raises the low-total-supply message`() {
-        // The prescription guards only affect the two script-related messages; low-total still applies.
+    fun `a non-prescription medication raises no messages`() {
+        // Every remaining message applies only to prescription medications.
         val ks = kinds(supply(brand = "Cartia", inHandDays = 3, fills = 0, totalDays = 3, requiresPrescription = false))
-        assertTrue(AttentionKind.NO_SCRIPTS_FOR_PRESCRIPTION_MEDICATION !in ks)
-        assertTrue(AttentionKind.LOW_TOTAL_SUPPLY in ks)
+        assertTrue(ks.isEmpty())
     }
 
     @Test
@@ -100,27 +99,24 @@ class AttentionMessagesTest {
     }
 
     @Test
-    fun `low in hand does not fire without scripts to dispense`() {
-        // No scripts and 10 days in hand: no-scripts + low-total, but never the "get a script dispensed" nudge.
+    fun `no scripts raises the no-scripts and without-scripts messages, never the with-scripts nudge`() {
+        // No scripts and 10 days in hand (under two weeks total).
         val ks = kinds(supply(inHandDays = 10, fills = 0, totalDays = 10))
         assertTrue(AttentionKind.NO_SCRIPTS_FOR_PRESCRIPTION_MEDICATION in ks)
-        assertTrue(AttentionKind.LOW_TOTAL_SUPPLY in ks)
+        assertTrue(AttentionKind.LOW_IN_HAND_PRESCRIPTION_MEDICATION_WITHOUT_SCRIPTS in ks)
         assertTrue(AttentionKind.LOW_IN_HAND_PRESCRIPTION_MEDICATION_WITH_SCRIPTS !in ks)
     }
 
     @Test
-    fun `less than two weeks of total supply raises the low-total message`() {
-        assertTrue(AttentionKind.LOW_TOTAL_SUPPLY in kinds(supply(inHandDays = 3, fills = 1, totalDays = 10)))
-    }
-
-    @Test
     fun `the two-week boundary is exclusive for total supply and inclusive for in hand`() {
-        // Exactly 14 days total → not "less than two weeks", so no low-total message.
-        assertTrue(AttentionKind.LOW_TOTAL_SUPPLY !in kinds(supply(inHandDays = 14, fills = 2, totalDays = 14)))
-        assertTrue(AttentionKind.LOW_TOTAL_SUPPLY in kinds(supply(inHandDays = 13, fills = 2, totalDays = 13)))
-        // Exactly 14 days in hand (with scripts) → "two weeks or less", so the in-hand nudge fires.
-        assertTrue(AttentionKind.LOW_IN_HAND_PRESCRIPTION_MEDICATION_WITH_SCRIPTS in kinds(supply(inHandDays = 14, fills = 2, totalDays = 300)))
-        assertTrue(AttentionKind.LOW_IN_HAND_PRESCRIPTION_MEDICATION_WITH_SCRIPTS !in kinds(supply(inHandDays = 15, fills = 2, totalDays = 300)))
+        val without = AttentionKind.LOW_IN_HAND_PRESCRIPTION_MEDICATION_WITHOUT_SCRIPTS
+        val with = AttentionKind.LOW_IN_HAND_PRESCRIPTION_MEDICATION_WITH_SCRIPTS
+        // Total supply (without-scripts message): exactly 14 days is NOT "less than two weeks"; 13 is.
+        assertTrue(without !in kinds(supply(inHandDays = 14, fills = 0, totalDays = 14)))
+        assertTrue(without in kinds(supply(inHandDays = 13, fills = 0, totalDays = 13)))
+        // In hand (with-scripts nudge): exactly 14 days IS "two weeks or less"; 15 is not.
+        assertTrue(with in kinds(supply(inHandDays = 14, fills = 2, totalDays = 300)))
+        assertTrue(with !in kinds(supply(inHandDays = 15, fills = 2, totalDays = 300)))
     }
 
     @Test
@@ -136,12 +132,15 @@ class AttentionMessagesTest {
 
     @Test
     fun `the warning window is configurable`() {
-        // With a one-week window, 10 days total is fine; with the default two weeks it is not.
-        assertTrue(attentionMessages(listOf(supply(inHandDays = 10, fills = 3, totalDays = 10)), warningDays = 7).none {
-            it.kind == AttentionKind.LOW_TOTAL_SUPPLY
-        })
-        assertTrue(attentionMessages(listOf(supply(inHandDays = 10, fills = 3, totalDays = 10))).any {
-            it.kind == AttentionKind.LOW_TOTAL_SUPPLY
-        })
+        // A prescription med, no scripts, 10 days total: fine under a one-week window, low under the default two.
+        val kind = AttentionKind.LOW_IN_HAND_PRESCRIPTION_MEDICATION_WITHOUT_SCRIPTS
+        assertTrue(
+            attentionMessages(listOf(supply(inHandDays = 10, fills = 0, totalDays = 10)), warningDays = 7)
+                .none { it.kind == kind },
+        )
+        assertTrue(
+            attentionMessages(listOf(supply(inHandDays = 10, fills = 0, totalDays = 10)))
+                .any { it.kind == kind },
+        )
     }
 }
