@@ -14,6 +14,7 @@ import androidx.camera.view.PreviewView
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.calculatePan
@@ -631,14 +632,9 @@ private fun PopView(
 ) {
     Column(modifier = Modifier.fillMaxSize().safeDrawingPadding().padding(16.dp)) {
         Header(title = "Pop blisters") {
+            // The thumbnail identifies the current pack and its place among the rest, so no "Pack x / y" text.
             if (state.packs.size > 1) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    PackThumbnail(state.packs, state.currentPackIndex, state.imageWidth, state.imageHeight)
-                    Text(
-                        "Pack ${state.currentPackIndex + 1} / ${state.packs.size}",
-                        color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.bodySmall,
-                    )
-                }
+                PackThumbnail(state.packs, state.currentPackIndex, state.imageWidth, state.imageHeight)
             }
         }
         val feedback = rememberPopFeedback()
@@ -784,7 +780,13 @@ private fun PackThumbnail(packs: List<PackState>, currentIndex: Int, imageWidth:
     val w = if (ratio >= 1f) maxDim else maxDim * ratio
     val h = if (ratio >= 1f) maxDim / ratio else maxDim
 
-    Canvas(modifier = Modifier.size(w, h)) {
+    // A thin border stands in for the edge of the original photo the packs sit in.
+    Canvas(
+        modifier = Modifier
+            .size(w, h)
+            .border(1.dp, Color.White.copy(alpha = 0.5f))
+            .padding(2.dp),
+    ) {
         val sx = size.width / imageWidth
         val sy = size.height / imageHeight
         packs.forEachIndexed { i, pack ->
