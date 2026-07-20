@@ -179,9 +179,9 @@ fun InHandScreen(
                 AppTextField(
                     value = state.selectedUnitLabel,
                     onValueChange = {},
-                    label = "Medication",
+                    label = "Dispensable Unit",
                     readOnly = true,
-                    placeholder = "Select a medication",
+                    placeholder = "Select a dispensable unit",
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = medicationExpanded) },
                     supportingText = if (state.units.isEmpty()) {
                         "No dispensable units yet — add one first"
