@@ -20,6 +20,9 @@ data class MedicationState(
     val activeIngredient: String = "",
 ) {
     val canSave: Boolean get() = brandName.isNotBlank() && activeIngredient.isNotBlank()
+
+    /** True once anything has been typed into this blank entry form. */
+    val hasUnsavedChanges: Boolean get() = brandName.isNotBlank() || activeIngredient.isNotBlank()
 }
 
 sealed interface MedicationAction {

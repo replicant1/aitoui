@@ -1,5 +1,6 @@
 package com.example.aitoui.script
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -51,6 +52,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.aitoui.ui.AppTextField
 import com.example.aitoui.ui.FieldRequirement
 import com.example.aitoui.ui.REQUIRED_FIELDS_NOTE
+import com.example.aitoui.ui.UnsavedChangesDialog
 import com.example.aitoui.ui.heading
 import com.example.aitoui.ui.theme.AitouiTheme
 import java.text.SimpleDateFormat
@@ -87,6 +89,19 @@ fun AddScriptScreen(
 ) {
     var showIssuePicker by remember { mutableStateOf(false) }
     var showValidToPicker by remember { mutableStateOf(false) }
+    var showLeavePrompt by remember { mutableStateOf(false) }
+    // Guard both back affordances (arrow + system back): prompt to save when there are unsaved edits.
+    val attemptBack = { if (state.hasUnsavedChanges) showLeavePrompt = true else onBack() }
+
+    BackHandler(enabled = state.hasUnsavedChanges) { showLeavePrompt = true }
+    if (showLeavePrompt) {
+        UnsavedChangesDialog(
+            canSave = state.canSave,
+            onSave = { showLeavePrompt = false; onAction(AddScriptAction.Save) },
+            onDiscard = { showLeavePrompt = false; onBack() },
+            onCancel = { showLeavePrompt = false },
+        )
+    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -94,7 +109,7 @@ fun AddScriptScreen(
             TopAppBar(
                 title = { Text("Script", modifier = Modifier.heading()) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = attemptBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",

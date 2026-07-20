@@ -1,5 +1,6 @@
 package com.example.aitoui.medication
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,6 +18,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -24,6 +28,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.aitoui.ui.AppTextField
 import com.example.aitoui.ui.REQUIRED_FIELDS_NOTE
+import com.example.aitoui.ui.UnsavedChangesDialog
 import com.example.aitoui.ui.heading
 import com.example.aitoui.ui.theme.AitouiTheme
 
@@ -55,13 +60,27 @@ fun MedicationScreen(
     onAction: (MedicationAction) -> Unit,
     onBack: () -> Unit,
 ) {
+    var showLeavePrompt by remember { mutableStateOf(false) }
+    // Guard both back affordances (arrow + system back): prompt to save when there are unsaved edits.
+    val attemptBack = { if (state.hasUnsavedChanges) showLeavePrompt = true else onBack() }
+
+    BackHandler(enabled = state.hasUnsavedChanges) { showLeavePrompt = true }
+    if (showLeavePrompt) {
+        UnsavedChangesDialog(
+            canSave = state.canSave,
+            onSave = { showLeavePrompt = false; onAction(MedicationAction.Save) },
+            onDiscard = { showLeavePrompt = false; onBack() },
+            onCancel = { showLeavePrompt = false },
+        )
+    }
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
                 title = { Text("Medication", modifier = Modifier.heading()) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = attemptBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",

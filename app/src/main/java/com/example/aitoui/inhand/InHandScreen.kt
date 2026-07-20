@@ -1,5 +1,6 @@
 package com.example.aitoui.inhand
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -58,6 +59,7 @@ import com.example.aitoui.data.Medication
 import com.example.aitoui.image.ImageStore
 import com.example.aitoui.ui.AppTextField
 import com.example.aitoui.ui.REQUIRED_FIELDS_NOTE
+import com.example.aitoui.ui.UnsavedChangesDialog
 import com.example.aitoui.ui.heading
 import com.example.aitoui.ui.selectableRow
 import com.example.aitoui.ui.theme.AitouiTheme
@@ -119,8 +121,21 @@ fun InHandScreen(
     onBack: () -> Unit,
 ) {
     var medicationExpanded by remember { mutableStateOf(false) }
+    var showLeavePrompt by remember { mutableStateOf(false) }
+    // Guard both back affordances (arrow + system back): prompt to save when there are unsaved edits.
+    val attemptBack = { if (state.hasUnsavedChanges) showLeavePrompt = true else onBack() }
     // Shared width so ADD and DELETE are the same size (DELETE is the wider label).
     val actionButtonWidth = 120.dp
+
+    BackHandler(enabled = state.hasUnsavedChanges) { showLeavePrompt = true }
+    if (showLeavePrompt) {
+        UnsavedChangesDialog(
+            canSave = true,
+            onSave = { showLeavePrompt = false; onAction(InHandAction.Save) },
+            onDiscard = { showLeavePrompt = false; onBack() },
+            onCancel = { showLeavePrompt = false },
+        )
+    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -128,7 +143,7 @@ fun InHandScreen(
             TopAppBar(
                 title = { Text("In Hand", modifier = Modifier.heading()) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = attemptBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",

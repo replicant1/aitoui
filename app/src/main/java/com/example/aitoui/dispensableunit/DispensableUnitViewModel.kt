@@ -30,6 +30,10 @@ data class DispensableUnitState(
 
     val canSave: Boolean
         get() = selectedMedicationId != null && dosePerTablet.isNotBlank() && tabletsPerUnit.isNotBlank()
+
+    /** True once the user has picked a medication or typed into this blank entry form. */
+    val hasUnsavedChanges: Boolean
+        get() = selectedMedicationId != null || dosePerTablet.isNotBlank() || tabletsPerUnit.isNotBlank()
 }
 
 sealed interface DispensableUnitAction {

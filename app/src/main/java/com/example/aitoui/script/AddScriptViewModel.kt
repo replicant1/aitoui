@@ -51,7 +51,19 @@ data class AddScriptState(
     val dispensableUnitStep: DispensableUnitResolution? = null,
     /** True while the "serial number already used" error dialog is shown; blocks the save. */
     val duplicateSerial: Boolean = false,
+    /** The form fields as first shown (blank, or seeded from a scan); the baseline for [hasUnsavedChanges]. */
+    val baseline: ScriptFormFields = ScriptFormFields(),
 ) {
+    /** Just the editable script fields (excludes the transient resolution-dialog state). */
+    val fields: ScriptFormFields
+        get() = ScriptFormFields(
+            brandName, activeIngredient, dosePerTablet, tabletsPerUnit, serialNo, serialNo2,
+            dateOfIssue, repeats, validToMillis, instructions, priorDispensed,
+        )
+
+    /** True once any field differs from what the form was first shown with (a blank or scanned baseline). */
+    val hasUnsavedChanges: Boolean get() = fields != baseline
+
     private val brandValid get() = brandName.isNotBlank()
     private val activeValid get() = activeIngredient.isNotBlank()
     private val doseValid get() = dosePerTablet.isNotBlank()
@@ -65,6 +77,21 @@ data class AddScriptState(
         get() = brandValid && activeValid && doseValid && tabletsValid && priorDispensedValid &&
             dateOfIssueValid && repeatsValid && validToValid
 }
+
+/** The editable Script fields, snapshotted to detect unsaved edits against the initial (possibly scanned) seed. */
+data class ScriptFormFields(
+    val brandName: String = "",
+    val activeIngredient: String = "",
+    val dosePerTablet: String = "",
+    val tabletsPerUnit: String = "",
+    val serialNo: String = "",
+    val serialNo2: String = "",
+    val dateOfIssue: Long? = null,
+    val repeats: String = "",
+    val validToMillis: Long? = null,
+    val instructions: String = "",
+    val priorDispensed: String = "",
+)
 
 /** Medication-resolution dialog: existing candidates to pick, and whether creating a new one is refused. */
 data class MedicationResolution(
@@ -141,7 +168,8 @@ class AddScriptViewModel(
             validToMillis = prefill.validToMillis,
             instructions = prefill.instructions.orEmpty(),
             priorDispensed = if (prefill.priorDispensed != 0) prefill.priorDispensed.toString() else "",
-        )
+        // Record the seeded values as the baseline, so only edits made after this count as unsaved.
+        ).let { it.copy(baseline = it.fields) }
     )
     val state: StateFlow<AddScriptState> = _state.asStateFlow()
 
