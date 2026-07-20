@@ -24,6 +24,12 @@ enum class AttentionKind {
      * undispensed scripts left to fall back on — a new prescription is needed.
      */
     LOW_IN_HAND_PRESCRIPTION_MEDICATION_WITHOUT_SCRIPTS,
+
+    /**
+     * A non-prescription (over-the-counter) medication with less than the warning window of supply in hand —
+     * it can simply be restocked from the chemist.
+     */
+    LOW_IN_HAND_NON_PRESCRIPTION_MEDICATION,
 }
 
 /** One attention message shown on the main screen: a [kind] (drives the icon) and ready-to-show [text]. */
@@ -124,6 +130,12 @@ fun attentionMessages(
             messages += AttentionMessage(
                 AttentionKind.LOW_IN_HAND_PRESCRIPTION_MEDICATION_WITHOUT_SCRIPTS,
                 "Less than $window of ${s.brandName} left with no scripts remaining — go to doctor for new scripts.",
+            )
+        }
+        if (!s.requiresPrescription && s.inHandDays < warningDays) {
+            messages += AttentionMessage(
+                AttentionKind.LOW_IN_HAND_NON_PRESCRIPTION_MEDICATION,
+                "Less than $window of ${s.brandName} left — get more from chemist.",
             )
         }
     }

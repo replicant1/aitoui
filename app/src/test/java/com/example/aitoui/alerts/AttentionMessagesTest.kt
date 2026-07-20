@@ -47,10 +47,27 @@ class AttentionMessagesTest {
     }
 
     @Test
-    fun `a non-prescription medication raises no messages`() {
-        // Every remaining message applies only to prescription medications.
-        val ks = kinds(supply(brand = "Cartia", inHandDays = 3, fills = 0, totalDays = 3, requiresPrescription = false))
-        assertTrue(ks.isEmpty())
+    fun `a low non-prescription medication raises the chemist message`() {
+        val messages = attentionMessages(
+            listOf(supply(brand = "Cartia", inHandDays = 3, totalDays = 3, requiresPrescription = false)),
+        )
+        assertEquals(listOf(AttentionKind.LOW_IN_HAND_NON_PRESCRIPTION_MEDICATION), messages.map { it.kind })
+        assertEquals("Less than 2 weeks of Cartia left — get more from chemist.", messages.single().text)
+    }
+
+    @Test
+    fun `a well-stocked non-prescription medication raises no messages`() {
+        assertTrue(kinds(supply(inHandDays = 100, totalDays = 100, requiresPrescription = false)).isEmpty())
+    }
+
+    @Test
+    fun `the chemist message needs a non-prescription medication with under two weeks in hand`() {
+        val kind = AttentionKind.LOW_IN_HAND_NON_PRESCRIPTION_MEDICATION
+        // A prescription medication never raises it.
+        assertTrue(kind !in kinds(supply(inHandDays = 3, totalDays = 3, requiresPrescription = true)))
+        // Exactly two weeks in hand is not "less than", so no; 13 days is.
+        assertTrue(kind !in kinds(supply(inHandDays = 14, totalDays = 14, requiresPrescription = false)))
+        assertTrue(kind in kinds(supply(inHandDays = 13, totalDays = 13, requiresPrescription = false)))
     }
 
     @Test
