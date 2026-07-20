@@ -66,6 +66,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
@@ -77,7 +78,10 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -99,6 +103,7 @@ import com.example.aitoui.counting.contains
 import com.example.aitoui.counting.corners
 import com.example.aitoui.counting.hitTest
 import com.example.aitoui.counting.rotationHandle
+import com.example.aitoui.counting.rowMajorOrder
 import com.example.aitoui.counting.topEdgeMidpoint
 import com.example.aitoui.image.ImageStore
 import com.example.aitoui.ui.heading
@@ -394,6 +399,13 @@ private fun FrameEditorView(
     val imgW = state.imageWidth
     val imgH = state.imageHeight
     val latest by rememberUpdatedState(state)
+    val textMeasurer = rememberTextMeasurer()
+    // The pop-order label per frame: its 1-based rank in row-major order (what the pack will be popped as).
+    val labels = remember(state.frames) {
+        IntArray(state.frames.size).also { arr ->
+            rowMajorOrder(state.frames).forEachIndexed { rank, frameIndex -> arr[frameIndex] = rank + 1 }
+        }
+    }
     var dragMode by remember { mutableStateOf<FrameHit?>(null) }
     // Reference captured when a rotation drag starts, so the box turns by the drag delta about its centre.
     var rotCenter by remember { mutableStateOf(Offset.Zero) }
@@ -515,6 +527,25 @@ private fun FrameEditorView(
                                 drawCircle(handleFill, radius = handleR, center = corner)
                                 drawCircle(handleRing, radius = handleR, center = corner, style = Stroke(width = 2.dp.toPx()))
                             }
+                            // The pop-order number, large and centred on the pack. A drop shadow keeps it
+                            // legible whether it sits over a white pack or the darker background.
+                            val fontPx = (min(frame.halfW, frame.halfH) * s * 0.9f).coerceAtLeast(16.dp.toPx())
+                            val measured = textMeasurer.measure(
+                                text = "${labels.getOrElse(i) { i + 1 }}",
+                                style = TextStyle(
+                                    color = Color.White.copy(alpha = 0.9f),
+                                    fontSize = fontPx.toSp(),
+                                    fontWeight = FontWeight.Bold,
+                                    shadow = Shadow(Color.Black.copy(alpha = 0.85f), Offset(0f, 2.dp.toPx()), blurRadius = 6f),
+                                ),
+                            )
+                            drawText(
+                                measured,
+                                topLeft = Offset(
+                                    frame.cx * s - measured.size.width / 2f,
+                                    frame.cy * s - measured.size.height / 2f,
+                                ),
+                            )
                         }
                     }
                 }
@@ -601,10 +632,17 @@ private fun PopView(
     onNext: () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize().safeDrawingPadding().padding(16.dp)) {
-        Header(
-            title = "Pop blisters",
-            trailing = if (state.packs.size > 1) "Pack ${state.currentPackIndex + 1} / ${state.packs.size}" else null,
-        )
+        Header(title = "Pop blisters") {
+            if (state.packs.size > 1) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    PackThumbnail(state.packs, state.currentPackIndex, state.imageWidth, state.imageHeight)
+                    Text(
+                        "Pack ${state.currentPackIndex + 1} / ${state.packs.size}",
+                        color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+            }
+        }
         val feedback = rememberPopFeedback()
         fun playFor(result: PopResult) {
             when (result) {
@@ -719,9 +757,74 @@ private fun SummaryView(state: BlisterCountState, onUseTotal: () -> Unit, onReta
 
 @Composable
 private fun Header(title: String, trailing: String?) {
+    Header(title) {
+        if (trailing != null) Text(trailing, color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.bodySmall)
+    }
+}
+
+/** [Header] with an arbitrary trailing slot (e.g. the pop screen's pack thumbnail + "Pack x / y"). */
+@Composable
+private fun Header(title: String, trailing: @Composable () -> Unit) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
         Text(title, color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold, modifier = Modifier.heading())
-        if (trailing != null) Text(trailing, color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.bodySmall)
+        trailing()
+    }
+}
+
+/**
+ * A small map of every pack as it sits in the original photo — each pack's oriented outline drawn to scale,
+ * numbered by pop order, with [currentIndex] filled in. Lets the user see which pack they're popping and
+ * where it is among the rest.
+ */
+@Composable
+private fun PackThumbnail(packs: List<PackState>, currentIndex: Int, imageWidth: Int, imageHeight: Int) {
+    if (imageWidth == 0 || imageHeight == 0 || packs.isEmpty()) return
+    val primary = MaterialTheme.colorScheme.primary
+    val textMeasurer = rememberTextMeasurer()
+    val maxDim = 48.dp
+    val ratio = imageWidth.toFloat() / imageHeight
+    val w = if (ratio >= 1f) maxDim else maxDim * ratio
+    val h = if (ratio >= 1f) maxDim / ratio else maxDim
+
+    Canvas(modifier = Modifier.size(w, h)) {
+        val sx = size.width / imageWidth
+        val sy = size.height / imageHeight
+        packs.forEachIndexed { i, pack ->
+            val r = pack.region
+            fun corner(lc: Float, sc: Float) = Offset(
+                (r.cx + lc * r.longX + sc * r.shortX) * sx,
+                (r.cy + lc * r.longY + sc * r.shortY) * sy,
+            )
+            val c = listOf(
+                corner(r.longMin, r.shortMin), corner(r.longMax, r.shortMin),
+                corner(r.longMax, r.shortMax), corner(r.longMin, r.shortMax),
+            )
+            val path = Path().apply {
+                moveTo(c[0].x, c[0].y); lineTo(c[1].x, c[1].y)
+                lineTo(c[2].x, c[2].y); lineTo(c[3].x, c[3].y); close()
+            }
+            val current = i == currentIndex
+            if (current) drawPath(path, primary.copy(alpha = 0.9f))
+            drawPath(
+                path,
+                color = if (current) primary else primary.copy(alpha = 0.55f),
+                style = Stroke(width = 1.5.dp.toPx()),
+            )
+            val fontPx = (min(abs(r.longMax - r.longMin), abs(r.shortMax - r.shortMin)) * min(sx, sy) * 0.7f)
+                .coerceIn(7.dp.toPx(), 12.dp.toPx())
+            val measured = textMeasurer.measure(
+                text = "${i + 1}",
+                style = TextStyle(
+                    color = if (current) Color.White else primary,
+                    fontSize = fontPx.toSp(),
+                    fontWeight = FontWeight.Bold,
+                ),
+            )
+            drawText(
+                measured,
+                topLeft = Offset(r.cx * sx - measured.size.width / 2f, r.cy * sy - measured.size.height / 2f),
+            )
+        }
     }
 }
 
