@@ -220,7 +220,7 @@ fun DailyScheduleScreen(
                     items(state.tabletsTaken, key = { it.id }) { entry ->
                         val selected = entry.id == state.selectedId
                         // Dose and photo come from the medication's dispensable unit, looked up live.
-                        val unit = state.units.firstOrNull { it.medicationId == entry.medicationId }
+                        val unit = state.units.firstOrNull { it.formatId == entry.dispensableUnitId }
                         val dose = unit?.dosePerTablet?.let { " ($it" + "mg)" } ?: ""
                         Row(
                             modifier = Modifier

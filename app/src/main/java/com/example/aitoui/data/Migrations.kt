@@ -66,5 +66,37 @@ val MIGRATION_24_25 = object : Migration(24, 25) {
     }
 }
 
+/**
+ * v26 re-keys [DailyScheduleEntity] from `medicationId` to `dispensableUnitId` (a FK to `dispensable_units`),
+ * the same change [MIGRATION_24_25] made to `in_hand`, so the daily schedule is kept per dispensable unit
+ * (dose/format). The table is recreated (SQLite can't re-point a column FK) and back-filled by mapping each
+ * row's medication to that medication's dispensable unit (lowest id if >1); a row whose medication has no
+ * unit is dropped.
+ */
+val MIGRATION_25_26 = object : Migration(25, 26) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE daily_schedule_new (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "dispensableUnitId INTEGER NOT NULL, " +
+                "quantity REAL NOT NULL, " +
+                "FOREIGN KEY(dispensableUnitId) REFERENCES dispensable_units(id) " +
+                "ON UPDATE NO ACTION ON DELETE CASCADE)",
+        )
+        db.execSQL(
+            "INSERT INTO daily_schedule_new (id, dispensableUnitId, quantity) " +
+                "SELECT ds.id, " +
+                "(SELECT du.id FROM dispensable_units du WHERE du.medicationId = ds.medicationId " +
+                "ORDER BY du.id LIMIT 1), ds.quantity " +
+                "FROM daily_schedule ds " +
+                "WHERE EXISTS (SELECT 1 FROM dispensable_units du WHERE du.medicationId = ds.medicationId)",
+        )
+        db.execSQL("DROP TABLE daily_schedule")
+        db.execSQL("ALTER TABLE daily_schedule_new RENAME TO daily_schedule")
+        db.execSQL("CREATE INDEX index_daily_schedule_dispensableUnitId ON daily_schedule (dispensableUnitId)")
+    }
+}
+
 /** All migrations, in order — spread into `addMigrations(*ALL_MIGRATIONS)`. */
-val ALL_MIGRATIONS = arrayOf(MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25)
+val ALL_MIGRATIONS =
+    arrayOf(MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26)

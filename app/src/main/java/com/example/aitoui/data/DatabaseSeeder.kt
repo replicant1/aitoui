@@ -140,11 +140,11 @@ object DatabaseSeeder {
             }
         }
 
-        // Seed the daily medication schedule (tablets taken per day, per medication).
+        // Seed the daily medication schedule (tablets taken per day, per dispensable unit).
         dailyScheduleRepository.save(
             DAILY_SCHEDULE.mapNotNull { seed ->
-                val medicationId = medicationIdByBrand[seed.brand] ?: return@mapNotNull null
-                DailyScheduleItem(medicationId = medicationId, quantity = seed.quantity)
+                val unitId = unitIdByBrand[seed.brand] ?: return@mapNotNull null
+                DailyScheduleItem(dispensableUnitId = unitId, quantity = seed.quantity)
             }
         )
 

@@ -6,32 +6,33 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /**
- * One line of the daily medication schedule: [quantity] tablets of [medicationId] taken each day.
- * [medicationId] is a foreign key to [Medication.id] (the `medications` table).
+ * One line of the daily medication schedule: [quantity] tablets of [dispensableUnitId] taken each day.
+ * [dispensableUnitId] is a foreign key to [DispensableUnit.id] (the `dispensable_units` table), so the
+ * schedule is kept per dose/format rather than per medication.
  */
 @Entity(
     tableName = "daily_schedule",
     foreignKeys = [
         ForeignKey(
-            entity = MedicationEntity::class,
+            entity = DispensableUnitEntity::class,
             parentColumns = ["id"],
-            childColumns = ["medicationId"],
+            childColumns = ["dispensableUnitId"],
             onDelete = ForeignKey.CASCADE,
         ),
     ],
-    indices = [Index("medicationId")],
+    indices = [Index("dispensableUnitId")],
 )
 data class DailyScheduleEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val medicationId: Long,
+    val dispensableUnitId: Long,
     val quantity: Double,
 )
 
 /** Domain model for a daily-schedule line to be persisted. */
 data class DailyScheduleItem(
-    val medicationId: Long,
+    val dispensableUnitId: Long,
     val quantity: Double,
 )
 
 fun DailyScheduleItem.toEntity(): DailyScheduleEntity =
-    DailyScheduleEntity(medicationId = medicationId, quantity = quantity)
+    DailyScheduleEntity(dispensableUnitId = dispensableUnitId, quantity = quantity)
