@@ -10,14 +10,26 @@ const val DEFAULT_WARNING_DAYS = 14
 
 /** The kinds of attention message, so the UI can pick an icon and tests can assert precisely. */
 enum class AttentionKind {
-    /** Taking the medication, but no undispensed script repeats remain. */
-    NO_SCRIPTS,
+    /** Taking a prescription medication, but no undispensed script repeats remain. */
+    NO_SCRIPTS_FOR_PRESCRIPTION_MEDICATION,
 
-    /** Less than the warning window of total supply (in hand + undispensed scripts) remains. */
-    LOW_TOTAL_SUPPLY,
+    /**
+     * A prescription medication with the warning window or less in hand, but undispensed scripts still
+     * available to dispense.
+     */
+    LOW_IN_HAND_PRESCRIPTION_MEDICATION_WITH_SCRIPTS,
 
-    /** The warning window or less remains in hand, but undispensed scripts are available to dispense. */
-    LOW_IN_HAND_HAS_SCRIPTS,
+    /**
+     * A prescription medication with less than the warning window of total supply (in hand + scripts) and no
+     * undispensed scripts left to fall back on — a new prescription is needed.
+     */
+    LOW_IN_HAND_PRESCRIPTION_MEDICATION_WITHOUT_SCRIPTS,
+
+    /**
+     * A non-prescription (over-the-counter) medication with less than the warning window of supply in hand —
+     * it can simply be restocked from the chemist.
+     */
+    LOW_IN_HAND_NON_PRESCRIPTION_MEDICATION,
 }
 
 /** One attention message shown on the main screen: a [kind] (drives the icon) and ready-to-show [text]. */
@@ -35,6 +47,8 @@ data class MedicationSupply(
     val undispensedFills: Int,
     /** Whole days before running out counting both in hand and undispensed scripts. */
     val totalDays: Int,
+    /** Whether the medication needs a prescription; script-availability messages only apply when true. */
+    val requiresPrescription: Boolean = true,
 )
 
 /**
@@ -52,6 +66,7 @@ fun medicationSupplies(
     daysSinceGathered: Double,
 ): List<MedicationSupply> {
     val brandByMedication = units.associate { it.medicationId to it.brandName }
+    val rxByMedication = units.associate { it.medicationId to it.requiresPrescription }
     val scriptsByMedication = scripts.groupBy { it.medicationId }
 
     val result = mutableListOf<MedicationSupply>()
@@ -76,6 +91,7 @@ fun medicationSupplies(
             inHandDays = inHandDays,
             undispensedFills = undispensedFills,
             totalDays = inHandDays + undispensedDays,
+            requiresPrescription = rxByMedication[medicationId] ?: true,
         )
     }
     return result
@@ -86,8 +102,8 @@ fun medicationSupplies(
  * medications being taken are considered (they're the only ones in [supplies]). [warningDays] is the
  * "running low" window (default [DEFAULT_WARNING_DAYS]).
  *
- * The three rules are independent, so a single medication can raise more than one message (e.g. no scripts
- * *and* less than two weeks left). Add new rules here as more message types are defined.
+ * The rules are independent, so a single medication can raise more than one message (e.g. no scripts *and*
+ * less than two weeks left). Add new rules here as more message types are defined.
  */
 fun attentionMessages(
     supplies: List<MedicationSupply>,
@@ -96,22 +112,30 @@ fun attentionMessages(
     val window = humanizeDuration(warningDays)
     val messages = mutableListOf<AttentionMessage>()
     for (s in supplies.sortedBy { it.brandName.lowercase() }) {
-        if (s.undispensedFills == 0) {
+        // Only prescription medications can have scripts, so the "no scripts left" nudge is meaningless
+        // for over-the-counter ones.
+        if (s.undispensedFills == 0 && s.requiresPrescription) {
             messages += AttentionMessage(
-                AttentionKind.NO_SCRIPTS,
-                "You have no scripts for ${s.brandName} left.",
+                AttentionKind.NO_SCRIPTS_FOR_PRESCRIPTION_MEDICATION,
+                "You have no scripts for ${s.brandName} left — go to doctor for new scripts.",
             )
         }
-        if (s.totalDays < warningDays) {
+        if (s.inHandDays <= warningDays && s.undispensedFills > 0 && s.requiresPrescription) {
             messages += AttentionMessage(
-                AttentionKind.LOW_TOTAL_SUPPLY,
-                "Less than $window of ${s.brandName} left — in hand and scripts combined.",
+                AttentionKind.LOW_IN_HAND_PRESCRIPTION_MEDICATION_WITH_SCRIPTS,
+                "You have only ${humanizeDuration(s.inHandDays)} of ${s.brandName} in hand — get a script filled.",
             )
         }
-        if (s.inHandDays <= warningDays && s.undispensedFills > 0) {
+        if (s.totalDays < warningDays && s.requiresPrescription && s.undispensedFills == 0) {
             messages += AttentionMessage(
-                AttentionKind.LOW_IN_HAND_HAS_SCRIPTS,
-                "You have only ${humanizeDuration(s.inHandDays)} of ${s.brandName} in hand.",
+                AttentionKind.LOW_IN_HAND_PRESCRIPTION_MEDICATION_WITHOUT_SCRIPTS,
+                "Less than $window of ${s.brandName} left with no scripts remaining — go to doctor for new scripts.",
+            )
+        }
+        if (!s.requiresPrescription && s.inHandDays < warningDays) {
+            messages += AttentionMessage(
+                AttentionKind.LOW_IN_HAND_NON_PRESCRIPTION_MEDICATION,
+                "Less than $window of ${s.brandName} left — get more from chemist.",
             )
         }
     }

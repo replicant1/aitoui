@@ -13,6 +13,8 @@ data class DispensableUnitDetails(
     val tabletsPerUnit: String,
     /** Filename of the tablet photo in internal storage (see ImageStore), or null if none. */
     val imagePath: String?,
+    /** Whether the medication needs a prescription (from the joined medication). */
+    val requiresPrescription: Boolean = true,
 ) {
     /** Short label for dropdowns, e.g. "Panadol (500mg)". */
     val label: String get() = "$brandName (${dosePerTablet}mg)"
