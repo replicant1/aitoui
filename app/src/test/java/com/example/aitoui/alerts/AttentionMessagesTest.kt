@@ -47,18 +47,25 @@ class AttentionMessagesTest {
     }
 
     @Test
-    fun `a non-prescription medication still raises supply messages`() {
-        // The prescription guard only affects "no scripts" — low-supply warnings still apply.
+    fun `a non-prescription medication still raises the low-total-supply message`() {
+        // The prescription guards only affect the two script-related messages; low-total still applies.
         val ks = kinds(supply(brand = "Cartia", inHandDays = 3, fills = 0, totalDays = 3, requiresPrescription = false))
         assertTrue(AttentionKind.NO_SCRIPTS_FOR_PRESCRIPTION_MEDICATION !in ks)
         assertTrue(AttentionKind.LOW_TOTAL_SUPPLY in ks)
     }
 
     @Test
+    fun `a non-prescription medication never raises the low-in-hand nudge`() {
+        // Low in hand with scripts, but over-the-counter → the "get a script dispensed" nudge is suppressed.
+        val ks = kinds(supply(inHandDays = 5, fills = 5, totalDays = 300, requiresPrescription = false))
+        assertTrue(AttentionKind.LOW_IN_HAND_PRESCRIPTION_MEDICATION_WITH_SCRIPTS !in ks)
+    }
+
+    @Test
     fun `low in hand while scripts remain reports the in-hand time remaining`() {
         // Plenty of total supply (lots of scripts), but only 5 days in hand.
         val messages = attentionMessages(listOf(supply(brand = "Cartia", inHandDays = 5, fills = 5, totalDays = 300)))
-        assertEquals(listOf(AttentionKind.LOW_IN_HAND_HAS_SCRIPTS), messages.map { it.kind })
+        assertEquals(listOf(AttentionKind.LOW_IN_HAND_PRESCRIPTION_MEDICATION_WITH_SCRIPTS), messages.map { it.kind })
         // The time remaining uses the Inventory screen's humaniser (5 days → "5 days").
         assertEquals("You have only 5 days of Cartia in hand.", messages.single().text)
     }
@@ -67,7 +74,7 @@ class AttentionMessagesTest {
     fun `the in-hand time is humanised into weeks like the Inventory screen`() {
         // 10 days in hand at the default rate → the humaniser expresses it as weeks.
         val text = attentionMessages(listOf(supply(brand = "Tensig", inHandDays = 10, fills = 3, totalDays = 300)))
-            .single { it.kind == AttentionKind.LOW_IN_HAND_HAS_SCRIPTS }.text
+            .single { it.kind == AttentionKind.LOW_IN_HAND_PRESCRIPTION_MEDICATION_WITH_SCRIPTS }.text
         assertEquals("You have only 1.4 weeks of Tensig in hand.", text)
     }
 
@@ -77,7 +84,7 @@ class AttentionMessagesTest {
         val ks = kinds(supply(inHandDays = 10, fills = 0, totalDays = 10))
         assertTrue(AttentionKind.NO_SCRIPTS_FOR_PRESCRIPTION_MEDICATION in ks)
         assertTrue(AttentionKind.LOW_TOTAL_SUPPLY in ks)
-        assertTrue(AttentionKind.LOW_IN_HAND_HAS_SCRIPTS !in ks)
+        assertTrue(AttentionKind.LOW_IN_HAND_PRESCRIPTION_MEDICATION_WITH_SCRIPTS !in ks)
     }
 
     @Test
@@ -91,8 +98,8 @@ class AttentionMessagesTest {
         assertTrue(AttentionKind.LOW_TOTAL_SUPPLY !in kinds(supply(inHandDays = 14, fills = 2, totalDays = 14)))
         assertTrue(AttentionKind.LOW_TOTAL_SUPPLY in kinds(supply(inHandDays = 13, fills = 2, totalDays = 13)))
         // Exactly 14 days in hand (with scripts) → "two weeks or less", so the in-hand nudge fires.
-        assertTrue(AttentionKind.LOW_IN_HAND_HAS_SCRIPTS in kinds(supply(inHandDays = 14, fills = 2, totalDays = 300)))
-        assertTrue(AttentionKind.LOW_IN_HAND_HAS_SCRIPTS !in kinds(supply(inHandDays = 15, fills = 2, totalDays = 300)))
+        assertTrue(AttentionKind.LOW_IN_HAND_PRESCRIPTION_MEDICATION_WITH_SCRIPTS in kinds(supply(inHandDays = 14, fills = 2, totalDays = 300)))
+        assertTrue(AttentionKind.LOW_IN_HAND_PRESCRIPTION_MEDICATION_WITH_SCRIPTS !in kinds(supply(inHandDays = 15, fills = 2, totalDays = 300)))
     }
 
     @Test

@@ -16,8 +16,11 @@ enum class AttentionKind {
     /** Less than the warning window of total supply (in hand + undispensed scripts) remains. */
     LOW_TOTAL_SUPPLY,
 
-    /** The warning window or less remains in hand, but undispensed scripts are available to dispense. */
-    LOW_IN_HAND_HAS_SCRIPTS,
+    /**
+     * A prescription medication with the warning window or less in hand, but undispensed scripts still
+     * available to dispense.
+     */
+    LOW_IN_HAND_PRESCRIPTION_MEDICATION_WITH_SCRIPTS,
 }
 
 /** One attention message shown on the main screen: a [kind] (drives the icon) and ready-to-show [text]. */
@@ -114,9 +117,9 @@ fun attentionMessages(
                 "Less than $window of ${s.brandName} left — in hand and scripts combined.",
             )
         }
-        if (s.inHandDays <= warningDays && s.undispensedFills > 0) {
+        if (s.inHandDays <= warningDays && s.undispensedFills > 0 && s.requiresPrescription) {
             messages += AttentionMessage(
-                AttentionKind.LOW_IN_HAND_HAS_SCRIPTS,
+                AttentionKind.LOW_IN_HAND_PRESCRIPTION_MEDICATION_WITH_SCRIPTS,
                 "You have only ${humanizeDuration(s.inHandDays)} of ${s.brandName} in hand.",
             )
         }

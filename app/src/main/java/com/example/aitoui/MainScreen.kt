@@ -358,7 +358,7 @@ private fun MainScreenWithMessagesPreview() {
                         "You have no scripts for Lipitor left — go to doctor for new scripts.",
                     ),
                     AttentionMessage(
-                        AttentionKind.LOW_IN_HAND_HAS_SCRIPTS,
+                        AttentionKind.LOW_IN_HAND_PRESCRIPTION_MEDICATION_WITH_SCRIPTS,
                         "You have only 1.4 weeks of Cartia in hand.",
                     ),
                 ),
