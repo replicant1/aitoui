@@ -165,7 +165,7 @@ class ScriptsViewModel(
                     dispensedAtMillis = System.currentTimeMillis(),
                 )
             )
-            inHandRepository.addTablets(script.medicationId, units * tabletsPerUnit)
+            inHandRepository.addTablets(script.dispensableUnitId, units * tabletsPerUnit)
             _state.update { it.copy(pendingDispenseScriptId = null) }
         }
     }

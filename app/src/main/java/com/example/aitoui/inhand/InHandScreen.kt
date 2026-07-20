@@ -55,7 +55,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.aitoui.data.DispensableUnitDetails
-import com.example.aitoui.data.Medication
 import com.example.aitoui.image.ImageStore
 import com.example.aitoui.ui.AppTextField
 import com.example.aitoui.ui.REQUIRED_FIELDS_NOTE
@@ -178,14 +177,14 @@ fun InHandScreen(
                 onExpandedChange = { medicationExpanded = !medicationExpanded },
             ) {
                 AppTextField(
-                    value = state.selectedMedicationName,
+                    value = state.selectedUnitLabel,
                     onValueChange = {},
                     label = "Medication",
                     readOnly = true,
                     placeholder = "Select a medication",
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = medicationExpanded) },
-                    supportingText = if (state.medications.isEmpty()) {
-                        "No medications yet — add one first"
+                    supportingText = if (state.units.isEmpty()) {
+                        "No dispensable units yet — add one first"
                     } else null,
                     modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable),
                 )
@@ -194,13 +193,10 @@ fun InHandScreen(
                     onDismissRequest = { medicationExpanded = false },
                 ) {
                     val context = LocalContext.current
-                    state.medications.forEach { medication ->
-                        // Photo and dose come from the medication's dispensable unit, looked up live.
-                        val unit = state.units.firstOrNull { it.medicationId == medication.id }
-                        val dose = unit?.dosePerTablet?.let { " ($it" + "mg)" } ?: ""
+                    state.units.forEach { unit ->
                         DropdownMenuItem(
                             leadingIcon = {
-                                unit?.imagePath?.let { imagePath ->
+                                unit.imagePath?.let { imagePath ->
                                     AsyncImage(
                                         model = ImageStore.fileFor(context, imagePath),
                                         contentDescription = null,
@@ -211,9 +207,9 @@ fun InHandScreen(
                                     )
                                 }
                             },
-                            text = { Text("${medication.brandName}$dose", fontWeight = FontWeight.Normal) },
+                            text = { Text(unit.label, fontWeight = FontWeight.Normal) },
                             onClick = {
-                                onAction(InHandAction.MedicationSelected(medication.id))
+                                onAction(InHandAction.UnitSelected(unit.formatId))
                                 medicationExpanded = false
                             },
                         )
@@ -276,8 +272,8 @@ fun InHandScreen(
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(state.tabletsInHand, key = { it.id }) { entry ->
                         val selected = entry.id == state.selectedId
-                        // Dose and photo come from the medication's dispensable unit, looked up live.
-                        val unit = state.units.firstOrNull { it.medicationId == entry.medicationId }
+                        // Dose and photo come from the row's dispensable unit, looked up live.
+                        val unit = state.units.firstOrNull { it.formatId == entry.dispensableUnitId }
                         val dose = unit?.dosePerTablet?.let { " ($it" + "mg)" } ?: ""
                         Row(
                             modifier = Modifier
@@ -348,14 +344,11 @@ private fun InHandScreenPreview() {
     AitouiTheme {
         InHandScreen(
             state = InHandState(
-                medications = listOf(
-                    Medication(1, "Panadol", "Paracetamol"),
-                    Medication(2, "Nurofen", "Ibuprofen"),
-                ),
                 units = listOf(
                     DispensableUnitDetails(1, 1, "Panadol", "Paracetamol", "500", "24", null),
                     DispensableUnitDetails(2, 2, "Nurofen", "Ibuprofen", "200", "16", null),
                 ),
+                // Second arg is the dispensable unit's formatId (1 = Panadol, 2 = Nurofen above).
                 tabletsInHand = listOf(
                     InHandEntry(0, 1, "Panadol", "24"),
                     InHandEntry(1, 2, "Nurofen", "16"),

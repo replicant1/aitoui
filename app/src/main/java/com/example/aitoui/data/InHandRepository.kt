@@ -17,6 +17,6 @@ class InHandRepository(private val dao: InHandDao) {
     suspend fun save(items: List<InHandItem>, gatheredAtMillis: Long) =
         dao.replaceAll(items.map { it.toEntity() }, gatheredAtMillis)
 
-    /** Adds [quantity] tablets of [medicationId] to the in-hand total (called when a dispensation occurs). */
-    suspend fun addTablets(medicationId: Long, quantity: Double) = dao.addTablets(medicationId, quantity)
+    /** Adds [quantity] tablets of [dispensableUnitId] to the in-hand total (called when a dispensation occurs). */
+    suspend fun addTablets(dispensableUnitId: Long, quantity: Double) = dao.addTablets(dispensableUnitId, quantity)
 }
