@@ -7,14 +7,21 @@ import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.AP
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.example.aitoui.alerts.AttentionMessage
+import com.example.aitoui.alerts.attentionMessages
+import com.example.aitoui.alerts.medicationSupplies
 import com.example.aitoui.backup.BackupManager
 import com.example.aitoui.backup.DownloadsBackupStore
 import com.example.aitoui.data.DATABASE_SCHEMA_VERSION
 import com.example.aitoui.data.DatabaseDumper
+import com.example.aitoui.data.inHandDaysElapsed
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -31,6 +38,8 @@ data class MainState(
     val error: String? = null,
     /** A restore finished; the screen should restart the app so the new database is opened. */
     val restoreComplete: Boolean = false,
+    /** Attention messages (running low, no scripts, …) shown at the bottom of the menu; empty = hidden. */
+    val messages: List<AttentionMessage> = emptyList(),
 )
 
 /** User intents from the main menu's backup buttons/dialogs. */
@@ -50,6 +59,34 @@ class MainViewModel(private val app: AitouiApp) : ViewModel() {
 
     private val _state = MutableStateFlow(MainState())
     val state: StateFlow<MainState> = _state.asStateFlow()
+
+    init {
+        // Derive the attention messages from the same inventory data the Inventory screen uses.
+        combine(
+            app.dispensableUnitRepository.formatsWithMedication,
+            app.inHandRepository.inHand,
+            app.dailyScheduleRepository.dailySchedule,
+            app.scriptRepository.scriptsWithDetails,
+            app.inHandRepository.gatheredDate,
+        ) { formats, inHand, schedule, scripts, gatheredDate ->
+            val dailyByMedication = schedule
+                .groupBy { it.medicationId }
+                .mapValues { (_, rows) -> rows.sumOf { it.quantity } }
+            val inHandByMedication = inHand
+                .groupBy { it.medicationId }
+                .mapValues { (_, rows) -> rows.sumOf { it.quantity } }
+            val supplies = medicationSupplies(
+                units = formats,
+                scripts = scripts,
+                dailyByMedication = dailyByMedication,
+                inHandByMedication = inHandByMedication,
+                daysSinceGathered = inHandDaysElapsed(gatheredDate, System.currentTimeMillis()),
+            )
+            attentionMessages(supplies)
+        }
+            .onEach { messages -> _state.update { it.copy(messages = messages) } }
+            .launchIn(viewModelScope)
+    }
 
     fun onAction(action: MainAction) {
         when (action) {

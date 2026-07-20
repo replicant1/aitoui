@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -24,6 +25,7 @@ import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Widgets
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -44,6 +46,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -53,6 +57,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import com.example.aitoui.alerts.AttentionKind
+import com.example.aitoui.alerts.AttentionMessage
 import com.example.aitoui.backup.DownloadsBackupStore
 import com.example.aitoui.data.DATABASE_SCHEMA_VERSION
 import com.example.aitoui.ui.heading
@@ -187,6 +193,11 @@ fun MainScreen(
                 }
             }
 
+            // Attention messages sit between the grid and the version line, and vanish entirely when empty.
+            if (state.messages.isNotEmpty()) {
+                AttentionMessages(state.messages)
+            }
+
             Text(
                 text = "App version:${BuildConfig.VERSION_NAME} — DB version:$DATABASE_SCHEMA_VERSION",
                 style = MaterialTheme.typography.bodySmall,
@@ -250,6 +261,44 @@ fun MainScreen(
     }
 }
 
+/** Warning amber, legible on the menu's surface-variant message panel in both light and dark themes. */
+private val WarningColor = Color(0xFFF9A825)
+
+/**
+ * The attention-message panel shown above the version line: a rounded surface holding one row per message,
+ * each a warning icon on the left and the message text on the right. Rendered only when there are messages.
+ */
+@Composable
+private fun AttentionMessages(messages: List<AttentionMessage>) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        messages.forEach { message ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Warning,
+                    contentDescription = "Warning",
+                    tint = WarningColor,
+                    modifier = Modifier.size(20.dp),
+                )
+                Text(
+                    text = message.text,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
 private data class MainMenuItem(
     val label: String,
     val icon: ImageVector,
@@ -294,5 +343,23 @@ private fun MainMenuButton(
 private fun MainScreenPreview() {
     AitouiTheme {
         MainScreen()
+    }
+}
+
+@Preview(showBackground = true, name = "With attention messages")
+@Composable
+private fun MainScreenWithMessagesPreview() {
+    AitouiTheme {
+        MainScreen(
+            state = MainState(
+                messages = listOf(
+                    AttentionMessage(AttentionKind.NO_SCRIPTS, "You have no scripts for Lipitor left."),
+                    AttentionMessage(
+                        AttentionKind.LOW_IN_HAND_HAS_SCRIPTS,
+                        "You have only 1.4 weeks of Cartia in hand.",
+                    ),
+                ),
+            ),
+        )
     }
 }
