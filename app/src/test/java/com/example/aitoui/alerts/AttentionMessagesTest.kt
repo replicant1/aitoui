@@ -32,7 +32,7 @@ class AttentionMessagesTest {
     @Test
     fun `no undispensed scripts raises the no-scripts message for a prescription medication`() {
         val messages = attentionMessages(listOf(supply(brand = "Lipitor", inHandDays = 100, fills = 0, totalDays = 100)))
-        assertEquals(listOf(AttentionKind.NO_SCRIPTS), messages.map { it.kind })
+        assertEquals(listOf(AttentionKind.NO_SCRIPTS_FOR_PRESCRIPTION_MEDICATION), messages.map { it.kind })
         assertTrue(messages.single().text.contains("Lipitor"))
     }
 
@@ -50,7 +50,7 @@ class AttentionMessagesTest {
     fun `a non-prescription medication still raises supply messages`() {
         // The prescription guard only affects "no scripts" — low-supply warnings still apply.
         val ks = kinds(supply(brand = "Cartia", inHandDays = 3, fills = 0, totalDays = 3, requiresPrescription = false))
-        assertTrue(AttentionKind.NO_SCRIPTS !in ks)
+        assertTrue(AttentionKind.NO_SCRIPTS_FOR_PRESCRIPTION_MEDICATION !in ks)
         assertTrue(AttentionKind.LOW_TOTAL_SUPPLY in ks)
     }
 
@@ -75,7 +75,7 @@ class AttentionMessagesTest {
     fun `low in hand does not fire without scripts to dispense`() {
         // No scripts and 10 days in hand: no-scripts + low-total, but never the "get a script dispensed" nudge.
         val ks = kinds(supply(inHandDays = 10, fills = 0, totalDays = 10))
-        assertTrue(AttentionKind.NO_SCRIPTS in ks)
+        assertTrue(AttentionKind.NO_SCRIPTS_FOR_PRESCRIPTION_MEDICATION in ks)
         assertTrue(AttentionKind.LOW_TOTAL_SUPPLY in ks)
         assertTrue(AttentionKind.LOW_IN_HAND_HAS_SCRIPTS !in ks)
     }

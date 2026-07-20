@@ -11,7 +11,7 @@ const val DEFAULT_WARNING_DAYS = 14
 /** The kinds of attention message, so the UI can pick an icon and tests can assert precisely. */
 enum class AttentionKind {
     /** Taking a prescription medication, but no undispensed script repeats remain. */
-    NO_SCRIPTS,
+    NO_SCRIPTS_FOR_PRESCRIPTION_MEDICATION,
 
     /** Less than the warning window of total supply (in hand + undispensed scripts) remains. */
     LOW_TOTAL_SUPPLY,
@@ -104,7 +104,7 @@ fun attentionMessages(
         // for over-the-counter ones.
         if (s.undispensedFills == 0 && s.requiresPrescription) {
             messages += AttentionMessage(
-                AttentionKind.NO_SCRIPTS,
+                AttentionKind.NO_SCRIPTS_FOR_PRESCRIPTION_MEDICATION,
                 "You have no scripts for ${s.brandName} left — go to doctor for new scripts.",
             )
         }

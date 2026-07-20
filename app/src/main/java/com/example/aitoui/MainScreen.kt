@@ -354,7 +354,7 @@ private fun MainScreenWithMessagesPreview() {
             state = MainState(
                 messages = listOf(
                     AttentionMessage(
-                        AttentionKind.NO_SCRIPTS,
+                        AttentionKind.NO_SCRIPTS_FOR_PRESCRIPTION_MEDICATION,
                         "You have no scripts for Lipitor left — go to doctor for new scripts.",
                     ),
                     AttentionMessage(
