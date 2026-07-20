@@ -10,10 +10,11 @@ import kotlinx.coroutines.flow.Flow
 interface DailyScheduleDao {
     @Query(
         """
-        SELECT ds.id AS id, ds.medicationId AS medicationId,
-               m.brandName AS brandName, ds.quantity AS quantity
+        SELECT ds.id AS id, ds.dispensableUnitId AS dispensableUnitId,
+               du.medicationId AS medicationId, m.brandName AS brandName, ds.quantity AS quantity
         FROM daily_schedule ds
-        JOIN medications m ON m.id = ds.medicationId
+        JOIN dispensable_units du ON du.id = ds.dispensableUnitId
+        JOIN medications m ON m.id = du.medicationId
         ORDER BY m.brandName COLLATE NOCASE
         """
     )
@@ -22,10 +23,11 @@ interface DailyScheduleDao {
     /** Reactive variant of [getAllWithMedication], for screens that recompute on schedule changes. */
     @Query(
         """
-        SELECT ds.id AS id, ds.medicationId AS medicationId,
-               m.brandName AS brandName, ds.quantity AS quantity
+        SELECT ds.id AS id, ds.dispensableUnitId AS dispensableUnitId,
+               du.medicationId AS medicationId, m.brandName AS brandName, ds.quantity AS quantity
         FROM daily_schedule ds
-        JOIN medications m ON m.id = ds.medicationId
+        JOIN dispensable_units du ON du.id = ds.dispensableUnitId
+        JOIN medications m ON m.id = du.medicationId
         ORDER BY m.brandName COLLATE NOCASE
         """
     )

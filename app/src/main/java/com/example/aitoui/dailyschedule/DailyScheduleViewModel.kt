@@ -18,10 +18,10 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** A single row in the daily-schedule list. */
+/** A single row in the daily-schedule list: [number] tablets of a specific dispensable unit taken each day. */
 data class DailyScheduleEntry(
     val id: Long,
-    val medicationId: Long,
+    val dispensableUnitId: Long,
     val brand: String,
     val number: String,
 ) {
@@ -56,9 +56,9 @@ data class DailyScheduleState(
     val hasUnsavedChanges: Boolean get() = scheduleSignature(tabletsTaken) != savedSignature
 }
 
-/** Order-independent signature of a saved list: one "medicationId:number" per row, sorted. */
+/** Order-independent signature of a saved list: one "dispensableUnitId:number" per row, sorted. */
 internal fun scheduleSignature(rows: List<DailyScheduleEntry>): List<String> =
-    rows.map { "${it.medicationId}:${it.number}" }.sorted()
+    rows.map { "${it.dispensableUnitId}:${it.number}" }.sorted()
 
 /** User intents emitted by the Daily Schedule screen. */
 sealed interface DailyScheduleAction {
@@ -94,7 +94,7 @@ class DailyScheduleViewModel(
                 val loaded = saved.map { item ->
                     DailyScheduleEntry(
                         id = nextId++,
-                        medicationId = item.medicationId,
+                        dispensableUnitId = item.dispensableUnitId,
                         brand = item.brandName,
                         number = item.quantity.formatQuantity(),
                     )
@@ -129,7 +129,7 @@ class DailyScheduleViewModel(
                 val unit = current.selectedUnit ?: return@update current
                 val entry = DailyScheduleEntry(
                     id = nextId++,
-                    medicationId = unit.medicationId,
+                    dispensableUnitId = unit.formatId,
                     brand = unit.brandName,
                     number = current.numberOfTablets,
                 )
@@ -160,7 +160,7 @@ class DailyScheduleViewModel(
     private fun save() {
         val items = _state.value.tabletsTaken.mapNotNull { entry ->
             val quantity = entry.number.toDoubleOrNull() ?: return@mapNotNull null
-            DailyScheduleItem(medicationId = entry.medicationId, quantity = quantity)
+            DailyScheduleItem(dispensableUnitId = entry.dispensableUnitId, quantity = quantity)
         }
         viewModelScope.launch {
             dailyScheduleRepository.save(items)

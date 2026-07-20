@@ -6,8 +6,8 @@ import org.junit.Test
 
 class DailyScheduleStateTest {
 
-    private fun entry(id: Long, medId: Long, number: String) =
-        DailyScheduleEntry(id = id, medicationId = medId, brand = "Brand$medId", number = number)
+    private fun entry(id: Long, unitId: Long, number: String) =
+        DailyScheduleEntry(id = id, dispensableUnitId = unitId, brand = "Brand$unitId", number = number)
 
     private fun loaded(vararg rows: DailyScheduleEntry) =
         DailyScheduleState(tabletsTaken = rows.toList(), savedSignature = scheduleSignature(rows.toList()))
