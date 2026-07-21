@@ -14,8 +14,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BackHand
@@ -298,8 +301,16 @@ fun MainScreen(
 private val WarningColor = Color(0xFFF9A825)
 
 /**
- * The attention-message panel shown above the version line: a rounded surface holding one row per message,
- * each a warning icon on the left and the message text on the right. Rendered only when there are messages.
+ * Ceiling for the attention-message panel. It hugs its content when there are only a few messages, and once
+ * it would grow past this it stops there and scrolls internally instead — so a long list of warnings can
+ * never squeeze the menu grid above it down to an unreadable height.
+ */
+private val MessagePanelMaxHeight = 240.dp
+
+/**
+ * The attention-message panel: a rounded surface holding one row per message, each a warning icon on the
+ * left and the message text on the right. Rendered only when there are messages. Its height is capped at
+ * [MessagePanelMaxHeight] and it scrolls internally beyond that, keeping the menu grid legible.
  */
 @Composable
 private fun AttentionMessages(messages: List<AttentionMessage>) {
@@ -308,6 +319,8 @@ private fun AttentionMessages(messages: List<AttentionMessage>) {
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
+            .heightIn(max = MessagePanelMaxHeight)
+            .verticalScroll(rememberScrollState())
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
