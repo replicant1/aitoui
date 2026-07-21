@@ -149,13 +149,16 @@ class ScriptsViewModel(
     }
 
     /**
-     * Records a single dispensation for the pending script and adds the dispensed tablets to the
-     * in-hand table. The derived dispensed count follows.
+     * Records a single dispensation for the pending script and adds the dispensed tablets to the in-hand
+     * table. A script allows `repeats + 1` dispensations; if this was the last one, the script's lifecycle
+     * is over, so it is removed from the scripts table (its dispensations cascade-delete).
      */
     private fun dispenseOne() {
         val script = _state.value.pendingDispenseScript ?: return
         val units = 1
         val tabletsPerUnit = script.tabletsPerUnit.toDoubleOrNull() ?: 0.0
+        // Dispensing is blocked once dispensed > repeats, so the final fill is when dispensed == repeats.
+        val isFinalFill = script.dispensed >= script.repeats
         viewModelScope.launch {
             dispensationRepository.add(
                 Dispensation(
@@ -166,6 +169,7 @@ class ScriptsViewModel(
                 )
             )
             inHandRepository.addTablets(script.dispensableUnitId, units * tabletsPerUnit)
+            if (isFinalFill) scriptRepository.deleteById(script.scriptId)
             _state.update { it.copy(pendingDispenseScriptId = null) }
         }
     }
