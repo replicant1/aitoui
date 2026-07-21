@@ -10,6 +10,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.aitoui.alerts.AttentionMessage
 import com.example.aitoui.alerts.attentionMessages
 import com.example.aitoui.alerts.medicationSupplies
+import com.example.aitoui.backup.BackupFileName
 import com.example.aitoui.backup.BackupManager
 import com.example.aitoui.backup.DownloadsBackupStore
 import com.example.aitoui.data.DATABASE_SCHEMA_VERSION
@@ -32,6 +33,8 @@ data class MainState(
     val busy: Boolean = false,
     /** The backup file the user picked (via the system file picker) and must confirm loading, if any. */
     val pendingLoadUri: String? = null,
+    /** The file name the user is editing in the Save dialog, or null when the dialog is closed. */
+    val pendingSaveFileName: String? = null,
     /** A success/info message to show (e.g. "Saved to Downloads/pxtx.zip"). */
     val message: String? = null,
     /** An error message to show (invalid/newer-version backup, IO failure). */
@@ -44,7 +47,14 @@ data class MainState(
 
 /** User intents from the main menu's backup buttons/dialogs. */
 sealed interface MainAction {
+    /** Open the Save dialog, pre-filled with the default file name. */
     data object SaveTapped : MainAction
+    /** The user edited the file name in the Save dialog. */
+    data class SaveFileNameChanged(val value: String) : MainAction
+    /** Write the backup using the file name currently in the Save dialog. */
+    data object ConfirmSave : MainAction
+    /** Close the Save dialog without writing. */
+    data object CancelSave : MainAction
     /** The user chose a backup file in the system file picker; [uriString] identifies it. */
     data class LoadFilePicked(val uriString: String) : MainAction
     data object ConfirmLoad : MainAction
@@ -90,7 +100,12 @@ class MainViewModel(private val app: AitouiApp) : ViewModel() {
 
     fun onAction(action: MainAction) {
         when (action) {
-            MainAction.SaveTapped -> save()
+            MainAction.SaveTapped -> _state.update {
+                it.copy(pendingSaveFileName = BackupFileName.default(DATABASE_SCHEMA_VERSION, System.currentTimeMillis()))
+            }
+            is MainAction.SaveFileNameChanged -> _state.update { it.copy(pendingSaveFileName = action.value) }
+            MainAction.ConfirmSave -> confirmSave()
+            MainAction.CancelSave -> _state.update { it.copy(pendingSaveFileName = null) }
             is MainAction.LoadFilePicked -> _state.update { it.copy(pendingLoadUri = action.uriString) }
             MainAction.ConfirmLoad -> confirmLoad()
             MainAction.CancelLoad -> _state.update { it.copy(pendingLoadUri = null) }
@@ -98,15 +113,21 @@ class MainViewModel(private val app: AitouiApp) : ViewModel() {
         }
     }
 
-    /** Writes the database + images to Downloads/pxtx.zip, overwriting any existing backup. */
-    private fun save() {
+    private fun confirmSave() {
+        val name = _state.value.pendingSaveFileName?.takeIf { BackupFileName.isValid(it) } ?: return
+        _state.update { it.copy(pendingSaveFileName = null) }
+        save(BackupFileName.ensureZip(name))
+    }
+
+    /** Writes the database + images to Downloads/[fileName], overwriting any existing file of that name. */
+    private fun save(fileName: String) {
         if (_state.value.busy) return
         _state.update { it.copy(busy = true) }
         viewModelScope.launch {
             val result = runCatching {
                 withContext(Dispatchers.IO) {
                     app.checkpointDatabase()
-                    DownloadsBackupStore.openOutput(app).use { out ->
+                    DownloadsBackupStore.openOutput(app, fileName).use { out ->
                         BackupManager.writeTo(
                             context = app,
                             out = out,
@@ -119,7 +140,7 @@ class MainViewModel(private val app: AitouiApp) : ViewModel() {
             }
             _state.update {
                 result.fold(
-                    onSuccess = { _ -> it.copy(busy = false, message = "Saved to Downloads/${DownloadsBackupStore.FILE_NAME}") },
+                    onSuccess = { _ -> it.copy(busy = false, message = "Saved to Downloads/$fileName") },
                     onFailure = { e -> it.copy(busy = false, error = "Couldn't save backup: ${e.message}") },
                 )
             }

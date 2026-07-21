@@ -34,6 +34,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -59,6 +60,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.example.aitoui.alerts.AttentionKind
 import com.example.aitoui.alerts.AttentionMessage
+import com.example.aitoui.backup.BackupFileName
 import com.example.aitoui.backup.DownloadsBackupStore
 import com.example.aitoui.data.DATABASE_SCHEMA_VERSION
 import com.example.aitoui.ui.heading
@@ -209,6 +211,33 @@ fun MainScreen(
     }
 
     // --- Backup Save/Load dialogs ---
+
+    state.pendingSaveFileName?.let { fileName ->
+        AlertDialog(
+            onDismissRequest = { onAction(MainAction.CancelSave) },
+            title = { Text("Save backup") },
+            text = {
+                Column {
+                    Text("Choose a file name for the backup (saved to your Downloads folder).")
+                    OutlinedTextField(
+                        value = fileName,
+                        onValueChange = { onAction(MainAction.SaveFileNameChanged(it)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { onAction(MainAction.ConfirmSave) },
+                    enabled = BackupFileName.isValid(fileName),
+                ) { Text("Save") }
+            },
+            dismissButton = {
+                TextButton(onClick = { onAction(MainAction.CancelSave) }) { Text("Cancel") }
+            },
+        )
+    }
 
     if (state.busy) {
         AlertDialog(
