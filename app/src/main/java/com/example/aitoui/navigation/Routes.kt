@@ -28,6 +28,9 @@ object InHandRoute
 object InventoryRoute
 
 @Serializable
+object SettingsRoute
+
+@Serializable
 object RunOutGraphRoute
 
 /** The camera + OCR screen that scans a PB038 form to pre-fill [ScriptRoute]. */

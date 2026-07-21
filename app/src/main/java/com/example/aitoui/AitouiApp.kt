@@ -11,6 +11,7 @@ import com.example.aitoui.data.InHandRepository
 import com.example.aitoui.data.DispensableUnitRepository
 import com.example.aitoui.data.MedicationRepository
 import com.example.aitoui.data.ScriptRepository
+import com.example.aitoui.data.SettingsRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -55,6 +56,14 @@ class AitouiApp : Application() {
 
     val inHandRepository: InHandRepository by lazy {
         InHandRepository(database.inHandDao())
+    }
+
+    /**
+     * User preferences (e.g. the attention-message "warning window"), backed by SharedPreferences rather
+     * than the Room database, so they are intentionally NOT part of the Save/Load backup.
+     */
+    val settingsRepository: SettingsRepository by lazy {
+        SettingsRepository(this)
     }
 
     /** The on-disk name of the Room database (see [Room.databaseBuilder] above). */

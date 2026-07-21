@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Widgets
 import androidx.compose.material3.AlertDialog
@@ -32,6 +33,7 @@ import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -62,7 +64,6 @@ import com.example.aitoui.alerts.AttentionKind
 import com.example.aitoui.alerts.AttentionMessage
 import com.example.aitoui.backup.BackupFileName
 import com.example.aitoui.backup.DownloadsBackupStore
-import com.example.aitoui.data.DATABASE_SCHEMA_VERSION
 import com.example.aitoui.ui.heading
 import com.example.aitoui.ui.theme.AitouiTheme
 
@@ -78,6 +79,7 @@ fun MainScreen(
     onInHand: () -> Unit = {},
     onInventory: () -> Unit = {},
     onScripts: () -> Unit = {},
+    onSettings: () -> Unit = {},
     onLog: () -> Unit = {},
 ) {
     val context = LocalContext.current
@@ -166,9 +168,18 @@ fun MainScreen(
                         letterSpacing = 4.sp,
                     )
                 },
+                actions = {
+                    IconButton(onClick = onSettings) {
+                        Icon(
+                            imageVector = Icons.Filled.Settings,
+                            contentDescription = "Settings",
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = barContainer,
                     titleContentColor = barContent,
+                    actionIconContentColor = barContent,
                 ),
             )
         },
@@ -195,18 +206,11 @@ fun MainScreen(
                 }
             }
 
-            // Attention messages sit between the grid and the version line, and vanish entirely when empty.
+            // Attention messages sit below the grid, and vanish entirely when empty. (The app/DB version
+            // line that used to live here has moved to the Settings screen.)
             if (state.messages.isNotEmpty()) {
                 AttentionMessages(state.messages)
             }
-
-            Text(
-                text = "App version:${BuildConfig.VERSION_NAME} — DB version:$DATABASE_SCHEMA_VERSION",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
-            )
         }
     }
 
