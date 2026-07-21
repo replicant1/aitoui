@@ -19,9 +19,23 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 
+/** Sort order for the inventory list. */
+enum class SortOption(val label: String) {
+    BrandName("Brand name"),
+    TimeRemaining("Time remaining"),
+}
+
 data class InventoryState(
     val items: List<InventoryItem> = emptyList(),
+    /** How [items] is ordered. */
+    val sortOrder: SortOption = SortOption.BrandName,
 )
+
+/** User intents from the Inventory screen. */
+sealed interface InventoryAction {
+    /** Change how the list is sorted. */
+    data class SortOrderChanged(val order: SortOption) : InventoryAction
+}
 
 class InventoryViewModel(
     dispensableUnitRepository: DispensableUnitRepository,
@@ -32,6 +46,9 @@ class InventoryViewModel(
 
     private val _state = MutableStateFlow(InventoryState())
     val state: StateFlow<InventoryState> = _state.asStateFlow()
+
+    /** The items as delivered by the repositories, before applying the chosen sort order. */
+    private var rawItems: List<InventoryItem> = emptyList()
 
     init {
         combine(
@@ -58,9 +75,28 @@ class InventoryViewModel(
             )
             formats.map { InventoryItem(it, supply[it.formatId]) }
         }
-            .onEach { items -> _state.update { it.copy(items = items) } }
+            .onEach { items ->
+                rawItems = items
+                _state.update { it.copy(items = sortItems(items, it.sortOrder)) }
+            }
             .launchIn(viewModelScope)
     }
+
+    fun onAction(action: InventoryAction) {
+        when (action) {
+            is InventoryAction.SortOrderChanged -> _state.update {
+                it.copy(sortOrder = action.order, items = sortItems(rawItems, action.order))
+            }
+        }
+    }
+
+    private fun sortItems(items: List<InventoryItem>, order: SortOption): List<InventoryItem> =
+        when (order) {
+            // Case-insensitive, ascending alphabetical.
+            SortOption.BrandName -> items.sortedBy { it.unit.brandName.lowercase() }
+            // Smallest time-remaining first; rows with no daily dose (null supply) sink to the bottom.
+            SortOption.TimeRemaining -> items.sortedBy { it.supply?.totalDays ?: Int.MAX_VALUE }
+        }
 
     companion object {
         val Factory = viewModelFactory {

@@ -2,6 +2,7 @@ package com.example.aitoui.inventory
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,10 +11,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ShowChart
+import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.HorizontalDivider
@@ -23,6 +29,7 @@ import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,6 +40,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -56,6 +64,7 @@ fun InventoryRoot(
     val state by viewModel.state.collectAsStateWithLifecycle()
     InventoryScreen(
         state = state,
+        onAction = viewModel::onAction,
         onBack = onBack,
         onRunOutGraph = onRunOutGraph,
     )
@@ -65,11 +74,16 @@ fun InventoryRoot(
 @Composable
 fun InventoryScreen(
     state: InventoryState,
+    onAction: (InventoryAction) -> Unit,
     onBack: () -> Unit,
     onRunOutGraph: () -> Unit,
 ) {
     // The filename of a photo being viewed full-screen (via tapping its thumbnail), if any.
     var viewingFullImage by remember { mutableStateOf<String?>(null) }
+    var sortMenuExpanded by remember { mutableStateOf(false) }
+    val listState = rememberLazyListState()
+    // Jump back to the top whenever the sort order changes, so the new first item is shown.
+    LaunchedEffect(state.sortOrder) { listState.scrollToItem(0) }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -85,6 +99,39 @@ fun InventoryScreen(
                     }
                 },
                 actions = {
+                    Box {
+                        IconButton(onClick = { sortMenuExpanded = true }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.Sort,
+                                contentDescription = "Sort order",
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = sortMenuExpanded,
+                            onDismissRequest = { sortMenuExpanded = false },
+                        ) {
+                            SortOption.entries.forEach { order ->
+                                val isSelected = order == state.sortOrder
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = order.label,
+                                            modifier = Modifier.semantics { selected = isSelected },
+                                        )
+                                    },
+                                    onClick = {
+                                        onAction(InventoryAction.SortOrderChanged(order))
+                                        sortMenuExpanded = false
+                                    },
+                                    trailingIcon = if (isSelected) {
+                                        { Icon(Icons.Filled.Check, contentDescription = null) }
+                                    } else {
+                                        null
+                                    },
+                                )
+                            }
+                        }
+                    }
                     IconButton(onClick = onRunOutGraph) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ShowChart,
@@ -109,7 +156,7 @@ fun InventoryScreen(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
             )
 
-            LazyColumn(modifier = Modifier.weight(1f)) {
+            LazyColumn(state = listState, modifier = Modifier.weight(1f)) {
                 items(state.items, key = { it.unit.formatId }) { item ->
                     MedicationRow(
                         item = item,
@@ -246,6 +293,7 @@ private fun InventoryScreenPreview() {
                     ),
                 ),
             ),
+            onAction = {},
             onBack = {},
             onRunOutGraph = {},
         )
