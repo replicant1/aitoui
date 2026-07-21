@@ -1,6 +1,6 @@
 # Database Schema
 
-**Database:** `aitoui.db` (Room) · **version:** 23 · **package:** `com.example.aitoui.data`
+**Database:** `aitoui.db` (Room) · **version:** 26 · **package:** `com.example.aitoui.data`
 
 The schema models prescriptions and pharmacy dispensing as a chain:
 
@@ -25,6 +25,7 @@ A medication, identified by its brand name and active ingredient.
 | `id` | INTEGER | PK, auto-generated | |
 | `brandName` | TEXT | not null | |
 | `activeIngredient` | TEXT | not null | |
+| `requiresPrescription` | INTEGER | not null, default `1` | boolean (`1` = needs a prescription). Drives the "no scripts"/"get a script" attention messages. Added in `MIGRATION_23_24`. |
 
 ### `dispensable_units`
 A specific format (dosage/packaging) of a medication — a dispensable unit.
@@ -68,24 +69,25 @@ script's `number` values is its derived "dispensed" total.
 | `dispensedAtMillis` | INTEGER | not null | recorded at save time, epoch millis |
 
 ### `daily_schedule`
-The daily medication schedule: how many tablets of each medication are taken every day. The Daily
-Schedule screen replaces the whole table on save.
+The daily medication schedule: how many tablets of each dispensable unit are taken every day. Keyed per
+dispensable unit (dose/format), not per medication, since `MIGRATION_25_26`. The Daily Schedule screen
+replaces the whole table on save.
 
 | Column | Type | Constraints | Notes |
 |---|---|---|---|
 | `id` | INTEGER | PK, auto-generated | |
-| `medicationId` | INTEGER | **FK → `medications.id`** (ON DELETE CASCADE), indexed | the medication taken |
+| `dispensableUnitId` | INTEGER | **FK → `dispensable_units.id`** (ON DELETE CASCADE), indexed | the unit taken |
 | `quantity` | REAL | not null | tablets taken per day (may be fractional, e.g. `0.5`) |
 
 ### `in_hand`
-Tablets currently in the user's possession — dispensed but not yet consumed. Recording a dispensation
-(from the Scripts screen) adds that many tablets here; the In Hand screen replaces the whole table on
-save.
+Tablets currently in the user's possession — dispensed but not yet consumed. Keyed per dispensable unit
+(dose/format), not per medication, since `MIGRATION_24_25`. Recording a dispensation (from the Scripts
+screen) adds that many tablets here; the In Hand screen replaces the whole table on save.
 
 | Column | Type | Constraints | Notes |
 |---|---|---|---|
 | `id` | INTEGER | PK, auto-generated | |
-| `medicationId` | INTEGER | **FK → `medications.id`** (ON DELETE CASCADE), indexed | the medication in hand |
+| `dispensableUnitId` | INTEGER | **FK → `dispensable_units.id`** (ON DELETE CASCADE), indexed | the unit in hand |
 | `quantity` | REAL | not null | tablets in hand (may be fractional) |
 
 ### `in_hand_date`
@@ -106,8 +108,8 @@ and each save overwrites the one row, so it never grows. Standalone — no forei
 - `dispensable_units` **1 — N** `scripts` (`scripts.dispensableUnitId`) — many scripts per unit
 - `scripts` **1 — N** `dispensations` (`dispensations.scriptId`)
 - `dispensable_units` **1 — N** `dispensations` (`dispensations.dispensableUnitId`)
-- `medications` **1 — N** `daily_schedule` (`daily_schedule.medicationId`)
-- `medications` **1 — N** `in_hand` (`in_hand.medicationId`)
+- `dispensable_units` **1 — N** `daily_schedule` (`daily_schedule.dispensableUnitId`)
+- `dispensable_units` **1 — N** `in_hand` (`in_hand.dispensableUnitId`)
 
 `in_hand_date` is standalone (single-row, no foreign key). All foreign keys use `ON DELETE CASCADE`.
 
@@ -131,6 +133,7 @@ classDiagram
         +Long id «PK»
         +String brandName
         +String activeIngredient
+        +Boolean requiresPrescription
     }
     class dispensable_units {
         +Long id «PK»
@@ -158,12 +161,12 @@ classDiagram
     }
     class daily_schedule {
         +Long id «PK»
-        +Long medicationId «FK»
+        +Long dispensableUnitId «FK»
         +Double quantity
     }
     class in_hand {
         +Long id «PK»
-        +Long medicationId «FK»
+        +Long dispensableUnitId «FK»
         +Double quantity
     }
     class in_hand_date {
@@ -174,8 +177,8 @@ classDiagram
     dispensable_units "1" *-- "0..*" scripts : dispensableUnitId
     scripts "1" *-- "0..*" dispensations : scriptId
     dispensable_units "1" *-- "0..*" dispensations : dispensableUnitId
-    medications "1" *-- "0..*" daily_schedule : medicationId
-    medications "1" *-- "0..*" in_hand : medicationId
+    dispensable_units "1" *-- "0..*" daily_schedule : dispensableUnitId
+    dispensable_units "1" *-- "0..*" in_hand : dispensableUnitId
 ```
 
 </details>
@@ -184,8 +187,15 @@ classDiagram
 
 ## Notes
 
-- Schema changes during development use Room's `fallbackToDestructiveMigration(dropAllTables = true)`
-  (see `AitouiApp`), so bumping the `@Database` version recreates and re-seeds the database rather than
-  running hand-written migrations.
+- Schema changes are covered by **hand-written migrations** (`Migrations.kt`, spread into
+  `addMigrations(*ALL_MIGRATIONS)` in `AitouiApp`), so bumping the `@Database` version preserves existing
+  data across the versions they cover. Current history: `21→22` (adds `scripts.instructions`), `22→23`,
+  `23→24` (adds `medications.requiresPrescription`), `24→25` (re-keys `in_hand` to `dispensableUnitId`),
+  `25→26` (re-keys `daily_schedule` to `dispensableUnitId`). `fallbackToDestructiveMigration(dropAllTables
+  = true)` remains only as a safety net for any version jump **not** covered by a migration (it recreates
+  and re-seeds instead of crashing).
 - In debug builds the database is auto-seeded on first launch with a moderate amount of sample data
   (see `DatabaseSeeder`).
+- User **preferences** (e.g. the attention-message "warning window") are **not** in this database — they
+  live in `SharedPreferences` (`SettingsRepository`), and are therefore excluded from the Save/Load backup,
+  which captures only `aitoui.db` and the unit images (see `BackupManager`).
