@@ -71,8 +71,8 @@ class MainViewModel(private val app: AitouiApp) : ViewModel() {
     val state: StateFlow<MainState> = _state.asStateFlow()
 
     init {
-        // Derive the attention messages from the same inventory data the Inventory screen uses.
-        combine(
+        // Derive the per-medication supply picture from the same inventory data the Inventory screen uses.
+        val supplies = combine(
             app.dispensableUnitRepository.formatsWithMedication,
             app.inHandRepository.inHand,
             app.dailyScheduleRepository.dailySchedule,
@@ -85,14 +85,18 @@ class MainViewModel(private val app: AitouiApp) : ViewModel() {
             val inHandByMedication = inHand
                 .groupBy { it.medicationId }
                 .mapValues { (_, rows) -> rows.sumOf { it.quantity } }
-            val supplies = medicationSupplies(
+            medicationSupplies(
                 units = formats,
                 scripts = scripts,
                 dailyByMedication = dailyByMedication,
                 inHandByMedication = inHandByMedication,
                 daysSinceGathered = inHandDaysElapsed(gatheredDate, System.currentTimeMillis()),
             )
-            attentionMessages(supplies)
+        }
+        // Build the attention messages using the user's "warning window" preference; re-runs when either the
+        // supply picture or the preference changes.
+        combine(supplies, app.settingsRepository.warningWindowDays) { supplies, warningDays ->
+            attentionMessages(supplies, warningDays = warningDays)
         }
             .onEach { messages -> _state.update { it.copy(messages = messages) } }
             .launchIn(viewModelScope)

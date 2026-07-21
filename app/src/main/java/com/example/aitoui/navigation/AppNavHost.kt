@@ -18,6 +18,7 @@ import com.example.aitoui.dispensableunit.DispensableUnitsRoot
 import com.example.aitoui.dispensableunit.DispensableUnitRoot
 import com.example.aitoui.script.AddScriptRoot
 import com.example.aitoui.script.ScriptsRoot
+import com.example.aitoui.settings.SettingsRoot
 import com.example.aitoui.dailyschedule.DailyScheduleRoot
 import com.example.aitoui.inhand.InHandRoot
 import com.example.aitoui.inhand.blister.BlisterCountRoot
@@ -39,7 +40,13 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
                 onInHand = { navController.navigate(InHandRoute) },
                 onInventory = { navController.navigate(InventoryRoute) },
                 onScripts = { navController.navigate(ScriptsRoute) },
+                onSettings = { navController.navigate(SettingsRoute) },
                 onLog = { mainViewModel.logDatabase() },
+            )
+        }
+        composable<SettingsRoute> {
+            SettingsRoot(
+                onBack = { navController.popBackStack() },
             )
         }
         composable<MedicationRoute> {
