@@ -2,6 +2,9 @@ package com.example.aitoui.inventory
 
 import com.example.aitoui.data.DispensableUnitDetails
 import com.example.aitoui.data.ScriptDetails
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 import kotlin.math.floor
 import kotlin.math.roundToInt
 
@@ -104,3 +107,18 @@ private fun calendrical(value: Double, unit: String): String {
 }
 
 private fun plural(n: Int, unit: String): String = "$n $unit${if (n == 1) "" else "s"}"
+
+/**
+ * The calendar date the supply runs out: [nowMillis] plus [totalDays] whole days, in the device's local
+ * time zone. Formatted as "d MMM" (e.g. "5 Aug") when the run-out date falls in the same calendar year as
+ * [nowMillis], or "d MMM yyyy" (e.g. "5 Aug 2027") when it falls in a later year.
+ */
+fun runOutDateLabel(totalDays: Int, nowMillis: Long): String {
+    val runOut = Calendar.getInstance().apply {
+        timeInMillis = nowMillis
+        add(Calendar.DAY_OF_YEAR, totalDays)
+    }
+    val nowYear = Calendar.getInstance().apply { timeInMillis = nowMillis }.get(Calendar.YEAR)
+    val pattern = if (runOut.get(Calendar.YEAR) == nowYear) "d MMM" else "d MMM yyyy"
+    return SimpleDateFormat(pattern, Locale.getDefault()).format(runOut.time)
+}

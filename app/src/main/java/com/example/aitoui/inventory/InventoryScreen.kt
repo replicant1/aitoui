@@ -82,6 +82,8 @@ fun InventoryScreen(
     var viewingFullImage by remember { mutableStateOf<String?>(null) }
     var sortMenuExpanded by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
+    // A single "now" for every row's run-out date, captured once when the screen opens.
+    val nowMillis = remember { System.currentTimeMillis() }
     // Jump back to the top whenever the sort order changes, so the new first item is shown.
     LaunchedEffect(state.sortOrder) { listState.scrollToItem(0) }
 
@@ -160,6 +162,7 @@ fun InventoryScreen(
                 items(state.items, key = { it.unit.formatId }) { item ->
                     MedicationRow(
                         item = item,
+                        nowMillis = nowMillis,
                         onViewImage = { path -> viewingFullImage = path },
                     )
                     HorizontalDivider()
@@ -176,6 +179,7 @@ fun InventoryScreen(
 @Composable
 private fun MedicationRow(
     item: InventoryItem,
+    nowMillis: Long,
     onViewImage: (String) -> Unit,
 ) {
     // A single gap so the whitespace beside the thumbnail equals the whitespace below it. Rows with no
@@ -229,12 +233,20 @@ private fun MedicationRow(
                 )
             }
             if (item.supply != null) {
-                Text(
-                    text = humanizeDuration(item.supply.totalDays),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
+                // The runway figure, with the calendar run-out date right-justified beneath it.
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = humanizeDuration(item.supply.totalDays),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    Text(
+                        text = runOutDateLabel(item.supply.totalDays, nowMillis),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             } else {
                 // No daily_schedule entry ⇒ no consumption rate ⇒ nothing to compute a run-out from.
                 Text(
