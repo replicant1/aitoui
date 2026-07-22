@@ -85,6 +85,38 @@ class BlisterCountViewModelTest {
     }
 
     @Test
+    fun `stepBack returns false from capture so caller can leave the screen`() {
+        val vm = BlisterCountViewModel()
+        assertEquals(false, vm.stepBack())
+        assertEquals(BlisterPhase.CAPTURE, vm.state.value.phase)
+    }
+
+    @Test
+    fun `stepBack walks backward through format pop and summary`() {
+        val vm = BlisterCountViewModel().apply { onFramesSeeded(listOf(region(100f), region(400f))); confirmFrames() }
+
+        // FORMAT -> FRAME
+        assertEquals(true, vm.stepBack())
+        assertEquals(BlisterPhase.FRAME, vm.state.value.phase)
+
+        // Re-enter POP/SUMMARY for the remaining checks.
+        vm.confirmFrames()
+        vm.confirmFormat()
+        vm.nextPack()
+        vm.nextPack()
+        assertEquals(BlisterPhase.SUMMARY, vm.state.value.phase)
+
+        // SUMMARY -> POP (last pack)
+        assertEquals(true, vm.stepBack())
+        assertEquals(BlisterPhase.POP, vm.state.value.phase)
+        assertEquals(vm.state.value.packs.lastIndex, vm.state.value.currentPackIndex)
+
+        // POP -> FORMAT
+        assertEquals(true, vm.stepBack())
+        assertEquals(BlisterPhase.FORMAT, vm.state.value.phase)
+    }
+
+    @Test
     fun `popping a blister empties it and un-popping refills it`() {
         val vm = vmPopping(region())
         val (x, y) = popPoint(vm, 0, 0)

@@ -241,6 +241,29 @@ class BlisterCountViewModel : ViewModel() {
         }
     }
 
+    /**
+     * Move one step back in the counting flow.
+     *
+     * @return true when a step-back was handled in-flow, false when the caller should leave this screen.
+     */
+    fun stepBack(): Boolean {
+        val phase = _state.value.phase
+        when (phase) {
+            BlisterPhase.CAPTURE -> return false
+            BlisterPhase.FRAME -> retake()
+            BlisterPhase.FORMAT -> {
+                _state.update { it.copy(phase = BlisterPhase.FRAME, packs = emptyList(), currentPackIndex = 0) }
+            }
+            BlisterPhase.POP -> {
+                _state.update { it.copy(phase = BlisterPhase.FORMAT, currentPackIndex = 0) }
+            }
+            BlisterPhase.SUMMARY -> {
+                _state.update { it.copy(phase = BlisterPhase.POP, currentPackIndex = it.packs.lastIndex.coerceAtLeast(0)) }
+            }
+        }
+        return true
+    }
+
     /** Discard the capture (deleting its file) and return to the live preview. */
     fun retake() {
         deleteCaptureFile()

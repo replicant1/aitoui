@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.view.Surface
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
@@ -132,6 +133,10 @@ fun BlisterCountRoot(
     viewModel: BlisterCountViewModel = viewModel(factory = BlisterCountViewModel.Factory),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // Back walks the flow backwards a phase at a time; only from the first phase does it leave.
+    val handleBack: () -> Unit = {
+        if (!viewModel.stepBack()) onBack()
+    }
     BlisterCountScreen(
         state = state,
         onAnalyse = viewModel::analyse,
@@ -152,7 +157,7 @@ fun BlisterCountRoot(
         onNextPack = viewModel::nextPack,
         onRetake = viewModel::retake,
         onUseTotal = { onCounted(state.total) },
-        onBack = onBack,
+        onBack = handleBack,
     )
 }
 
@@ -189,6 +194,9 @@ fun BlisterCountScreen(
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted -> hasPermission = granted }
+
+    // Route the Android back gesture through the same handler as the on-screen back affordances.
+    BackHandler { onBack() }
 
     // Re-decode the captured frame from its retained path so the review survives configuration changes.
     val bitmap by produceState<Bitmap?>(null, state.capturePath) {
