@@ -261,7 +261,9 @@ private fun MedicationRow(
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     text = if (supply.undispensedFills == 0) {
-                        "No scripts"
+                        // A non-prescription medication has no scripts by nature — say so plainly rather
+                        // than flagging "No scripts" as if something were missing.
+                        if (item.unit.requiresPrescription) "No scripts" else "Over the counter."
                     } else {
                         "${supply.undispensedFills} scripts × " +
                             "${supply.tabletsPerUnit} tabs = ${supply.undispensedTablets} tabs = " +

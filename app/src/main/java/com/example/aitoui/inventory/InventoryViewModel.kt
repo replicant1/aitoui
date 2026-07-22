@@ -28,7 +28,7 @@ enum class SortOption(val label: String) {
 data class InventoryState(
     val items: List<InventoryItem> = emptyList(),
     /** How [items] is ordered. */
-    val sortOrder: SortOption = SortOption.BrandName,
+    val sortOrder: SortOption = SortOption.TimeRemaining,
 )
 
 /** User intents from the Inventory screen. */
