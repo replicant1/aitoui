@@ -2,6 +2,7 @@ package com.example.aitoui.scan
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.view.Surface
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.Camera
@@ -143,7 +144,7 @@ fun ScanScriptScreen(
                         val preview = Preview.Builder().build().also {
                             it.setSurfaceProvider(previewView.surfaceProvider)
                         }
-                        imageCapture.targetRotation = previewView.display?.rotation ?: 0
+                        imageCapture.targetRotation = previewView.display?.rotation ?: Surface.ROTATION_0
                         imageCapture.flashMode = flashModes[flashIndex]
                         provider.unbindAll()
                         camera = provider.bindToLifecycle(

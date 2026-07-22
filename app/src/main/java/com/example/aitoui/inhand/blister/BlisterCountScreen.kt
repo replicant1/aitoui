@@ -3,6 +3,7 @@ package com.example.aitoui.inhand.blister
 import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.view.Surface
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
@@ -311,7 +312,7 @@ private fun CameraCapture(onCaptured: (String, CountImage) -> Unit, onBack: () -
             providerFuture.addListener({
                 val provider = providerFuture.get()
                 val preview = Preview.Builder().build().also { it.setSurfaceProvider(previewView.surfaceProvider) }
-                imageCapture.targetRotation = previewView.display?.rotation ?: 0
+                imageCapture.targetRotation = previewView.display?.rotation ?: Surface.ROTATION_0
                 provider.unbindAll()
                 provider.bindToLifecycle(lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, preview, imageCapture)
             }, ContextCompat.getMainExecutor(context))
