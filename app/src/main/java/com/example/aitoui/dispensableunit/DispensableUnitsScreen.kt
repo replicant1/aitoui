@@ -48,6 +48,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
@@ -58,6 +59,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.example.aitoui.R
 import com.example.aitoui.data.DispensableUnitDetails
 import com.example.aitoui.image.CameraCaptureScreen
 import com.example.aitoui.image.FullImageDialog
@@ -114,12 +116,12 @@ fun DispensableUnitsScreen(
             modifier = Modifier.fillMaxSize(),
             topBar = {
                 TopAppBar(
-                    title = { Text("Dispensable Units", modifier = Modifier.heading()) },
+                    title = { Text(stringResource(R.string.dispensable_units_appbar_title), modifier = Modifier.heading()) },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back",
+                                contentDescription = stringResource(R.string.dispensable_units_back_button_cd),
                             )
                         }
                     },
@@ -130,7 +132,10 @@ fun DispensableUnitsScreen(
                     onClick = onAddDispensableUnit,
                     modifier = Modifier.offset { IntOffset(fabShift.roundToInt(), 0) },
                 ) {
-                    Icon(imageVector = Icons.Filled.Add, contentDescription = "Add dispensable unit")
+                    Icon(
+                        imageVector = Icons.Filled.Add,
+                        contentDescription = stringResource(R.string.dispensable_units_add_button_cd),
+                    )
                 }
             },
         ) { innerPadding ->
@@ -140,8 +145,7 @@ fun DispensableUnitsScreen(
                     .padding(innerPadding),
             ) {
                 Text(
-                    text = "These are all the dispensable units — the specific formats (dose and pack " +
-                        "size) in which your medications come. Long-press a photo to view it full-size.",
+                    text = stringResource(R.string.dispensable_units_description_text),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -170,18 +174,25 @@ fun DispensableUnitsScreen(
         state.pendingDeleteUnit?.let { unit ->
             AlertDialog(
                 onDismissRequest = { onAction(DispensableUnitsAction.CancelDelete) },
-                title = { Text("Delete dispensable unit?") },
+                title = { Text(stringResource(R.string.dispensable_units_delete_dialog_title)) },
                 text = {
                     Text(
-                        "Delete ${unit.brandName} (${unit.dosePerTablet}mg)? This also removes its " +
-                            "scripts and dispensation history, and cannot be undone.",
+                        stringResource(
+                            R.string.dispensable_units_delete_dialog_message,
+                            unit.brandName,
+                            unit.dosePerTablet,
+                        ),
                     )
                 },
                 confirmButton = {
-                    TextButton(onClick = { onAction(DispensableUnitsAction.ConfirmDelete) }) { Text("Delete") }
+                    TextButton(onClick = { onAction(DispensableUnitsAction.ConfirmDelete) }) {
+                        Text(stringResource(R.string.dispensable_units_delete_button_label))
+                    }
                 },
                 dismissButton = {
-                    TextButton(onClick = { onAction(DispensableUnitsAction.CancelDelete) }) { Text("Cancel") }
+                    TextButton(onClick = { onAction(DispensableUnitsAction.CancelDelete) }) {
+                        Text(stringResource(R.string.dispensable_units_cancel_button_label))
+                    }
                 },
             )
         }
@@ -194,19 +205,26 @@ fun DispensableUnitsScreen(
             } else {
                 AlertDialog(
                     onDismissRequest = { managingPhotoUnitId = null },
-                    title = { Text("${unit.brandName} photo") },
-                    text = { Text("Retake replaces the current photo. Remove clears it.") },
+                    title = {
+                        Text(
+                            stringResource(
+                                R.string.dispensable_units_photo_dialog_title,
+                                unit.brandName,
+                            ),
+                        )
+                    },
+                    text = { Text(stringResource(R.string.dispensable_units_photo_dialog_message)) },
                     confirmButton = {
                         TextButton(onClick = {
                             managingPhotoUnitId = null
                             capturingForUnitId = unitId
-                        }) { Text("Retake") }
+                        }) { Text(stringResource(R.string.dispensable_units_retake_button_label)) }
                     },
                     dismissButton = {
                         TextButton(onClick = {
                             managingPhotoUnitId = null
                             onAction(DispensableUnitsAction.PhotoRemoved(unitId))
-                        }) { Text("Remove") }
+                        }) { Text(stringResource(R.string.dispensable_units_remove_button_label)) }
                     },
                 )
             }
@@ -253,7 +271,10 @@ private fun DispensableUnitRow(
             // that height rather than making the row taller and unbalancing the thumbnail.
             TabletPhoto(
                 imagePath = unit.imagePath,
-                contentDescription = "Tablet photo for ${unit.brandName}",
+                contentDescription = stringResource(
+                    R.string.dispensable_units_photo_content_description,
+                    unit.brandName,
+                ),
                 onCaptureClick = onCaptureClick,
                 onManagePhotoClick = onManagePhotoClick,
                 onViewFullImage = onViewFullImage,
@@ -279,14 +300,21 @@ private fun DispensableUnitRow(
                 )
                 // Dispensable-unit specifics.
                 Text(
-                    text = "${unit.dosePerTablet}mg × Qty ${unit.tabletsPerUnit}",
+                    text = stringResource(
+                        R.string.dispensable_units_dose_format,
+                        unit.dosePerTablet,
+                        unit.tabletsPerUnit,
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp),
                 )
             }
             IconButton(onClick = onDeleteClick, modifier = Modifier.align(Alignment.Top)) {
-                Icon(imageVector = Icons.Filled.Close, contentDescription = "Delete dispensable unit")
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = stringResource(R.string.dispensable_units_delete_icon_cd),
+                )
             }
         }
     }
@@ -309,6 +337,8 @@ private fun TabletPhoto(
 ) {
     val shape = RoundedCornerShape(8.dp)
     val context = LocalContext.current
+    val managePhotoActionLabel = stringResource(R.string.dispensable_units_manage_photo_action)
+    val viewFullSizeActionLabel = stringResource(R.string.dispensable_units_view_full_size_action)
     if (imagePath != null) {
         AsyncImage(
             model = ImageStore.fileFor(context, imagePath),
@@ -321,13 +351,13 @@ private fun TabletPhoto(
                 // long-press, so label the tap ("Manage photo") and expose the full-size view as an
                 // explicit custom action in TalkBack's actions menu.
                 .combinedClickable(
-                    onClickLabel = "Manage photo",
+                    onClickLabel = managePhotoActionLabel,
                     onClick = onManagePhotoClick,
                     onLongClick = onViewFullImage,
                 )
                 .semantics {
                     customActions = listOf(
-                        CustomAccessibilityAction("View full-size photo") {
+                        CustomAccessibilityAction(viewFullSizeActionLabel) {
                             onViewFullImage()
                             true
                         },
@@ -345,7 +375,7 @@ private fun TabletPhoto(
         ) {
             Icon(
                 imageVector = Icons.Filled.PhotoCamera,
-                contentDescription = "Add tablet photo",
+                contentDescription = stringResource(R.string.dispensable_units_add_photo_cd),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }

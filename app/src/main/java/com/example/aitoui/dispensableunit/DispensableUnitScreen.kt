@@ -34,12 +34,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.aitoui.R
 import com.example.aitoui.data.Medication
 import com.example.aitoui.ui.AppTextField
-import com.example.aitoui.ui.REQUIRED_FIELDS_NOTE
 import com.example.aitoui.ui.UnsavedChangesDialog
 import com.example.aitoui.ui.heading
+import com.example.aitoui.ui.requiredFieldsNote
 import com.example.aitoui.ui.theme.AitouiTheme
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun DispensableUnitRoot(
@@ -88,12 +90,12 @@ fun DispensableUnitScreen(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("Dispensable Unit", modifier = Modifier.heading()) },
+                title = { Text(stringResource(R.string.dispensable_unit_appbar_title), modifier = Modifier.heading()) },
                 navigationIcon = {
                     IconButton(onClick = attemptBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+                            contentDescription = stringResource(R.string.dispensable_unit_back_button_cd),
                         )
                     }
                 },
@@ -102,7 +104,7 @@ fun DispensableUnitScreen(
                         onClick = { onAction(DispensableUnitAction.Save) },
                         enabled = state.canSave,
                     ) {
-                        Text("SAVE")
+                        Text(stringResource(R.string.dispensable_unit_save_button_label))
                     }
                 },
             )
@@ -117,8 +119,7 @@ fun DispensableUnitScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text(
-                text = "A Dispensable Unit is a particular packaging and presentation of a " +
-                    "medication. Typically a box or bottle of a capsule or tablet. $REQUIRED_FIELDS_NOTE",
+                text = stringResource(R.string.dispensable_unit_description_text, requiredFieldsNote()),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -130,12 +131,12 @@ fun DispensableUnitScreen(
                 AppTextField(
                     value = state.selectedMedicationName,
                     onValueChange = {},
-                    label = "Medication",
+                    label = stringResource(R.string.dispensable_unit_medication_label),
                     readOnly = true,
-                    placeholder = "Select a medication",
+                    placeholder = stringResource(R.string.dispensable_unit_medication_placeholder),
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = medicationExpanded) },
                     supportingText = if (state.medications.isEmpty()) {
-                        "No medications yet — add one first"
+                        stringResource(R.string.dispensable_unit_no_medications_supporting_text)
                     } else null,
                     modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable),
                 )
@@ -158,13 +159,13 @@ fun DispensableUnitScreen(
             AppTextField(
                 value = state.dosePerTablet,
                 onValueChange = { onAction(DispensableUnitAction.DosePerTabletChanged(it)) },
-                label = "Dose per tablet",
+                label = stringResource(R.string.dispensable_unit_dose_per_tablet_label),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             )
             AppTextField(
                 value = state.tabletsPerUnit,
                 onValueChange = { onAction(DispensableUnitAction.TabletsPerUnitChanged(it)) },
-                label = "Tablets per unit",
+                label = stringResource(R.string.dispensable_unit_tablets_per_unit_label),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             )
         }

@@ -1,5 +1,7 @@
 package com.example.aitoui.script
 
+import com.example.aitoui.R
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -46,6 +48,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -97,12 +100,12 @@ fun ScriptsScreen(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("Scripts", modifier = Modifier.heading()) },
+                title = { Text(stringResource(R.string.scripts_appbar_title), modifier = Modifier.heading()) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+                            contentDescription = stringResource(R.string.scripts_back_button_cd),
                         )
                     }
                 },
@@ -111,7 +114,7 @@ fun ScriptsScreen(
                         IconButton(onClick = { sortMenuExpanded = true }) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.Sort,
-                                contentDescription = "Sort order",
+                                contentDescription = stringResource(R.string.scripts_sort_order_button_cd),
                             )
                         }
                         DropdownMenu(
@@ -150,7 +153,7 @@ fun ScriptsScreen(
         },
         floatingActionButton = {
             FloatingActionButton(onClick = onAddScript) {
-                Icon(imageVector = Icons.Filled.Add, contentDescription = "Add script")
+                Icon(imageVector = Icons.Filled.Add, contentDescription = stringResource(R.string.scripts_add_button_cd))
             }
         },
     ) { innerPadding ->
@@ -160,8 +163,7 @@ fun ScriptsScreen(
                 .padding(innerPadding),
         ) {
             Text(
-                text = "These are all the scripts you currently have in hand — one for each " +
-                    "medication your doctor has prescribed.",
+                text = stringResource(R.string.scripts_description_text),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -188,18 +190,17 @@ fun ScriptsScreen(
     state.pendingDispenseScript?.let { script ->
         AlertDialog(
             onDismissRequest = { onAction(ScriptsAction.CancelDispense) },
-            title = { Text("Dispense one unit?") },
+            title = { Text(stringResource(R.string.scripts_dispense_dialog_title)) },
             text = {
                 Text(
-                    "Record one dispensation of ${script.medicationLabel}. This adds " +
-                        "${script.tabletsPerUnit} tablets to your In Hand tally.",
+                    stringResource(R.string.scripts_dispense_dialog_message, script.medicationLabel, script.tabletsPerUnit),
                 )
             },
             confirmButton = {
-                TextButton(onClick = { onAction(ScriptsAction.ConfirmDispense) }) { Text("Dispense") }
+                TextButton(onClick = { onAction(ScriptsAction.ConfirmDispense) }) { Text(stringResource(R.string.scripts_dispense_button_label)) }
             },
             dismissButton = {
-                TextButton(onClick = { onAction(ScriptsAction.CancelDispense) }) { Text("Cancel") }
+                TextButton(onClick = { onAction(ScriptsAction.CancelDispense) }) { Text(stringResource(R.string.main_cancel_button_label)) }
             },
         )
     }
@@ -208,15 +209,14 @@ fun ScriptsScreen(
     state.maxedOutScript?.let { script ->
         AlertDialog(
             onDismissRequest = { onAction(ScriptsAction.DismissMaxedOut) },
-            title = { Text("Cannot dispense") },
+            title = { Text(stringResource(R.string.scripts_cannot_dispense_title)) },
             text = {
                 Text(
-                    "${script.medicationLabel} has already been dispensed the maximum number of " +
-                        "times (${script.repeats + 1}).",
+                    stringResource(R.string.scripts_cannot_dispense_message, script.medicationLabel, script.repeats + 1),
                 )
             },
             confirmButton = {
-                TextButton(onClick = { onAction(ScriptsAction.DismissMaxedOut) }) { Text("OK") }
+                TextButton(onClick = { onAction(ScriptsAction.DismissMaxedOut) }) { Text(stringResource(R.string.main_ok_label)) }
             },
         )
     }
@@ -225,18 +225,17 @@ fun ScriptsScreen(
     state.pendingDeleteScript?.let { script ->
         AlertDialog(
             onDismissRequest = { onAction(ScriptsAction.CancelDelete) },
-            title = { Text("Delete script?") },
+            title = { Text(stringResource(R.string.scripts_delete_dialog_title)) },
             text = {
                 Text(
-                    "Delete the script for ${script.medicationLabel}? This also removes its " +
-                        "dispensation history and cannot be undone.",
+                    stringResource(R.string.scripts_delete_dialog_message, script.medicationLabel),
                 )
             },
             confirmButton = {
-                TextButton(onClick = { onAction(ScriptsAction.ConfirmDelete) }) { Text("Delete") }
+                TextButton(onClick = { onAction(ScriptsAction.ConfirmDelete) }) { Text(stringResource(R.string.scripts_delete_button_label)) }
             },
             dismissButton = {
-                TextButton(onClick = { onAction(ScriptsAction.CancelDelete) }) { Text("Cancel") }
+                TextButton(onClick = { onAction(ScriptsAction.CancelDelete) }) { Text(stringResource(R.string.main_cancel_button_label)) }
             },
         )
     }
@@ -282,7 +281,11 @@ private fun ScriptCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = "${script.dosePerTablet}mg × Qty ${script.tabletsPerUnit}",
+                        text = stringResource(
+                            R.string.dispensable_units_dose_format,
+                            script.dosePerTablet,
+                            script.tabletsPerUnit,
+                        ),
                         style = MaterialTheme.typography.bodyLarge,
                         color = ScriptCardInk.copy(alpha = 0.6f),
                     )
@@ -290,7 +293,7 @@ private fun ScriptCard(
                 IconButton(onClick = onDeleteClick) {
                     Icon(
                         imageVector = Icons.Filled.Close,
-                        contentDescription = "Delete ${script.brandName}",
+                        contentDescription = stringResource(R.string.scripts_delete_icon_cd, script.brandName),
                         tint = ScriptCardIcon,
                     )
                 }
@@ -306,14 +309,14 @@ private fun ScriptCard(
             ) {
                 ScriptCardCell(
                     modifier = Modifier.weight(1f),
-                    caption = "Dispensed",
+                    caption = stringResource(R.string.scripts_caption_dispensed),
                     value = script.dispensed.toString(),
                     onClick = onDispensedClick,
                 )
                 VerticalDivider(thickness = 1.dp, color = ScriptCardInk)
                 ScriptCardCell(
                     modifier = Modifier.weight(1f),
-                    caption = "Repeats",
+                    caption = stringResource(R.string.scripts_caption_repeats),
                     value = script.repeats.toString(),
                 )
             }
@@ -322,7 +325,7 @@ private fun ScriptCard(
 
             // Yellow footer: the script's date of issue, left-justified.
             Text(
-                text = "Issued: ${formatIssueDate(script.dateOfIssue)}",
+                text = stringResource(R.string.scripts_issued_prefix, formatIssueDate(script.dateOfIssue)),
                 style = MaterialTheme.typography.bodyMedium,
                 color = ScriptCardInk,
                 modifier = Modifier
@@ -375,7 +378,7 @@ private fun ScriptCardCell(
             IconButton(onClick = onClick, modifier = Modifier.align(Alignment.TopEnd)) {
                 Icon(
                     imageVector = Icons.Filled.Add,
-                    contentDescription = "Dispense one unit",
+                    contentDescription = stringResource(R.string.scripts_dispense_icon_cd),
                     tint = ScriptCardIcon,
                 )
             }

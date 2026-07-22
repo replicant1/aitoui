@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.aitoui.AitouiApp
+import com.example.aitoui.R
 import com.google.android.gms.tasks.Tasks
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
@@ -69,7 +70,12 @@ class ScanScriptViewModel(
                     _result.value = parsed
                 },
                 onFailure = { e ->
-                    _state.update { it.copy(busy = false, error = "Couldn't read the form: ${e.message}") }
+                    _state.update {
+                        it.copy(
+                            busy = false,
+                            error = app.getString(R.string.scan_script_read_form_error, e.message ?: ""),
+                        )
+                    }
                 },
             )
         }

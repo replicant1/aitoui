@@ -36,7 +36,9 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.progressBarRangeInfo
@@ -57,6 +59,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.aitoui.inventory.humanizeDuration
+import com.example.aitoui.R
 import com.example.aitoui.ui.heading
 import kotlin.math.roundToInt
 
@@ -113,12 +116,12 @@ fun RunOutGraphScreen(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("Run-out Graph", modifier = Modifier.heading()) },
+                title = { Text(stringResource(R.string.run_out_graph_appbar_title), modifier = Modifier.heading()) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+                            contentDescription = stringResource(R.string.run_out_graph_back_button_cd),
                         )
                     }
                 },
@@ -133,9 +136,7 @@ fun RunOutGraphScreen(
                 .padding(innerPadding),
         ) {
             Text(
-                text = "How each dispensable unit's supply — the tablets in hand plus your remaining " +
-                    "script repeats — runs down over time. Drag the thumb on the time axis to read off " +
-                    "how much is left at any point in the future.",
+                text = stringResource(R.string.run_out_graph_description_text),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -152,7 +153,7 @@ fun RunOutGraphScreen(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = "Nothing to graph yet. Add a daily schedule and some stock or scripts.",
+                        text = stringResource(R.string.run_out_graph_empty_state_text),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(32.dp),
@@ -190,6 +191,8 @@ private fun RunOutChart(
     onCursorFractionChange: (Float) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // LocalResources (not LocalContext) so the readout re-resolves when the Configuration changes.
+    val resources = LocalResources.current
     val cursorDay = cursorFraction * data.domainDays
 
     val density = LocalDensity.current
@@ -203,9 +206,11 @@ private fun RunOutChart(
     val labelStyle = TextStyle(fontSize = 10.sp, color = labelColor)
     val titleStyle = TextStyle(fontSize = 11.sp, color = labelColor, fontWeight = FontWeight.Medium)
 
-    // The Y-axis title's top-of-letters aligns with the left edge of the text block above (16dp in).
+    // Y-axis title's top-of-letters aligns with the left edge of the text block above (16dp in).
     val yTitleInset = with(density) { 16.dp.toPx() }
-    val yTitleLayout = textMeasurer.measure("Tablets", titleStyle)
+    val tabletsAxisLabel = stringResource(R.string.run_out_graph_tablets_axis_label)
+    val timeAxisLabel = stringResource(R.string.run_out_graph_time_axis_label)
+    val yTitleLayout = textMeasurer.measure(tabletsAxisLabel, titleStyle)
     // After a -90° rotation the title occupies a horizontal band as wide as its (unrotated) height.
     val yTitleBand = yTitleLayout.size.height.toFloat()
     val widestYLabelWidth = textMeasurer.measure(data.domainTablets.toString(), labelStyle).size.width.toFloat()
@@ -220,7 +225,7 @@ private fun RunOutChart(
     val thumbWidth = with(density) { 44.dp.toPx() }
     val thumbHeight = with(density) { 22.dp.toPx() }
     val monthLabelHeight = textMeasurer.measure("Aug", labelStyle).size.height.toFloat()
-    val xTitleHeight = textMeasurer.measure("Time", titleStyle).size.height.toFloat()
+    val xTitleHeight = textMeasurer.measure(timeAxisLabel, titleStyle).size.height.toFloat()
     // How far the title/thumb band extends below the title's top (the thumb overhangs the title).
     val xTitleBandBelow = maxOf(xTitleHeight, xTitleHeight / 2f + thumbHeight / 2f)
 
@@ -241,19 +246,24 @@ private fun RunOutChart(
     // (slider-like) node: TalkBack users swipe up/down to move the time cursor, and [cursorReadout]
     // — re-announced on each adjust — gives the same per-unit figures the sighted legend shows.
     val plottedCount = data.series.count { it.totalTablets > 0 }
-    val chartDescription =
-        "Run-out projection chart. " +
-            (if (plottedCount == 1) "1 dispensable unit" else "$plottedCount dispensable units") +
-            " plotted over ${data.domainDays.toInt()} days. Vertical axis: tablets remaining. " +
-            "Horizontal axis: time. Swipe up or down to move the time cursor and hear how much of " +
-            "each dispensable unit is left at that point."
+    val chartDescription = if (plottedCount == 1) {
+        stringResource(R.string.run_out_graph_chart_cd_one, data.domainDays.toInt())
+    } else {
+        stringResource(R.string.run_out_graph_chart_cd_multiple, plottedCount, data.domainDays.toInt())
+    }
 
     val cursorDays = cursorDay.roundToInt()
-    val cursorLabel = if (cursorDays <= 0) "now" else "$cursorDays days from now"
+    val cursorNow = stringResource(R.string.run_out_graph_cursor_now)
+    val cursorDaysFromNow = stringResource(R.string.run_out_graph_cursor_days_from_now, cursorDays)
+    val cursorLabel = if (cursorDays <= 0) cursorNow else cursorDaysFromNow
     val cursorReadout =
         if (data.series.isEmpty()) cursorLabel
         else "$cursorLabel. " + data.series.joinToString(". ") { s ->
-            "${s.label}, ${humanizeDuration(s.daysRemainingAt(cursorDay))} left"
+            resources.getString(
+                R.string.run_out_graph_cursor_readout_item,
+                s.label,
+                humanizeDuration(s.daysRemainingAt(cursorDay)),
+            )
         }
 
     // Increment one day for short domains, one week for longer ones, so a swipe moves a sensible amount.
@@ -352,7 +362,7 @@ private fun RunOutChart(
             val xTitleTop = xLabelTop + monthLabelHeight + xLabelToTitleGap
             drawAxisTitle(
                 textMeasurer,
-                "Time",
+                timeAxisLabel,
                 titleStyle,
                 centerX = (plotLeft + plotRight) / 2f,
                 top = xTitleTop,
@@ -401,7 +411,7 @@ private fun RunOutLegend(
 ) {
     Column(modifier = modifier) {
         Text(
-            text = "Remaining at cursor",
+            text = stringResource(R.string.run_out_graph_legend_header),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier

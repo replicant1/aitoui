@@ -41,6 +41,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
@@ -49,11 +50,12 @@ import com.example.aitoui.data.DispensableUnitDetails
 import com.example.aitoui.data.Medication
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.aitoui.R
 import com.example.aitoui.ui.AppTextField
 import com.example.aitoui.ui.FieldRequirement
-import com.example.aitoui.ui.REQUIRED_FIELDS_NOTE
 import com.example.aitoui.ui.UnsavedChangesDialog
 import com.example.aitoui.ui.heading
+import com.example.aitoui.ui.requiredFieldsNote
 import com.example.aitoui.ui.theme.AitouiTheme
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -107,12 +109,12 @@ fun AddScriptScreen(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("Script", modifier = Modifier.heading()) },
+                title = { Text(stringResource(R.string.add_script_appbar_title), modifier = Modifier.heading()) },
                 navigationIcon = {
                     IconButton(onClick = attemptBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+                            contentDescription = stringResource(R.string.add_script_back_button_cd),
                         )
                     }
                 },
@@ -121,7 +123,7 @@ fun AddScriptScreen(
                         onClick = { onAction(AddScriptAction.Save) },
                         enabled = state.canSave,
                     ) {
-                        Text("SAVE")
+                        Text(stringResource(R.string.add_script_save_button_label))
                     }
                 },
             )
@@ -136,10 +138,7 @@ fun AddScriptScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text(
-                text = "A Script is an authorization from your doctor for the chemist to " +
-                    "dispense to you a particular medication in a particular format. On Save, the app " +
-                    "matches the medication and dispensable unit to your existing records. " +
-                    REQUIRED_FIELDS_NOTE,
+                text = stringResource(R.string.add_script_description_text, requiredFieldsNote()),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -148,36 +147,36 @@ fun AddScriptScreen(
             AppTextField(
                 value = state.brandName,
                 onValueChange = { onAction(AddScriptAction.BrandNameChanged(it)) },
-                label = "Brand name",
+                label = stringResource(R.string.add_script_brand_name_label),
             )
             AppTextField(
                 value = state.activeIngredient,
                 onValueChange = { onAction(AddScriptAction.ActiveIngredientChanged(it)) },
-                label = "Active ingredient",
+                label = stringResource(R.string.add_script_active_ingredient_label),
             )
             AppTextField(
                 value = state.dosePerTablet,
                 onValueChange = { onAction(AddScriptAction.DosePerTabletChanged(it)) },
-                label = "Milligrams per tablet",
+                label = stringResource(R.string.add_script_dose_per_tablet_label),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             )
             AppTextField(
                 value = state.tabletsPerUnit,
                 onValueChange = { onAction(AddScriptAction.TabletsPerUnitChanged(it)) },
-                label = "Tablets per unit",
+                label = stringResource(R.string.add_script_tablets_per_unit_label),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             )
 
             AppTextField(
                 value = state.serialNo,
                 onValueChange = { onAction(AddScriptAction.SerialNoChanged(it)) },
-                label = "Prescription number",
+                label = stringResource(R.string.add_script_prescription_number_label),
                 requirement = FieldRequirement.Optional,
             )
             AppTextField(
                 value = state.serialNo2,
                 onValueChange = { onAction(AddScriptAction.SerialNo2Changed(it)) },
-                label = "eRx token",
+                label = stringResource(R.string.add_script_erx_token_label),
                 requirement = FieldRequirement.Optional,
             )
 
@@ -186,9 +185,9 @@ fun AddScriptScreen(
                 AppTextField(
                     value = state.dateOfIssue?.let { formatDate(it) } ?: "",
                     onValueChange = {},
-                    label = "Date of issue",
+                    label = stringResource(R.string.add_script_date_of_issue_label),
                     readOnly = true,
-                    placeholder = "Select a date",
+                    placeholder = stringResource(R.string.add_script_select_date_placeholder),
                 )
                 Box(
                     modifier = Modifier
@@ -200,13 +199,13 @@ fun AddScriptScreen(
             AppTextField(
                 value = state.priorDispensed,
                 onValueChange = { onAction(AddScriptAction.PriorDispensedChanged(it)) },
-                label = "Number of times dispensed",
+                label = stringResource(R.string.add_script_times_dispensed_label),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             )
             AppTextField(
                 value = state.repeats,
                 onValueChange = { onAction(AddScriptAction.RepeatsChanged(it)) },
-                label = "Number of repeats",
+                label = stringResource(R.string.add_script_repeats_label),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             )
 
@@ -215,9 +214,9 @@ fun AddScriptScreen(
                 AppTextField(
                     value = state.validToMillis?.let { formatDate(it) } ?: "",
                     onValueChange = {},
-                    label = "Valid to",
+                    label = stringResource(R.string.add_script_valid_to_label),
                     readOnly = true,
-                    placeholder = "Select a date",
+                    placeholder = stringResource(R.string.add_script_select_date_placeholder),
                 )
                 Box(
                     modifier = Modifier
@@ -229,10 +228,10 @@ fun AddScriptScreen(
             AppTextField(
                 value = state.instructions,
                 onValueChange = { onAction(AddScriptAction.InstructionsChanged(it)) },
-                label = "Instructions",
+                label = stringResource(R.string.add_script_instructions_label),
                 requirement = FieldRequirement.Optional,
                 singleLine = false,
-                placeholder = "e.g. Take ONE tablet TWICE a day as directed",
+                placeholder = stringResource(R.string.add_script_instructions_placeholder),
             )
         }
     }
@@ -243,15 +242,14 @@ fun AddScriptScreen(
     if (state.duplicateSerial) {
         AlertDialog(
             onDismissRequest = { onAction(AddScriptAction.DismissDuplicateSerial) },
-            title = { Text("Serial number already used") },
+            title = { Text(stringResource(R.string.add_script_duplicate_serial_title)) },
             text = {
-                Text(
-                    "A script with this serial number already exists. Every script must have a unique " +
-                        "serial number, so this one can't be saved. Change the serial number and try again.",
-                )
+                Text(stringResource(R.string.add_script_duplicate_serial_message))
             },
             confirmButton = {
-                TextButton(onClick = { onAction(AddScriptAction.DismissDuplicateSerial) }) { Text("OK") }
+                TextButton(onClick = { onAction(AddScriptAction.DismissDuplicateSerial) }) {
+                    Text(stringResource(R.string.add_script_ok_button_label))
+                }
             },
         )
     }
@@ -290,10 +288,12 @@ fun AddScriptScreen(
                 TextButton(onClick = {
                     onAction(AddScriptAction.DateOfIssueChanged(dpState.selectedDateMillis))
                     showIssuePicker = false
-                }) { Text("OK") }
+                }) { Text(stringResource(R.string.add_script_ok_button_label)) }
             },
             dismissButton = {
-                TextButton(onClick = { showIssuePicker = false }) { Text("Cancel") }
+                TextButton(onClick = { showIssuePicker = false }) {
+                    Text(stringResource(R.string.add_script_cancel_button_label))
+                }
             },
         ) {
             DatePicker(state = dpState)
@@ -308,10 +308,12 @@ fun AddScriptScreen(
                 TextButton(onClick = {
                     onAction(AddScriptAction.ValidToChanged(dpState.selectedDateMillis))
                     showValidToPicker = false
-                }) { Text("OK") }
+                }) { Text(stringResource(R.string.add_script_ok_button_label)) }
             },
             dismissButton = {
-                TextButton(onClick = { showValidToPicker = false }) { Text("Cancel") }
+                TextButton(onClick = { showValidToPicker = false }) {
+                    Text(stringResource(R.string.add_script_cancel_button_label))
+                }
             },
         ) {
             DatePicker(state = dpState)
@@ -343,25 +345,14 @@ private fun MedicationResolutionDialog(
     var selection by remember { mutableStateOf<MedSelection?>(null) }
 
     val hasKnown = knownMedications.isNotEmpty()
-    val single = knownMedications.size == 1
     val showNew = !blocked
 
-    val knownPrompt = if (single) {
-        "The medication you entered is similar to the following known medication:"
-    } else {
-        "The medication you entered is similar to the following known medications:"
-    }
-    val actionPrompt = when {
-        !hasKnown -> "Select the new medication below:"
-        blocked && single -> "Select the known medication above."
-        blocked -> "Select a known medication above."
-        single -> "Select the known medication above or select the new medication below:"
-        else -> "Select a known medication above or select the new medication below:"
-    }
+    val knownPrompt = stringResource(medResolutionKnownPrompt(knownMedications.size))
+    val actionPrompt = stringResource(medResolutionActionPrompt(knownMedications.size, blocked))
 
     AlertDialog(
         onDismissRequest = onCancel,
-        title = { Text("Resolve medication") },
+        title = { Text(stringResource(R.string.add_script_med_resolution_title)) },
         text = {
             Column(
                 modifier = Modifier.selectableGroup(),
@@ -401,10 +392,10 @@ private fun MedicationResolutionDialog(
                     }
                 },
                 enabled = selection != null,
-            ) { Text("Continue") }
+            ) { Text(stringResource(R.string.add_script_continue_button_label)) }
         },
         dismissButton = {
-            TextButton(onClick = onCancel) { Text("Cancel") }
+            TextButton(onClick = onCancel) { Text(stringResource(R.string.add_script_cancel_button_label)) }
         },
     )
 }
@@ -449,7 +440,7 @@ private fun MedicationChoiceCard(
                 // Sparkle badge marks this as the "create a new medication" option.
                 Icon(
                     imageVector = Icons.Filled.AutoAwesome,
-                    contentDescription = "New medication",
+                    contentDescription = stringResource(R.string.add_script_new_medication_badge_cd),
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
@@ -488,25 +479,14 @@ private fun DispensableUnitResolutionDialog(
     var selection by remember { mutableStateOf<DuSelection?>(null) }
 
     val hasExisting = existingUnits.isNotEmpty()
-    val single = existingUnits.size == 1
     val showNew = !blocked
 
-    val existingPrompt = if (single) {
-        "This medication already has the following dispensable unit:"
-    } else {
-        "This medication already has the following dispensable units:"
-    }
-    val actionPrompt = when {
-        !hasExisting -> "Select the new dispensable unit below:"
-        blocked && single -> "Select the existing dispensable unit above."
-        blocked -> "Select an existing dispensable unit above."
-        single -> "Select the existing dispensable unit above or select the new dispensable unit below:"
-        else -> "Select an existing dispensable unit above or select the new dispensable unit below:"
-    }
+    val existingPrompt = stringResource(duResolutionExistingPrompt(existingUnits.size))
+    val actionPrompt = stringResource(duResolutionActionPrompt(existingUnits.size, blocked))
 
     AlertDialog(
         onDismissRequest = onCancel,
-        title = { Text("Resolve dispensable unit") },
+        title = { Text(stringResource(R.string.add_script_du_resolution_title)) },
         text = {
             Column(
                 modifier = Modifier.selectableGroup(),
@@ -550,10 +530,10 @@ private fun DispensableUnitResolutionDialog(
                     }
                 },
                 enabled = selection != null,
-            ) { Text("Continue") }
+            ) { Text(stringResource(R.string.add_script_continue_button_label)) }
         },
         dismissButton = {
-            TextButton(onClick = onCancel) { Text("Cancel") }
+            TextButton(onClick = onCancel) { Text(stringResource(R.string.add_script_cancel_button_label)) }
         },
     )
 }
@@ -596,7 +576,11 @@ private fun DispensableUnitChoiceCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
-                        text = "${dosePerTablet}mg × Qty $tabletsPerUnit",
+                        text = stringResource(
+                            R.string.add_script_du_format_text,
+                            dosePerTablet,
+                            tabletsPerUnit,
+                        ),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 4.dp),
@@ -607,7 +591,7 @@ private fun DispensableUnitChoiceCard(
                 // Sparkle badge marks this as the "create a new dispensable unit" option.
                 Icon(
                     imageVector = Icons.Filled.AutoAwesome,
-                    contentDescription = "New dispensable unit",
+                    contentDescription = stringResource(R.string.add_script_new_dispensable_unit_badge_cd),
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier
                         .align(Alignment.TopEnd)

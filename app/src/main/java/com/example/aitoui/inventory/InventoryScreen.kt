@@ -1,5 +1,7 @@
 package com.example.aitoui.inventory
 
+import com.example.aitoui.R
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -39,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -91,12 +94,12 @@ fun InventoryScreen(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("Inventory", modifier = Modifier.heading()) },
+                title = { Text(stringResource(R.string.inventory_appbar_title), modifier = Modifier.heading()) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+                            contentDescription = stringResource(R.string.inventory_back_button_cd),
                         )
                     }
                 },
@@ -105,7 +108,7 @@ fun InventoryScreen(
                         IconButton(onClick = { sortMenuExpanded = true }) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.Sort,
-                                contentDescription = "Sort order",
+                                contentDescription = stringResource(R.string.inventory_sort_order_button_cd),
                             )
                         }
                         DropdownMenu(
@@ -137,7 +140,7 @@ fun InventoryScreen(
                     IconButton(onClick = onRunOutGraph) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ShowChart,
-                            contentDescription = "Run-out graph",
+                            contentDescription = stringResource(R.string.inventory_run_out_graph_button_cd),
                         )
                     }
                 },
@@ -150,9 +153,7 @@ fun InventoryScreen(
                 .padding(innerPadding),
         ) {
             Text(
-                text = "For each medication, the figure shows how long before you run out, counting " +
-                    "both the tablets you have in hand and the future dispensations still " +
-                    "available on your scripts.",
+                text = stringResource(R.string.inventory_description_text),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -207,7 +208,7 @@ private fun MedicationRow(
                 val context = LocalContext.current
                 AsyncImage(
                     model = ImageStore.fileFor(context, imagePath),
-                    contentDescription = "View tablet photo for ${item.unit.brandName}",
+                    contentDescription = stringResource(R.string.inventory_photo_button_cd, item.unit.brandName),
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         // Reserve a >=48dp touch target around the 44dp visual (as Material's IconButton does).
@@ -227,7 +228,11 @@ private fun MedicationRow(
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "${item.unit.dosePerTablet}mg × Qty ${item.unit.tabletsPerUnit}",
+                    text = stringResource(
+                        R.string.dispensable_units_dose_format,
+                        item.unit.dosePerTablet,
+                        item.unit.tabletsPerUnit,
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -250,7 +255,7 @@ private fun MedicationRow(
             } else {
                 // No daily_schedule entry ⇒ no consumption rate ⇒ nothing to compute a run-out from.
                 Text(
-                    text = "No daily dose",
+                    text = stringResource(R.string.inventory_no_daily_dose_text),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -263,7 +268,7 @@ private fun MedicationRow(
                     text = if (supply.undispensedFills == 0) {
                         // A non-prescription medication has no scripts by nature — say so plainly rather
                         // than flagging "No scripts" as if something were missing.
-                        if (item.unit.requiresPrescription) "No scripts" else "Over the counter."
+                        if (item.unit.requiresPrescription) stringResource(R.string.inventory_no_scripts_label) else stringResource(R.string.inventory_over_the_counter_label)
                     } else {
                         "${supply.undispensedFills} scripts × " +
                             "${supply.tabletsPerUnit} tabs = ${supply.undispensedTablets} tabs = " +
@@ -274,10 +279,9 @@ private fun MedicationRow(
                 )
                 Text(
                     text = if (supply.inHandTablets == 0) {
-                        "None in hand"
+                        stringResource(R.string.inventory_none_in_hand_label)
                     } else {
-                        "In hand: ${supply.inHandTablets} tabs = " +
-                            humanizeDuration(supply.inHandDays)
+                        stringResource(R.string.inventory_in_hand_format, supply.inHandTablets, humanizeDuration(supply.inHandDays))
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

@@ -6,7 +6,9 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.example.aitoui.R
 
 /**
  * Prompt shown when the user tries to leave an editor screen (back arrow or Android back) with unsaved
@@ -32,28 +34,28 @@ fun UnsavedChangesDialog(
 ) {
     AlertDialog(
         onDismissRequest = onCancel,
-        title = { Text("Unsaved changes") },
+        title = { Text(stringResource(R.string.unsaved_changes_dialog_title)) },
         text = {
             Text(
-                if (canSave) "You've made changes that haven't been saved. Save them before leaving?"
-                else "You've made changes that aren't complete enough to save. Discard them and leave?",
+                if (canSave) stringResource(R.string.unsaved_changes_dialog_message_can_save)
+                else stringResource(R.string.unsaved_changes_dialog_message_cannot_save),
             )
         },
         confirmButton = {
             if (canSave) {
-                TextButton(onClick = onSave) { Text("Save") }
+                TextButton(onClick = onSave) { Text(stringResource(R.string.unsaved_changes_save_button_label)) }
             } else {
-                TextButton(onClick = onDiscard) { Text("Discard") }
+                TextButton(onClick = onDiscard) { Text(stringResource(R.string.unsaved_changes_discard_button_label)) }
             }
         },
         dismissButton = {
             if (canSave) {
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    TextButton(onClick = onCancel) { Text("Cancel") }
-                    TextButton(onClick = onDiscard) { Text("Discard") }
+                    TextButton(onClick = onCancel) { Text(stringResource(R.string.unsaved_changes_cancel_button_label)) }
+                    TextButton(onClick = onDiscard) { Text(stringResource(R.string.unsaved_changes_discard_button_label)) }
                 }
             } else {
-                TextButton(onClick = onCancel) { Text("Cancel") }
+                TextButton(onClick = onCancel) { Text(stringResource(R.string.unsaved_changes_cancel_button_label)) }
             }
         },
     )

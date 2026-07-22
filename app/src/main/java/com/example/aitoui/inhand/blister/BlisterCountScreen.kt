@@ -75,6 +75,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
@@ -94,6 +95,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.aitoui.BuildConfig
+import com.example.aitoui.R
 import com.example.aitoui.counting.CellRef
 import com.example.aitoui.counting.CountImage
 import com.example.aitoui.counting.FrameHit
@@ -217,9 +219,9 @@ fun BlisterCountScreen(
 
             state.phase == BlisterPhase.SUMMARY -> SummaryView(state = state, onUseTotal = onUseTotal, onRetake = onRetake)
 
-            bitmap == null -> LoadingOverlay("Loading…")
+            bitmap == null -> LoadingOverlay(stringResource(R.string.blister_count_loading_label))
 
-            state.analysing -> LoadingOverlay("Finding packs…")
+            state.analysing -> LoadingOverlay(stringResource(R.string.blister_count_finding_packs_label))
 
             state.phase == BlisterPhase.FRAME -> FrameEditorView(
                 bitmap = bitmap!!, state = state,
@@ -235,7 +237,7 @@ fun BlisterCountScreen(
 
             state.phase == BlisterPhase.POP -> {
                 val pack = state.currentPack
-                if (pack == null) LoadingOverlay("…")
+                if (pack == null) LoadingOverlay(stringResource(R.string.blister_count_loading_dots))
                 else PopView(
                     bitmap = bitmap!!, state = state, pack = pack,
                     onToggleCell = onToggleCell, onPanGrid = onPanGrid, onScaleGrid = onScaleGrid,
@@ -243,7 +245,7 @@ fun BlisterCountScreen(
                 )
             }
 
-            else -> LoadingOverlay("…")
+            else -> LoadingOverlay(stringResource(R.string.blister_count_loading_dots))
         }
     }
 }
@@ -271,16 +273,16 @@ private fun PermissionGate(onGrant: () -> Unit, onBack: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "Camera permission is needed to count packs.",
+            text = stringResource(R.string.blister_count_permission_message),
             color = Color.White, textAlign = TextAlign.Center,
         )
-        Button(onClick = onGrant, modifier = Modifier.padding(top = 16.dp)) { Text("Grant permission") }
+        Button(onClick = onGrant, modifier = Modifier.padding(top = 16.dp)) { Text(stringResource(R.string.blister_count_grant_permission_button_label)) }
         OutlinedButton(
             onClick = onBack,
             modifier = Modifier.padding(top = 8.dp),
             colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
             border = BorderStroke(1.dp, Color.White),
-        ) { Text("Cancel") }
+        ) { Text(stringResource(R.string.blister_count_cancel_button_label)) }
     }
 }
 
@@ -331,16 +333,16 @@ private fun CameraCapture(onCaptured: (String, CountImage) -> Unit, onBack: () -
     Column(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             IconButton(onClick = onBack, modifier = Modifier.padding(8.dp)) {
-                Icon(Icons.Filled.Close, contentDescription = "Cancel", tint = Color.White)
+                Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.blister_count_cancel_cd), tint = Color.White)
             }
             if (BuildConfig.DEBUG) {
                 TextButton(onClick = { loadTestImage() }, modifier = Modifier.padding(end = 8.dp)) {
-                    Text("Use test image", color = Color.White)
+                    Text(stringResource(R.string.blister_count_use_test_image_label), color = Color.White)
                 }
             }
         }
         Text(
-            text = "Lay the packs down and take a photo. They can touch or overlap — you'll frame each one next.",
+            text = stringResource(R.string.blister_count_capture_instruction_text),
             color = Color.White, textAlign = TextAlign.Center,
             style = MaterialTheme.typography.bodyMedium,
             // A scrim keeps the white instruction legible over the live preview behind it.
@@ -351,6 +353,7 @@ private fun CameraCapture(onCaptured: (String, CountImage) -> Unit, onBack: () -
                 .background(Color.Black.copy(alpha = 0.5f))
                 .padding(horizontal = 12.dp, vertical = 8.dp),
         )
+        val takePhotoCd = stringResource(R.string.blister_count_take_photo_cd)
         Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
             IconButton(
                 onClick = {
@@ -378,7 +381,7 @@ private fun CameraCapture(onCaptured: (String, CountImage) -> Unit, onBack: () -
                         },
                     )
                 },
-                modifier = Modifier.semantics { contentDescription = "Take photo" }.padding(bottom = 32.dp).size(80.dp).clip(CircleShape)
+                modifier = Modifier.semantics { contentDescription = takePhotoCd }.padding(bottom = 32.dp).size(80.dp).clip(CircleShape)
                     .background(Color.White.copy(alpha = 0.25f)),
             ) {
                 Box(modifier = Modifier.size(60.dp).clip(CircleShape).background(Color.White))
@@ -424,7 +427,7 @@ private fun FrameEditorView(
 
     Column(modifier = Modifier.fillMaxSize().safeDrawingPadding().padding(16.dp)) {
         // No pack count here — each pack now carries its own number, which makes the total obvious.
-        Header(title = "Frame the packs", trailing = null)
+        Header(title = stringResource(R.string.blister_count_frame_header_title), trailing = null)
         Box(
             modifier = Modifier.weight(1f).fillMaxWidth().padding(vertical = 12.dp),
             contentAlignment = Alignment.Center,
@@ -560,8 +563,7 @@ private fun FrameEditorView(
             }
         }
         Text(
-            text = "Tap a pack to select it, then drag its corners to fit and spin the top handle to align. " +
-                "Overlapping is fine.",
+            text = stringResource(R.string.blister_count_frame_instruction_text),
             color = Color.White, style = MaterialTheme.typography.bodySmall,
             textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
         )
@@ -573,17 +575,17 @@ private fun FrameEditorView(
                 onClick = onAddFrame, modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
                 border = BorderStroke(1.dp, Color.White),
-            ) { Text("+ Add pack") }
+            ) { Text(stringResource(R.string.blister_count_add_pack_button_label)) }
             OutlinedButton(
                 onClick = onDeleteFrame, modifier = Modifier.weight(1f), enabled = state.selectedFrame != null,
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
                 border = BorderStroke(1.dp, Color.White.copy(alpha = if (state.selectedFrame != null) 1f else 0.3f)),
-            ) { Text("Delete") }
+            ) { Text(stringResource(R.string.blister_count_delete_button_label)) }
         }
         Button(
             onClick = onContinue, modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
             enabled = state.frames.isNotEmpty(),
-        ) { Text("Continue ›") }
+        ) { Text(stringResource(R.string.blister_count_continue_button_label)) }
     }
 }
 
@@ -597,7 +599,7 @@ private fun FormatView(
 ) {
     val representative = state.packs.firstOrNull() ?: return
     Column(modifier = Modifier.fillMaxSize().safeDrawingPadding().padding(16.dp)) {
-        Header(title = "Pack format", trailing = null)
+        Header(title = stringResource(R.string.blister_count_format_header_title), trailing = null)
         Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
             PackImageView(
                 bitmap, state.imageWidth, state.imageHeight, representative,
@@ -606,24 +608,24 @@ private fun FormatView(
             )
         }
         Text(
-            text = "Set the rows and columns for the packs.",
+            text = stringResource(R.string.blister_count_format_instruction_text),
             color = Color.White, style = MaterialTheme.typography.bodySmall,
             textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
         )
         if (state.packs.size > 1) {
             Text(
-                text = "Applies to all ${state.packs.size} packs",
+                text = stringResource(R.string.blister_count_format_applies_to_all_text, state.packs.size),
                 color = PoppedColor, style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
             )
         }
         Row(modifier = Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-            Stepper("Columns", state.cols) { onSetColumns(it) }
-            Stepper("Rows", state.rows) { onSetRows(it) }
+            Stepper(stringResource(R.string.blister_count_columns_label), state.cols) { onSetColumns(it) }
+            Stepper(stringResource(R.string.blister_count_rows_label), state.rows) { onSetRows(it) }
         }
         Button(onClick = onContinue, modifier = Modifier.fillMaxWidth().padding(top = 14.dp)) {
-            Text("Continue ›")
+            Text(stringResource(R.string.blister_count_continue_button_label))
         }
     }
 }
@@ -640,7 +642,7 @@ private fun PopView(
     onNext: () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize().safeDrawingPadding().padding(16.dp)) {
-        Header(title = "Pop blisters") {
+        Header(title = stringResource(R.string.blister_count_pop_header_title)) {
             // The thumbnail identifies the current pack and its place among the rest, so no "Pack x / y" text.
             if (state.packs.size > 1) {
                 PackThumbnail(state.packs, state.currentPackIndex, state.imageWidth, state.imageHeight)
@@ -666,8 +668,7 @@ private fun PopView(
             AccessibleBlisterGrid(state.alongLong, state.alongShort, pack.popped) { cell -> playFor(onToggleCell(cell)) }
         }
         Text(
-            text = "Drag the grid to line the circles up with the blisters, and pinch to match their spacing. " +
-                "Then tap the empty blisters to pop them.",
+            text = stringResource(R.string.blister_count_pop_instruction_text),
             color = Color.White, style = MaterialTheme.typography.bodySmall,
             textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
         )
@@ -676,7 +677,7 @@ private fun PopView(
             horizontalArrangement = Arrangement.Center,
         ) {
             Text(
-                text = "Full ${state.fullCountOf(pack)}   ·   Empty ${pack.popped.size}",
+                text = stringResource(R.string.blister_count_pop_counts_text, state.fullCountOf(pack), pack.popped.size),
                 color = Color.White, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
             )
@@ -689,9 +690,9 @@ private fun PopView(
                 onClick = onReset, modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
                 border = BorderStroke(1.dp, Color.White),
-            ) { Text("Undo all") }
+            ) { Text(stringResource(R.string.blister_count_undo_all_button_label)) }
             Button(onClick = onNext, modifier = Modifier.weight(1f)) {
-                Text(if (state.isLastPack) "Done" else "Next pack ›")
+                Text(if (state.isLastPack) stringResource(R.string.blister_count_done_button_label) else stringResource(R.string.blister_count_next_pack_button_label))
             }
         }
     }
@@ -710,14 +711,19 @@ private fun AccessibleBlisterGrid(alongLong: Int, alongShort: Int, popped: Set<C
                 for (across in 0 until alongShort) {
                     val cell = CellRef(along, across)
                     val isPopped = cell in popped
+                    val blisterCd = stringResource(R.string.blister_count_blister_cd, along + 1, across + 1)
+                    val blisterState = if (isPopped) stringResource(R.string.blister_count_blister_state_empty)
+                                       else stringResource(R.string.blister_count_blister_state_full)
+                    val blisterAction = if (isPopped) stringResource(R.string.blister_count_blister_action_restore)
+                                        else stringResource(R.string.blister_count_blister_action_pop)
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
                             .semantics(mergeDescendants = true) {
-                                contentDescription = "Blister, row ${along + 1}, column ${across + 1}"
-                                stateDescription = if (isPopped) "empty" else "full"
-                                onClick(label = if (isPopped) "Restore" else "Pop") {
+                                contentDescription = blisterCd
+                                stateDescription = blisterState
+                                onClick(label = blisterAction) {
                                     onToggle(cell)
                                     true
                                 }
@@ -732,29 +738,29 @@ private fun AccessibleBlisterGrid(alongLong: Int, alongShort: Int, popped: Set<C
 @Composable
 private fun SummaryView(state: BlisterCountState, onUseTotal: () -> Unit, onRetake: () -> Unit) {
     Column(modifier = Modifier.fillMaxSize().safeDrawingPadding().padding(16.dp)) {
-        Header(title = "Total on hand", trailing = null)
+        Header(title = stringResource(R.string.blister_count_summary_header_title), trailing = null)
         Column(modifier = Modifier.weight(1f).fillMaxWidth().padding(top = 8.dp)) {
             state.packs.forEachIndexed { i, pack ->
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    Text("Pack ${i + 1}  ·  ${state.cols}×${state.rows}", color = Color.White)
+                    Text(stringResource(R.string.blister_count_summary_pack_label, i + 1, state.cols, state.rows), color = Color.White)
                     Text("${state.fullCountOf(pack)} / ${state.blisterCount}", color = Color.White, fontWeight = FontWeight.SemiBold)
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("Tablets remaining", color = Color.White, style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.blister_count_tablets_remaining_label), color = Color.White, style = MaterialTheme.typography.titleMedium)
                 Text("${state.total}", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
             }
         }
-        Button(onClick = onUseTotal, modifier = Modifier.fillMaxWidth()) { Text("Use ${state.total}") }
+        Button(onClick = onUseTotal, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.blister_count_use_total_button_label, state.total)) }
         OutlinedButton(
             onClick = onRetake, modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
             colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
             border = BorderStroke(1.dp, Color.White),
-        ) { Text("Retake") }
+        ) { Text(stringResource(R.string.blister_count_retake_button_label)) }
     }
 }
 
@@ -843,11 +849,11 @@ private fun Stepper(label: String, value: Int, onChange: (Int) -> Unit) {
         Text(label, color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.bodySmall)
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = { onChange(value - 1) }) {
-                Icon(Icons.Filled.Remove, contentDescription = "Fewer $label", tint = Color.White)
+                Icon(Icons.Filled.Remove, contentDescription = stringResource(R.string.blister_count_stepper_fewer_cd, label), tint = Color.White)
             }
             Text("$value", color = Color.White, style = MaterialTheme.typography.titleLarge, modifier = Modifier.width(28.dp), textAlign = TextAlign.Center)
             IconButton(onClick = { onChange(value + 1) }) {
-                Icon(Icons.Filled.Add, contentDescription = "More $label", tint = Color.White)
+                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.blister_count_stepper_more_cd, label), tint = Color.White)
             }
         }
     }

@@ -8,11 +8,13 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.aitoui.R
 import com.example.aitoui.ui.theme.AitouiTheme
 
 /** Whether a field must be filled in. Fields are [Required] by default; only the few exceptions are [Optional]. */
@@ -22,7 +24,8 @@ enum class FieldRequirement { Required, Optional }
  * The one sentence every form states once (in its top text block) so the "required unless marked optional"
  * convention is discoverable. Append it to the screen's existing intro text rather than adding a new line.
  */
-const val REQUIRED_FIELDS_NOTE = "Fields are required unless marked “optional”."
+@Composable
+fun requiredFieldsNote(): String = stringResource(R.string.app_required_fields_note)
 
 /**
  * The app-wide text input. A thin wrapper over [OutlinedTextField] that gives every form one consistent,
@@ -30,7 +33,7 @@ const val REQUIRED_FIELDS_NOTE = "Fields are required unless marked “optional�
  *
  * Because most fields in this app are required, we mark the *minority*: an [Optional] field gets
  * "(optional)" appended to its label, and everything else is required by default (announced once per form
- * via [REQUIRED_FIELDS_NOTE]). The marker lives in the visible label **text**, not an asterisk or colour, so
+ * via [requiredFieldsNote]). The marker lives in the visible label **text**, not an asterisk or colour, so
  * a screen reader reads it for free — Compose has no "required" semantic to expose, and colour/glyph-only
  * markers fail WCAG 1.4.1 / 3.3.2.
  *
@@ -56,8 +59,9 @@ fun AppTextField(
     leadingIcon: (@Composable () -> Unit)? = null,
     trailingIcon: (@Composable () -> Unit)? = null,
 ) {
+    val optionalLabel = stringResource(R.string.app_text_field_optional_label, label)
     val shownLabel = when (requirement) {
-        FieldRequirement.Optional -> "$label (optional)"
+        FieldRequirement.Optional -> optionalLabel
         FieldRequirement.Required -> label
     }
     // Error message wins the supporting-text slot; otherwise show the caller's hint (if any).

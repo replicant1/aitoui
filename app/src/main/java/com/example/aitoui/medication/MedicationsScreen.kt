@@ -1,5 +1,7 @@
 package com.example.aitoui.medication
 
+import com.example.aitoui.R
+
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -15,6 +17,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -34,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
@@ -86,12 +91,12 @@ fun MedicationsScreen(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("Medications", modifier = Modifier.heading()) },
+                title = { Text(stringResource(R.string.medications_appbar_title), modifier = Modifier.heading()) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+                            contentDescription = stringResource(R.string.medications_back_button_cd),
                         )
                     }
                 },
@@ -102,7 +107,7 @@ fun MedicationsScreen(
                 onClick = onAddMedication,
                 modifier = Modifier.offset { IntOffset(fabShift.roundToInt(), 0) },
             ) {
-                Icon(imageVector = Icons.Filled.Add, contentDescription = "Add medication")
+                Icon(imageVector = Icons.Filled.Add, contentDescription = stringResource(R.string.medications_add_button_cd))
             }
         },
     ) { innerPadding ->
@@ -112,8 +117,7 @@ fun MedicationsScreen(
                 .padding(innerPadding),
         ) {
             Text(
-                text = "These are all the medications you've recorded — each identified by its " +
-                    "brand name and active ingredient.",
+                text = stringResource(R.string.medications_description_text),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -139,18 +143,17 @@ fun MedicationsScreen(
     state.pendingDeleteMedication?.let { medication ->
         AlertDialog(
             onDismissRequest = { onAction(MedicationsAction.CancelDelete) },
-            title = { Text("Delete medication?") },
+            title = { Text(stringResource(R.string.medications_delete_dialog_title)) },
             text = {
                 Text(
-                    "Delete ${medication.brandName}? This also removes its dispensable units, " +
-                        "scripts and dispensation history, and cannot be undone.",
+                    stringResource(R.string.medications_delete_dialog_message, medication.brandName),
                 )
             },
             confirmButton = {
-                TextButton(onClick = { onAction(MedicationsAction.ConfirmDelete) }) { Text("Delete") }
+                TextButton(onClick = { onAction(MedicationsAction.ConfirmDelete) }) { Text(stringResource(R.string.medications_delete_button_label)) }
             },
             dismissButton = {
-                TextButton(onClick = { onAction(MedicationsAction.CancelDelete) }) { Text("Cancel") }
+                TextButton(onClick = { onAction(MedicationsAction.CancelDelete) }) { Text(stringResource(R.string.main_cancel_button_label)) }
             },
         )
     }
@@ -186,7 +189,7 @@ private fun MedicationRow(
             IconButton(onClick = onDeleteClick) {
                 Icon(
                     imageVector = Icons.Filled.Close,
-                    contentDescription = "Delete ${medication.brandName}",
+                    contentDescription = stringResource(R.string.medications_delete_icon_cd, medication.brandName),
                 )
             }
         }

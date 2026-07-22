@@ -1,5 +1,7 @@
 package com.example.aitoui
 
+import com.example.aitoui.R
+
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -56,6 +58,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -129,17 +132,17 @@ fun MainScreen(
 
     // The scripts / dispensable units / medications group, plus Save down the left column.
     val prescribingGroup = listOf(
-        MainMenuItem("Scripts", Icons.Filled.Description, onScripts),
-        MainMenuItem("Dispensable Units", Icons.Filled.Widgets, onDispensableUnits),
-        MainMenuItem("Medications", Icons.Filled.Medication, onMedications),
-        MainMenuItem("Save", Icons.Filled.Save) { dispatchWithStorage(MainAction.SaveTapped) },
+        MainMenuItem(stringResource(R.string.main_menu_scripts_label), Icons.Filled.Description, onScripts),
+        MainMenuItem(stringResource(R.string.main_menu_dispensable_units_label), Icons.Filled.Widgets, onDispensableUnits),
+        MainMenuItem(stringResource(R.string.main_menu_medications_label), Icons.Filled.Medication, onMedications),
+        MainMenuItem(stringResource(R.string.main_menu_save_label), Icons.Filled.Save) { dispatchWithStorage(MainAction.SaveTapped) },
     )
     // Everything else, plus Load down the right column (paired with Save on the bottom row).
     val otherGroup = listOf(
-        MainMenuItem("Daily Schedule", Icons.Filled.CalendarMonth, onDailySchedule),
-        MainMenuItem("In Hand", Icons.Filled.BackHand, onInHand),
-        MainMenuItem("Inventory", Icons.Filled.Inventory2, onInventory),
-        MainMenuItem("Load", Icons.Filled.FolderOpen) {
+        MainMenuItem(stringResource(R.string.main_menu_daily_schedule_label), Icons.Filled.CalendarMonth, onDailySchedule),
+        MainMenuItem(stringResource(R.string.main_menu_in_hand_label), Icons.Filled.BackHand, onInHand),
+        MainMenuItem(stringResource(R.string.main_menu_inventory_label), Icons.Filled.Inventory2, onInventory),
+        MainMenuItem(stringResource(R.string.main_menu_load_label), Icons.Filled.FolderOpen) {
             loadPickerLauncher.launch(arrayOf("*/*"))
         },
     )
@@ -164,7 +167,7 @@ fun MainScreen(
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        text = "PxTx",
+                        text = stringResource(R.string.main_appbar_title),
                         modifier = Modifier.heading(),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
@@ -175,7 +178,7 @@ fun MainScreen(
                     IconButton(onClick = onSettings) {
                         Icon(
                             imageVector = Icons.Filled.Settings,
-                            contentDescription = "Settings",
+                            contentDescription = stringResource(R.string.main_settings_button_cd),
                         )
                     }
                 },
@@ -222,10 +225,10 @@ fun MainScreen(
     state.pendingSaveFileName?.let { fileName ->
         AlertDialog(
             onDismissRequest = { onAction(MainAction.CancelSave) },
-            title = { Text("Save backup") },
+            title = { Text(stringResource(R.string.main_save_backup_title)) },
             text = {
                 Column {
-                    Text("Choose a file name for the backup (saved to your Downloads folder).")
+                    Text(stringResource(R.string.main_save_backup_prompt))
                     OutlinedTextField(
                         value = fileName,
                         onValueChange = { onAction(MainAction.SaveFileNameChanged(it)) },
@@ -238,10 +241,10 @@ fun MainScreen(
                 TextButton(
                     onClick = { onAction(MainAction.ConfirmSave) },
                     enabled = BackupFileName.isValid(fileName),
-                ) { Text("Save") }
+                ) { Text(stringResource(R.string.main_save_button_label)) }
             },
             dismissButton = {
-                TextButton(onClick = { onAction(MainAction.CancelSave) }) { Text("Cancel") }
+                TextButton(onClick = { onAction(MainAction.CancelSave) }) { Text(stringResource(R.string.main_cancel_button_label)) }
             },
         )
     }
@@ -249,7 +252,7 @@ fun MainScreen(
     if (state.busy) {
         AlertDialog(
             onDismissRequest = {},
-            title = { Text("Working…") },
+            title = { Text(stringResource(R.string.main_working_title)) },
             text = { CircularProgressIndicator() },
             confirmButton = {},
         )
@@ -258,18 +261,17 @@ fun MainScreen(
     if (state.pendingLoadUri != null) {
         AlertDialog(
             onDismissRequest = { onAction(MainAction.CancelLoad) },
-            title = { Text("Load backup?") },
+            title = { Text(stringResource(R.string.main_load_backup_title)) },
             text = {
                 Text(
-                    "This replaces all current data and images with the selected backup. It cannot be " +
-                        "undone, and the app will restart.",
+                    stringResource(R.string.main_load_backup_message),
                 )
             },
             confirmButton = {
-                TextButton(onClick = { onAction(MainAction.ConfirmLoad) }) { Text("Load") }
+                TextButton(onClick = { onAction(MainAction.ConfirmLoad) }) { Text(stringResource(R.string.main_load_button_label)) }
             },
             dismissButton = {
-                TextButton(onClick = { onAction(MainAction.CancelLoad) }) { Text("Cancel") }
+                TextButton(onClick = { onAction(MainAction.CancelLoad) }) { Text(stringResource(R.string.main_cancel_button_label)) }
             },
         )
     }
@@ -277,10 +279,10 @@ fun MainScreen(
     state.message?.let { message ->
         AlertDialog(
             onDismissRequest = { onAction(MainAction.DismissMessage) },
-            title = { Text("Backup saved") },
+            title = { Text(stringResource(R.string.main_backup_saved_title)) },
             text = { Text(message) },
             confirmButton = {
-                TextButton(onClick = { onAction(MainAction.DismissMessage) }) { Text("OK") }
+                TextButton(onClick = { onAction(MainAction.DismissMessage) }) { Text(stringResource(R.string.main_ok_label)) }
             },
         )
     }
@@ -288,10 +290,10 @@ fun MainScreen(
     state.error?.let { error ->
         AlertDialog(
             onDismissRequest = { onAction(MainAction.DismissMessage) },
-            title = { Text("Couldn't load backup") },
+            title = { Text(stringResource(R.string.main_load_error_title)) },
             text = { Text(error) },
             confirmButton = {
-                TextButton(onClick = { onAction(MainAction.DismissMessage) }) { Text("OK") }
+                TextButton(onClick = { onAction(MainAction.DismissMessage) }) { Text(stringResource(R.string.main_ok_label)) }
             },
         )
     }
@@ -331,7 +333,7 @@ private fun AttentionMessages(messages: List<AttentionMessage>) {
             ) {
                 Icon(
                     imageVector = Icons.Filled.Warning,
-                    contentDescription = "Warning",
+                    contentDescription = stringResource(R.string.main_message_warning_icon_cd),
                     tint = WarningColor,
                     modifier = Modifier.size(20.dp),
                 )

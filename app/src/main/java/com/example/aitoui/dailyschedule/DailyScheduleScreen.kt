@@ -40,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -50,12 +51,13 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.example.aitoui.R
 import com.example.aitoui.data.DispensableUnitDetails
 import com.example.aitoui.image.ImageStore
 import com.example.aitoui.ui.AppTextField
-import com.example.aitoui.ui.REQUIRED_FIELDS_NOTE
 import com.example.aitoui.ui.UnsavedChangesDialog
 import com.example.aitoui.ui.heading
+import com.example.aitoui.ui.requiredFieldsNote
 import com.example.aitoui.ui.selectableRow
 import com.example.aitoui.ui.theme.AitouiTheme
 import com.example.aitoui.ui.theme.ThumbnailShape
@@ -109,18 +111,18 @@ fun DailyScheduleScreen(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("Daily Schedule", modifier = Modifier.heading()) },
+                title = { Text(stringResource(R.string.daily_schedule_appbar_title), modifier = Modifier.heading()) },
                 navigationIcon = {
                     IconButton(onClick = attemptBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+                            contentDescription = stringResource(R.string.daily_schedule_back_button_cd),
                         )
                     }
                 },
                 actions = {
                     TextButton(onClick = { onAction(DailyScheduleAction.Save) }) {
-                        Text("SAVE")
+                        Text(stringResource(R.string.daily_schedule_save_button_label))
                     }
                 },
             )
@@ -134,8 +136,10 @@ fun DailyScheduleScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                text = "This is the number and type of tablets that you take every day. " +
-                    REQUIRED_FIELDS_NOTE,
+                text = stringResource(
+                    R.string.daily_schedule_description_text,
+                    requiredFieldsNote(),
+                ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -148,12 +152,12 @@ fun DailyScheduleScreen(
                 AppTextField(
                     value = state.selectedMedicationName,
                     onValueChange = {},
-                    label = "Dispensable Unit",
+                    label = stringResource(R.string.daily_schedule_unit_label),
                     readOnly = true,
-                    placeholder = "Select a dispensable unit",
+                    placeholder = stringResource(R.string.daily_schedule_unit_placeholder),
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = medicationExpanded) },
                     supportingText = if (state.units.isEmpty()) {
-                        "No dispensable units yet — add one first"
+                        stringResource(R.string.daily_schedule_no_units_supporting_text)
                     } else null,
                     modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable),
                 )
@@ -189,7 +193,7 @@ fun DailyScheduleScreen(
             AppTextField(
                 value = state.numberOfTablets,
                 onValueChange = { onAction(DailyScheduleAction.NumberOfTabletsChanged(it)) },
-                label = "Number of tablets",
+                label = stringResource(R.string.daily_schedule_number_of_tablets_label),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             )
             Button(
@@ -197,7 +201,7 @@ fun DailyScheduleScreen(
                 enabled = state.canAdd,
                 modifier = Modifier.width(actionButtonWidth),
             ) {
-                Text("ADD")
+                Text(stringResource(R.string.daily_schedule_add_button_label))
             }
 
             // Total tablets taken daily, appended to the title (omitted when zero).
@@ -206,8 +210,11 @@ fun DailyScheduleScreen(
                 if (totalTablets == totalTablets.toLong().toDouble()) totalTablets.toLong().toString()
                 else totalTablets.toString()
             Text(
-                text = if (totalTablets > 0.0) "Tablets taken daily ($totalLabel):"
-                else "Tablets taken daily:",
+                text = if (totalTablets > 0.0) {
+                    stringResource(R.string.daily_schedule_tablets_with_total_label, totalLabel)
+                } else {
+                    stringResource(R.string.daily_schedule_tablets_label)
+                },
                 // Polite live region so a screen reader hears the updated total after Add/Delete.
                 modifier = Modifier
                     .heading()
@@ -221,7 +228,9 @@ fun DailyScheduleScreen(
                         val selected = entry.id == state.selectedId
                         // Dose and photo come from the medication's dispensable unit, looked up live.
                         val unit = state.units.firstOrNull { it.formatId == entry.dispensableUnitId }
-                        val dose = unit?.dosePerTablet?.let { " ($it" + "mg)" } ?: ""
+                        val dose = unit?.dosePerTablet?.let {
+                            stringResource(R.string.daily_schedule_dose_suffix, it)
+                        } ?: ""
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -247,7 +256,12 @@ fun DailyScheduleScreen(
                                 )
                             }
                             Text(
-                                text = "${entry.brand}$dose × ${entry.number}",
+                                text = stringResource(
+                                    R.string.daily_schedule_tablet_entry_format,
+                                    entry.brand,
+                                    dose,
+                                    entry.number,
+                                ),
                                 style = MaterialTheme.typography.bodyLarge,
                             )
                         }
@@ -260,7 +274,7 @@ fun DailyScheduleScreen(
                 enabled = state.canDelete,
                 modifier = Modifier.width(actionButtonWidth),
             ) {
-                Text("DELETE")
+                Text(stringResource(R.string.daily_schedule_delete_button_label))
             }
         }
     }
