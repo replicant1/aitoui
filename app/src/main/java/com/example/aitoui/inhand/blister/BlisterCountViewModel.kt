@@ -242,21 +242,30 @@ class BlisterCountViewModel : ViewModel() {
     }
 
     /**
-     * Move one step back in the counting flow.
+     * Retreat to the previous pack (still popping), or back to the format step from the first pack.
+     * The inverse of [nextPack]; pops are kept, since only a change of grid format clears them.
+     */
+    fun previousPack() {
+        _state.update {
+            if (it.currentPackIndex > 0) it.copy(currentPackIndex = it.currentPackIndex - 1)
+            else it.copy(phase = BlisterPhase.FORMAT)
+        }
+    }
+
+    /**
+     * Move one step back in the counting flow — the inverse of whichever step got the user here, so
+     * popping five packs takes five steps to walk back out rather than one.
      *
      * @return true when a step-back was handled in-flow, false when the caller should leave this screen.
      */
     fun stepBack(): Boolean {
-        val phase = _state.value.phase
-        when (phase) {
+        when (_state.value.phase) {
             BlisterPhase.CAPTURE -> return false
             BlisterPhase.FRAME -> retake()
             BlisterPhase.FORMAT -> {
                 _state.update { it.copy(phase = BlisterPhase.FRAME, packs = emptyList(), currentPackIndex = 0) }
             }
-            BlisterPhase.POP -> {
-                _state.update { it.copy(phase = BlisterPhase.FORMAT, currentPackIndex = 0) }
-            }
+            BlisterPhase.POP -> previousPack()
             BlisterPhase.SUMMARY -> {
                 _state.update { it.copy(phase = BlisterPhase.POP, currentPackIndex = it.packs.lastIndex.coerceAtLeast(0)) }
             }
