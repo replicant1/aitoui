@@ -1,5 +1,7 @@
 package com.example.aitoui.medication
 
+import com.example.aitoui.R
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -26,14 +28,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.aitoui.ui.AppTextField
-import com.example.aitoui.ui.REQUIRED_FIELDS_NOTE
 import com.example.aitoui.ui.UnsavedChangesDialog
 import com.example.aitoui.ui.heading
+import com.example.aitoui.ui.requiredFieldsNote
 import com.example.aitoui.ui.theme.AitouiTheme
 
 @Composable
@@ -82,12 +85,12 @@ fun MedicationScreen(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("Medication", modifier = Modifier.heading()) },
+                title = { Text(stringResource(R.string.medication_appbar_title), modifier = Modifier.heading()) },
                 navigationIcon = {
                     IconButton(onClick = attemptBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+                            contentDescription = stringResource(R.string.medication_back_button_cd),
                         )
                     }
                 },
@@ -96,7 +99,7 @@ fun MedicationScreen(
                         onClick = { onAction(MedicationAction.Save) },
                         enabled = state.canSave,
                     ) {
-                        Text("SAVE")
+                        Text(stringResource(R.string.medication_save_button_label))
                     }
                 },
             )
@@ -110,29 +113,28 @@ fun MedicationScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text(
-                text = "A Medication is a proprietary formulation based around an active " +
-                    "ingredient, that can be prescribed by your doctor. $REQUIRED_FIELDS_NOTE",
+                text = stringResource(R.string.medication_description_text, requiredFieldsNote()),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             AppTextField(
                 value = state.brandName,
                 onValueChange = { onAction(MedicationAction.BrandNameChanged(it)) },
-                label = "Brand Name",
+                label = stringResource(R.string.medication_brand_name_label),
             )
             AppTextField(
                 value = state.activeIngredient,
                 onValueChange = { onAction(MedicationAction.ActiveIngredientChanged(it)) },
-                label = "Active Ingredient",
+                label = stringResource(R.string.medication_active_ingredient_label),
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Requires prescription", style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(R.string.medication_requires_prescription_label), style = MaterialTheme.typography.bodyLarge)
                     Text(
-                        text = "Turn off for over-the-counter medications.",
+                        text = stringResource(R.string.medication_requires_prescription_hint),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

@@ -23,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -30,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.aitoui.BuildConfig
+import com.example.aitoui.R
 import com.example.aitoui.data.DATABASE_SCHEMA_VERSION
 import com.example.aitoui.ui.heading
 import com.example.aitoui.ui.theme.AitouiTheme
@@ -58,12 +60,12 @@ fun SettingsScreen(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("Settings", modifier = Modifier.heading()) },
+                title = { Text(stringResource(R.string.settings_appbar_title), modifier = Modifier.heading()) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+                            contentDescription = stringResource(R.string.settings_back_button_cd),
                         )
                     }
                 },
@@ -78,12 +80,11 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                text = "Warning window",
+                text = stringResource(R.string.settings_warning_window_title),
                 style = MaterialTheme.typography.titleMedium,
             )
             Text(
-                text = "How many days ahead the main screen warns you about low supply, scripts to " +
-                    "refill, and medications to restock.",
+                text = stringResource(R.string.settings_warning_window_description),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -99,14 +100,18 @@ fun SettingsScreen(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.width(120.dp),
                 )
-                Text(text = "days", style = MaterialTheme.typography.bodyLarge)
+                Text(text = stringResource(R.string.settings_days_label), style = MaterialTheme.typography.bodyLarge)
             }
 
             // Push the version line to the very bottom of the screen (moved here from the main menu).
             Spacer(modifier = Modifier.weight(1f))
 
             Text(
-                text = "App version:${BuildConfig.VERSION_NAME} — DB version:$DATABASE_SCHEMA_VERSION",
+                text = stringResource(
+                    R.string.settings_version_text,
+                    BuildConfig.VERSION_NAME,
+                    DATABASE_SCHEMA_VERSION,
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,

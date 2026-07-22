@@ -69,6 +69,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -76,6 +77,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil.compose.AsyncImage
+import com.example.aitoui.R
 import com.example.aitoui.ui.heading
 import kotlinx.coroutines.delay
 import java.io.File
@@ -233,7 +235,7 @@ fun CameraCaptureScreen(
                         // Crop phase: frozen photo + adjustable crop square.
                         AsyncImage(
                             model = capturedFile,
-                            contentDescription = "Captured photo",
+                            contentDescription = stringResource(R.string.camera_capture_captured_photo_cd),
                             contentScale = ContentScale.Fit,
                             modifier = Modifier.fillMaxSize(),
                         )
@@ -254,11 +256,14 @@ fun CameraCaptureScreen(
                         // The crop rectangle is Canvas-drawn; expose its current position and size so a
                         // screen reader can at least perceive the bounds (adjusting stays a visual gesture).
                         val cropDesc = if (boxSizePx > 0f) {
-                            "Crop square: ${(cropRadius * 2f / boxSizePx * 100).roundToInt()}% of the photo, " +
-                                "centred ${(cropCenter.x / boxSizePx * 100).roundToInt()}% across and " +
-                                "${(cropCenter.y / boxSizePx * 100).roundToInt()}% down"
+                            stringResource(
+                                R.string.camera_capture_crop_square_cd,
+                                (cropRadius * 2f / boxSizePx * 100).roundToInt(),
+                                (cropCenter.x / boxSizePx * 100).roundToInt(),
+                                (cropCenter.y / boxSizePx * 100).roundToInt(),
+                            )
                         } else {
-                            "Crop square"
+                            stringResource(R.string.camera_capture_crop_square_fallback_cd)
                         }
                         // Move the whole square.
                         Box(
@@ -317,7 +322,7 @@ fun CameraCaptureScreen(
 
                 if (capturedFile == null) {
                     Text(
-                        text = "Frame the tablet — pinch to zoom, tap to focus",
+                        text = stringResource(R.string.camera_capture_viewfinder_instruction_text),
                         color = Color.White,
                         // Heading so a screen reader can jump to it; scrim keeps the white text legible
                         // where the letterbox is small enough that it sits over the preview.
@@ -329,6 +334,7 @@ fun CameraCaptureScreen(
                             .heading(),
                     )
                     // Shutter.
+                    val takePhotoCd = stringResource(R.string.camera_capture_take_photo_cd)
                     IconButton(
                         onClick = {
                             if (capturing) return@IconButton
@@ -352,7 +358,7 @@ fun CameraCaptureScreen(
                             )
                         },
                         modifier = Modifier
-                            .semantics { contentDescription = "Take photo" }
+                            .semantics { contentDescription = takePhotoCd }
                             .padding(top = 16.dp)
                             .size(80.dp)
                             .clip(CircleShape)
@@ -362,7 +368,7 @@ fun CameraCaptureScreen(
                     }
                 } else {
                     Text(
-                        text = "Drag or resize the square, then tap OK",
+                        text = stringResource(R.string.camera_capture_crop_instruction_text),
                         color = Color.White,
                         modifier = Modifier
                             .padding(top = 20.dp)
@@ -377,7 +383,7 @@ fun CameraCaptureScreen(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         TextButton(onClick = { capturedFile?.delete(); capturedFile = null }) {
-                            Text("Retake", color = Color.White)
+                            Text(stringResource(R.string.camera_capture_retake_button_label), color = Color.White)
                         }
                         Button(onClick = {
                             val file = capturedFile ?: return@Button
@@ -388,7 +394,7 @@ fun CameraCaptureScreen(
                             onCaptured(file, SquareCrop(l, t, s))
                         }) {
                             Icon(imageVector = Icons.Filled.Check, contentDescription = null)
-                            Text("OK", modifier = Modifier.padding(start = 6.dp))
+                            Text(stringResource(R.string.camera_capture_ok_button_label), modifier = Modifier.padding(start = 6.dp))
                         }
                     }
                 }
@@ -412,9 +418,9 @@ fun CameraCaptureScreen(
                         },
                         // Announce the current mode so tapping (off → auto → on) is intelligible.
                         contentDescription = when (flashMode) {
-                            ImageCapture.FLASH_MODE_ON -> "Flash: on"
-                            ImageCapture.FLASH_MODE_AUTO -> "Flash: auto"
-                            else -> "Flash: off"
+                            ImageCapture.FLASH_MODE_ON -> stringResource(R.string.camera_capture_flash_on_cd)
+                            ImageCapture.FLASH_MODE_AUTO -> stringResource(R.string.camera_capture_flash_auto_cd)
+                            else -> stringResource(R.string.camera_capture_flash_off_cd)
                         },
                         tint = Color.White,
                     )
@@ -427,14 +433,14 @@ fun CameraCaptureScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
-                    text = "Camera permission is needed to photograph a tablet.",
+                    text = stringResource(R.string.camera_capture_permission_message),
                     color = Color.White,
                     textAlign = TextAlign.Center,
                 )
                 Button(
                     onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) },
                     modifier = Modifier.padding(top = 16.dp),
-                ) { Text("Grant permission") }
+                ) { Text(stringResource(R.string.camera_capture_grant_permission_button_label)) }
             }
         }
 
@@ -443,7 +449,7 @@ fun CameraCaptureScreen(
             onClick = { cancelAll() },
             modifier = Modifier.align(Alignment.TopStart).padding(8.dp),
         ) {
-            Icon(imageVector = Icons.Filled.Close, contentDescription = "Cancel", tint = Color.White)
+            Icon(imageVector = Icons.Filled.Close, contentDescription = stringResource(R.string.camera_capture_cancel_cd), tint = Color.White)
         }
     }
 }

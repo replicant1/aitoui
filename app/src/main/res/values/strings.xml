@@ -1,3 +1,349 @@
 <resources>
     <string name="app_name">PxTx</string>
+
+    <!-- Main Screen -->
+    <string name="main_appbar_title">PxTx</string>
+    <string name="main_settings_button_cd">Settings</string>
+    <string name="main_menu_scripts_label">Scripts</string>
+    <string name="main_menu_dispensable_units_label">Dispensable Units</string>
+    <string name="main_menu_medications_label">Medications</string>
+    <string name="main_menu_save_label">Save</string>
+    <string name="main_menu_daily_schedule_label">Daily Schedule</string>
+    <string name="main_menu_in_hand_label">In Hand</string>
+    <string name="main_menu_inventory_label">Inventory</string>
+    <string name="main_menu_load_label">Load</string>
+
+    <string name="main_save_backup_title">Save backup</string>
+    <string name="main_save_backup_prompt">Choose a file name for the backup (saved to your Downloads folder).</string>
+    <string name="main_save_button_label">Save</string>
+    <string name="main_cancel_button_label">Cancel</string>
+
+    <string name="main_working_title">Working…</string>
+
+    <string name="main_load_backup_title">Load backup?</string>
+    <string name="main_load_backup_message">This replaces all current data and images with the selected backup. It cannot be undone, and the app will restart.</string>
+    <string name="main_load_button_label">Load</string>
+
+    <string name="main_backup_saved_title">Backup saved</string>
+    <string name="main_ok_label">OK</string>
+    <string name="main_backup_saved_to_downloads">Saved to Downloads/%1$s</string>
+    <string name="main_backup_save_error">Couldn\'t save backup: %1$s</string>
+    <string name="main_backup_selected_file_open_error">Couldn\'t open the selected file.</string>
+    <string name="main_backup_invalid_file_error">The selected file is not a valid PxTx backup.</string>
+    <string name="main_backup_newer_schema_error">This backup was created by a newer version of PxTx and stores schema version %1$d. This app can only read up to schema version %2$d. Update PxTx to a version that supports schema version %1$d to load this backup.</string>
+    <string name="main_backup_reopen_error">The selected file could not be reopened for restore.</string>
+    <string name="main_backup_load_error">Couldn\'t load backup: %1$s</string>
+
+    <string name="main_load_error_title">Couldn\'t load backup</string>
+
+    <string name="main_message_warning_icon_cd">Warning</string>
+
+    <!-- Medications Screen -->
+    <string name="medications_appbar_title">Medications</string>
+    <string name="medications_back_button_cd">Back</string>
+    <string name="medications_add_button_cd">Add medication</string>
+    <string name="medications_description_text">These are all the medications you\'ve recorded — each identified by its brand name and active ingredient.</string>
+    <string name="medications_delete_dialog_title">Delete medication?</string>
+    <string name="medications_delete_dialog_message">Delete %1$s? This also removes its dispensable units, scripts and dispensation history, and cannot be undone.</string>
+    <string name="medications_delete_button_label">Delete</string>
+    <string name="medications_delete_icon_cd">Delete %1$s</string>
+
+    <!-- Medication (single) Screen -->
+    <string name="medication_appbar_title">Medication</string>
+    <string name="medication_back_button_cd">Back</string>
+    <string name="medication_save_button_label">Save</string>
+    <string name="medication_description_text">A Medication is a proprietary formulation based around an active ingredient, that can be prescribed by your doctor. %1$s</string>
+    <string name="medication_brand_name_label">Brand Name</string>
+    <string name="medication_active_ingredient_label">Active Ingredient</string>
+    <string name="medication_requires_prescription_label">Requires prescription</string>
+    <string name="medication_requires_prescription_hint">Turn off for over-the-counter medications.</string>
+
+    <!-- Scripts Screen -->
+    <string name="scripts_appbar_title">Scripts</string>
+    <string name="scripts_back_button_cd">Back</string>
+    <string name="scripts_sort_order_button_cd">Sort order</string>
+    <string name="scripts_add_button_cd">Add script</string>
+    <string name="scripts_description_text">These are all the scripts you currently have in hand — one for each medication your doctor has prescribed.</string>
+    <string name="scripts_dispense_dialog_title">Dispense one unit?</string>
+    <string name="scripts_dispense_dialog_message">Record one dispensation of %1$s. This adds %2$s tablets to your In Hand tally.</string>
+    <string name="scripts_dispense_button_label">Dispense</string>
+    <string name="scripts_cannot_dispense_title">Cannot dispense</string>
+    <string name="scripts_cannot_dispense_message">%1$s has already been dispensed the maximum number of times (%2$d).</string>
+    <string name="scripts_delete_dialog_title">Delete script?</string>
+    <string name="scripts_delete_dialog_message">Delete the script for %1$s? This also removes its dispensation history and cannot be undone.</string>
+    <string name="scripts_delete_button_label">Delete</string>
+    <string name="scripts_delete_icon_cd">Delete %1$s</string>
+    <string name="scripts_caption_dispensed">Dispensed</string>
+    <string name="scripts_caption_repeats">Repeats</string>
+    <string name="scripts_issued_prefix">Issued: %1$s</string>
+    <string name="scripts_dispense_icon_cd">Dispense one unit</string>
+
+    <!-- Inventory Screen -->
+    <string name="inventory_appbar_title">Inventory</string>
+    <string name="inventory_back_button_cd">Back</string>
+    <string name="inventory_sort_order_button_cd">Sort order</string>
+    <string name="inventory_run_out_graph_button_cd">Run-out graph</string>
+    <string name="inventory_description_text">For each medication, the figure shows how long before you run out, counting both the tablets you have in hand and the future dispensations still available on your scripts.</string>
+    <string name="inventory_photo_button_cd">View tablet photo for %1$s</string>
+    <string name="inventory_no_daily_dose_text">No daily dose</string>
+    <string name="inventory_no_scripts_label">No scripts</string>
+    <string name="inventory_over_the_counter_label">Over the counter.</string>
+    <string name="inventory_none_in_hand_label">None in hand</string>
+    <string name="inventory_in_hand_format">In hand: %1$d tabs = %2$s</string>
+
+    <!-- In-hand (count) Screen -->
+    <string name="in_hand_appbar_title">In Hand</string>
+    <string name="in_hand_back_button_cd">Back</string>
+    <string name="in_hand_save_button_label">Save</string>
+    <string name="in_hand_description_text">These are the tablets currently in your hand — dispensed, but not yet taken. %1$s</string>
+    <string name="in_hand_unit_label">Dispensable Unit</string>
+    <string name="in_hand_unit_placeholder">Select a dispensable unit</string>
+    <string name="in_hand_no_units_supporting_text">No dispensable units yet — add one first</string>
+    <string name="in_hand_number_of_tablets_label">Number of tablets</string>
+    <string name="in_hand_count_with_camera_cd">Count with camera</string>
+    <string name="in_hand_count_loose_option">Loose tablets</string>
+    <string name="in_hand_count_blister_option">Blister packs</string>
+    <string name="in_hand_add_button_label">ADD</string>
+    <string name="in_hand_tablets_as_of_prefix">Tablets in hand as of %1$s:</string>
+    <string name="in_hand_tablets_in_hand">Tablets in hand:</string>
+    <string name="in_hand_delete_button_label">DELETE</string>
+    <string name="in_hand_merge_button_label">MERGE</string>
+    <plurals name="in_hand_announced_count">
+        <item quantity="one">Counted %d tablet</item>
+        <item quantity="other">Counted %d tablets</item>
+    </plurals>
+
+    <!-- Settings Screen -->
+    <string name="settings_appbar_title">Settings</string>
+    <string name="settings_back_button_cd">Back</string>
+    <string name="settings_warning_window_title">Warning window</string>
+    <string name="settings_warning_window_description">How many days ahead the main screen warns you about low supply, scripts to refill, and medications to restock.</string>
+    <string name="settings_days_label">days</string>
+    <string name="settings_version_text">App version:%1$s — DB version:%2$d</string>
+
+    <!-- Daily Schedule Screen -->
+    <string name="daily_schedule_appbar_title">Daily Schedule</string>
+    <string name="daily_schedule_back_button_cd">Back</string>
+    <string name="daily_schedule_save_button_label">SAVE</string>
+    <string name="daily_schedule_description_text">This is the number and type of tablets that you take every day. %1$s</string>
+    <string name="daily_schedule_unit_label">Dispensable Unit</string>
+    <string name="daily_schedule_unit_placeholder">Select a dispensable unit</string>
+    <string name="daily_schedule_no_units_supporting_text">No dispensable units yet — add one first</string>
+    <string name="daily_schedule_number_of_tablets_label">Number of tablets</string>
+    <string name="daily_schedule_add_button_label">ADD</string>
+    <string name="daily_schedule_tablets_with_total_label">Tablets taken daily (%1$s):</string>
+    <string name="daily_schedule_tablets_label">Tablets taken daily:</string>
+    <!-- Quoted so AAPT2 keeps the leading space; it separates the dose from the brand name. -->
+    <string name="daily_schedule_dose_suffix">" (%1$smg)"</string>
+    <string name="daily_schedule_tablet_entry_format">%1$s%2$s × %3$s</string>
+    <string name="daily_schedule_delete_button_label">DELETE</string>
+
+    <!-- Dispensable Units Screen -->
+    <string name="dispensable_units_appbar_title">Dispensable Units</string>
+    <string name="dispensable_units_back_button_cd">Back</string>
+    <string name="dispensable_units_add_button_cd">Add dispensable unit</string>
+    <string name="dispensable_units_description_text">These are all the dispensable units — the specific formats (dose and pack size) in which your medications come. Long-press a photo to view it full-size.</string>
+    <string name="dispensable_units_delete_dialog_title">Delete dispensable unit?</string>
+    <string name="dispensable_units_delete_dialog_message">Delete %1$s (%2$smg)? This also removes its scripts and dispensation history, and cannot be undone.</string>
+    <string name="dispensable_units_delete_button_label">Delete</string>
+    <string name="dispensable_units_cancel_button_label">Cancel</string>
+    <string name="dispensable_units_photo_dialog_title">%1$s photo</string>
+    <string name="dispensable_units_photo_dialog_message">Retake replaces the current photo. Remove clears it.</string>
+    <string name="dispensable_units_retake_button_label">Retake</string>
+    <string name="dispensable_units_remove_button_label">Remove</string>
+    <string name="dispensable_units_photo_content_description">Tablet photo for %1$s</string>
+    <string name="dispensable_units_dose_format">%1$smg × Qty %2$s</string>
+    <string name="dispensable_units_delete_icon_cd">Delete dispensable unit</string>
+    <string name="dispensable_units_manage_photo_action">Manage photo</string>
+    <string name="dispensable_units_view_full_size_action">View full-size photo</string>
+    <string name="dispensable_units_add_photo_cd">Add tablet photo</string>
+
+    <!-- Scan Script Screen -->
+    <string name="scan_script_instruction_text">Fit the whole PB038 form in the frame, tap to focus, then tap to scan.</string>
+    <string name="scan_script_capture_button_cd">Capture form</string>
+    <string name="scan_script_enter_manually_button_label">Enter manually</string>
+    <string name="scan_script_flash_on_cd">Flash: on</string>
+    <string name="scan_script_flash_auto_cd">Flash: auto</string>
+    <string name="scan_script_flash_off_cd">Flash: off</string>
+    <string name="scan_script_permission_message">Camera permission is needed to scan a prescription form.</string>
+    <string name="scan_script_grant_permission_button_label">Grant permission</string>
+    <string name="scan_script_enter_manually_instead_button_label">Enter manually instead</string>
+    <string name="scan_script_cancel_button_cd">Cancel</string>
+    <string name="scan_script_error_title">Scan failed</string>
+    <string name="scan_script_error_message">%1$s You can try again or enter the script manually.</string>
+    <string name="scan_script_try_again_button_label">Try again</string>
+    <string name="scan_script_read_form_error">Couldn\'t read the form: %1$s</string>
+
+    <!-- Add Script Screen -->
+    <string name="add_script_appbar_title">Script</string>
+    <string name="add_script_back_button_cd">Back</string>
+    <string name="add_script_save_button_label">SAVE</string>
+    <string name="add_script_description_text">A Script is an authorization from your doctor for the chemist to dispense to you a particular medication in a particular format. On Save, the app matches the medication and dispensable unit to your existing records. %1$s</string>
+    <string name="add_script_brand_name_label">Brand name</string>
+    <string name="add_script_active_ingredient_label">Active ingredient</string>
+    <string name="add_script_dose_per_tablet_label">Milligrams per tablet</string>
+    <string name="add_script_tablets_per_unit_label">Tablets per unit</string>
+    <string name="add_script_prescription_number_label">Prescription number</string>
+    <string name="add_script_erx_token_label">eRx token</string>
+    <string name="add_script_date_of_issue_label">Date of issue</string>
+    <string name="add_script_select_date_placeholder">Select a date</string>
+    <string name="add_script_times_dispensed_label">Number of times dispensed</string>
+    <string name="add_script_repeats_label">Number of repeats</string>
+    <string name="add_script_valid_to_label">Valid to</string>
+    <string name="add_script_instructions_label">Instructions</string>
+    <string name="add_script_instructions_placeholder">e.g. Take ONE tablet TWICE a day as directed</string>
+    <string name="add_script_duplicate_serial_title">Serial number already used</string>
+    <string name="add_script_duplicate_serial_message">A script with this serial number already exists. Every script must have a unique serial number, so this one can\'t be saved. Change the serial number and try again.</string>
+    <string name="add_script_ok_button_label">OK</string>
+    <string name="add_script_cancel_button_label">Cancel</string>
+    <string name="add_script_med_resolution_known_prompt_single">The medication you entered is similar to the following known medication:</string>
+    <string name="add_script_med_resolution_known_prompt_multiple">The medication you entered is similar to the following known medications:</string>
+    <string name="add_script_med_resolution_action_no_known">Select the new medication below:</string>
+    <string name="add_script_med_resolution_action_blocked_single">Select the known medication above.</string>
+    <string name="add_script_med_resolution_action_blocked_multiple">Select a known medication above.</string>
+    <string name="add_script_med_resolution_action_choose_known_or_new_single">Select the known medication above or select the new medication below:</string>
+    <string name="add_script_med_resolution_action_choose_known_or_new_multiple">Select a known medication above or select the new medication below:</string>
+    <string name="add_script_med_resolution_title">Resolve medication</string>
+    <string name="add_script_continue_button_label">Continue</string>
+    <string name="add_script_new_medication_badge_cd">New medication</string>
+    <string name="add_script_du_resolution_existing_prompt_single">This medication already has the following dispensable unit:</string>
+    <string name="add_script_du_resolution_existing_prompt_multiple">This medication already has the following dispensable units:</string>
+    <string name="add_script_du_resolution_action_no_existing">Select the new dispensable unit below:</string>
+    <string name="add_script_du_resolution_action_blocked_single">Select the existing dispensable unit above.</string>
+    <string name="add_script_du_resolution_action_blocked_multiple">Select an existing dispensable unit above.</string>
+    <string name="add_script_du_resolution_action_choose_existing_or_new_single">Select the existing dispensable unit above or select the new dispensable unit below:</string>
+    <string name="add_script_du_resolution_action_choose_existing_or_new_multiple">Select an existing dispensable unit above or select the new dispensable unit below:</string>
+    <string name="add_script_du_resolution_title">Resolve dispensable unit</string>
+    <string name="add_script_du_format_text">%1$smg × Qty %2$s</string>
+    <string name="add_script_new_dispensable_unit_badge_cd">New dispensable unit</string>
+
+    <!-- Blister Count Screen -->
+    <string name="blister_count_loading_label">Loading…</string>
+    <string name="blister_count_finding_packs_label">Finding packs…</string>
+    <string name="blister_count_loading_dots">…</string>
+    <string name="blister_count_permission_message">Camera permission is needed to count packs.</string>
+    <string name="blister_count_grant_permission_button_label">Grant permission</string>
+    <string name="blister_count_cancel_button_label">Cancel</string>
+    <string name="blister_count_cancel_cd">Cancel</string>
+    <string name="blister_count_use_test_image_label">Use test image</string>
+    <string name="blister_count_capture_instruction_text">Lay the packs down and take a photo. They can touch or overlap — you\'ll frame each one next.</string>
+    <string name="blister_count_take_photo_cd">Take photo</string>
+    <string name="blister_count_frame_header_title">Frame the packs</string>
+    <string name="blister_count_frame_instruction_text">Tap a pack to select it, then drag its corners to fit and spin the top handle to align. Overlapping is fine.</string>
+    <string name="blister_count_add_pack_button_label">+ Add pack</string>
+    <string name="blister_count_delete_button_label">Delete</string>
+    <string name="blister_count_continue_button_label">Continue ›</string>
+    <string name="blister_count_format_header_title">Pack format</string>
+    <string name="blister_count_format_instruction_text">Set the rows and columns for the packs.</string>
+    <string name="blister_count_format_applies_to_all_text">Applies to all %1$d packs</string>
+    <string name="blister_count_columns_label">Columns</string>
+    <string name="blister_count_rows_label">Rows</string>
+    <string name="blister_count_stepper_fewer_cd">Fewer %1$s</string>
+    <string name="blister_count_stepper_more_cd">More %1$s</string>
+    <string name="blister_count_pop_header_title">Pop blisters</string>
+    <string name="blister_count_pop_instruction_text">Drag the grid to line the circles up with the blisters, and pinch to match their spacing. Then tap the empty blisters to pop them.</string>
+    <!-- Quoted so AAPT2 keeps the wide spacing around the separator. -->
+    <string name="blister_count_pop_counts_text">"Full %1$d   ·   Empty %2$d"</string>
+    <string name="blister_count_undo_all_button_label">Undo all</string>
+    <string name="blister_count_done_button_label">Done</string>
+    <string name="blister_count_next_pack_button_label">Next pack ›</string>
+    <string name="blister_count_blister_cd">Blister, row %1$d, column %2$d</string>
+    <string name="blister_count_blister_state_empty">empty</string>
+    <string name="blister_count_blister_state_full">full</string>
+    <string name="blister_count_blister_action_restore">Restore</string>
+    <string name="blister_count_blister_action_pop">Pop</string>
+    <string name="blister_count_summary_header_title">Total on hand</string>
+    <!-- Quoted so AAPT2 keeps the wide spacing around the separator. -->
+    <string name="blister_count_summary_pack_label">"Pack %1$d  ·  %2$d×%3$d"</string>
+    <string name="blister_count_tablets_remaining_label">Tablets remaining</string>
+    <string name="blister_count_use_total_button_label">Use %1$d</string>
+    <string name="blister_count_retake_button_label">Retake</string>
+
+    <!-- Dispensable Unit (single) Screen -->
+    <string name="dispensable_unit_appbar_title">Dispensable Unit</string>
+    <string name="dispensable_unit_back_button_cd">Back</string>
+    <string name="dispensable_unit_save_button_label">SAVE</string>
+    <string name="dispensable_unit_description_text">A Dispensable Unit is a particular packaging and presentation of a medication. Typically a box or bottle of a capsule or tablet. %1$s</string>
+    <string name="dispensable_unit_medication_label">Medication</string>
+    <string name="dispensable_unit_medication_placeholder">Select a medication</string>
+    <string name="dispensable_unit_no_medications_supporting_text">No medications yet — add one first</string>
+    <string name="dispensable_unit_dose_per_tablet_label">Dose per tablet</string>
+    <string name="dispensable_unit_tablets_per_unit_label">Tablets per unit</string>
+
+    <!-- Camera Capture Screen (tablet photo) -->
+    <string name="camera_capture_viewfinder_instruction_text">Frame the tablet — pinch to zoom, tap to focus</string>
+    <string name="camera_capture_take_photo_cd">Take photo</string>
+    <string name="camera_capture_crop_instruction_text">Drag or resize the square, then tap OK</string>
+    <string name="camera_capture_retake_button_label">Retake</string>
+    <string name="camera_capture_ok_button_label">OK</string>
+    <string name="camera_capture_flash_on_cd">Flash: on</string>
+    <string name="camera_capture_flash_auto_cd">Flash: auto</string>
+    <string name="camera_capture_flash_off_cd">Flash: off</string>
+    <string name="camera_capture_permission_message">Camera permission is needed to photograph a tablet.</string>
+    <string name="camera_capture_grant_permission_button_label">Grant permission</string>
+    <string name="camera_capture_cancel_cd">Cancel</string>
+    <string name="camera_capture_captured_photo_cd">Captured photo</string>
+    <string name="camera_capture_crop_square_cd">Crop square: %1$d%% of the photo, centred %2$d%% across and %3$d%% down</string>
+    <string name="camera_capture_crop_square_fallback_cd">Crop square</string>
+
+    <!-- Full Image Viewer -->
+    <string name="full_image_viewer_photo_cd">Full-size tablet photo</string>
+
+    <!-- Run-out Graph Screen -->
+    <string name="run_out_graph_appbar_title">Run-out Graph</string>
+    <string name="run_out_graph_back_button_cd">Back</string>
+    <string name="run_out_graph_description_text">How each dispensable unit\'s supply — the tablets in hand plus your remaining script repeats — runs down over time. Drag the thumb on the time axis to read off how much is left at any point in the future.</string>
+    <string name="run_out_graph_empty_state_text">Nothing to graph yet. Add a daily schedule and some stock or scripts.</string>
+    <string name="run_out_graph_legend_header">Remaining at cursor</string>
+    <string name="run_out_graph_tablets_axis_label">Tablets</string>
+    <string name="run_out_graph_time_axis_label">Time</string>
+    <string name="run_out_graph_chart_cd_one">Run-out projection chart. 1 dispensable unit plotted over %1$d days. Vertical axis: tablets remaining. Horizontal axis: time. Swipe up or down to move the time cursor and hear how much of each dispensable unit is left at that point.</string>
+    <string name="run_out_graph_chart_cd_multiple">Run-out projection chart. %1$d dispensable units plotted over %2$d days. Vertical axis: tablets remaining. Horizontal axis: time. Swipe up or down to move the time cursor and hear how much of each dispensable unit is left at that point.</string>
+    <string name="run_out_graph_cursor_now">now</string>
+    <string name="run_out_graph_cursor_days_from_now">%1$d days from now</string>
+    <string name="run_out_graph_cursor_readout_item">%1$s, %2$s left</string>
+
+    <!-- Count Tablets Screen -->
+    <string name="count_tablets_permission_message">Camera permission is needed to count tablets.</string>
+    <string name="count_tablets_grant_permission_button_label">Grant permission</string>
+    <string name="count_tablets_cancel_button_label">Cancel</string>
+    <string name="count_tablets_cancel_cd">Cancel</string>
+    <string name="count_tablets_use_test_image_label">Use test image</string>
+    <string name="count_tablets_capture_instruction_text">Spread the tablets in a single layer on a plain, contrasting surface, then take a photo.</string>
+    <string name="count_tablets_take_photo_cd">Take photo</string>
+    <string name="count_tablets_counting_label">Counting…</string>
+    <string name="count_tablets_detect_instruction_text">Slide to drop stray marks from glare or clutter, then move on.</string>
+    <string name="count_tablets_sensitivity_label">Sensitivity</string>
+    <string name="count_tablets_sensitivity_cd">Detection sensitivity</string>
+    <string name="count_tablets_retake_button_label">Retake</string>
+    <string name="count_tablets_crop_button_label">Crop</string>
+    <string name="count_tablets_recrop_button_label">Re-crop</string>
+    <string name="count_tablets_next_button_label">Next ›</string>
+    <string name="count_tablets_edit_instruction_text">Pinch to zoom. Tap a missed tablet to add it, or tap a marker to remove it.</string>
+    <string name="count_tablets_use_count_button_label">Use %1$d</string>
+    <string name="count_tablets_crop_header_title">Crop to the tablets</string>
+    <string name="count_tablets_crop_image_cd">Captured tablets</string>
+    <string name="count_tablets_crop_drag_instruction_text">Drag the box over just the tablets, then Apply — detection re-runs inside it.</string>
+    <string name="count_tablets_apply_crop_button_label">Apply crop</string>
+    <plurals name="count_tablets_count">
+        <item quantity="one">%d tablet</item>
+        <item quantity="other">%d tablets</item>
+    </plurals>
+    <plurals name="count_tablets_marker_count">
+        <item quantity="one">%d tablet marker</item>
+        <item quantity="other">%d tablet markers</item>
+    </plurals>
+
+    <!-- Unsaved Changes Dialog -->
+    <string name="unsaved_changes_dialog_title">Unsaved changes</string>
+    <string name="unsaved_changes_dialog_message_can_save">You\'ve made changes that haven\'t been saved. Save them before leaving?</string>
+    <string name="unsaved_changes_dialog_message_cannot_save">You\'ve made changes that aren\'t complete enough to save. Discard them and leave?</string>
+    <string name="unsaved_changes_save_button_label">Save</string>
+    <string name="unsaved_changes_discard_button_label">Discard</string>
+    <string name="unsaved_changes_cancel_button_label">Cancel</string>
+
+    <!-- Shared UI strings -->
+    <string name="app_required_fields_note">Fields are required unless marked “optional”.</string>
+    <string name="app_text_field_optional_label">%1$s (optional)</string>
+
 </resources>

@@ -53,6 +53,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -63,6 +64,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.aitoui.R
 import com.example.aitoui.image.ImageStore
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
@@ -131,6 +133,7 @@ fun ScanScriptScreen(
                 ImageCapture.FLASH_MODE_OFF, ImageCapture.FLASH_MODE_AUTO, ImageCapture.FLASH_MODE_ON,
             )
             var flashIndex by remember { mutableIntStateOf(0) }
+            val captureButtonCd = stringResource(R.string.scan_script_capture_button_cd)
 
             var focusPoint by remember { mutableStateOf<Offset?>(null) }
             LaunchedEffect(focusPoint) { if (focusPoint != null) { delay(700); focusPoint = null } }
@@ -194,7 +197,7 @@ fun ScanScriptScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
-                    text = "Fit the whole PB038 form in the frame, tap to focus, then tap to scan.",
+                    text = stringResource(R.string.scan_script_instruction_text),
                     color = Color.White,
                     textAlign = TextAlign.Center,
                     // A scrim keeps the white text legible over any live-preview content behind it.
@@ -220,7 +223,7 @@ fun ScanScriptScreen(
                         )
                     },
                     modifier = Modifier
-                        .semantics { contentDescription = "Capture form" }
+                        .semantics { contentDescription = captureButtonCd }
                         .size(80.dp)
                         .clip(CircleShape)
                         .background(Color.White.copy(alpha = 0.25f)),
@@ -234,7 +237,7 @@ fun ScanScriptScreen(
                         .padding(top = 12.dp)
                         .clip(RoundedCornerShape(8.dp))
                         .background(Color.Black.copy(alpha = 0.5f)),
-                ) { Text("Enter manually", color = Color.White) }
+                ) { Text(stringResource(R.string.scan_script_enter_manually_button_label), color = Color.White) }
             }
 
             // Flash toggle, top-end.
@@ -254,9 +257,9 @@ fun ScanScriptScreen(
                     },
                     // Announce the current mode so tapping (which cycles off → auto → on) is intelligible.
                     contentDescription = when (flashMode) {
-                        ImageCapture.FLASH_MODE_ON -> "Flash: on"
-                        ImageCapture.FLASH_MODE_AUTO -> "Flash: auto"
-                        else -> "Flash: off"
+                        ImageCapture.FLASH_MODE_ON -> stringResource(R.string.scan_script_flash_on_cd)
+                        ImageCapture.FLASH_MODE_AUTO -> stringResource(R.string.scan_script_flash_auto_cd)
+                        else -> stringResource(R.string.scan_script_flash_off_cd)
                     },
                     tint = Color.White,
                 )
@@ -268,18 +271,23 @@ fun ScanScriptScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
-                    text = "Camera permission is needed to scan a prescription form.",
+                    text = stringResource(R.string.scan_script_permission_message),
                     color = Color.White,
                     textAlign = TextAlign.Center,
                 )
                 Button(
                     onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) },
                     modifier = Modifier.padding(top = 16.dp),
-                ) { Text("Grant permission") }
+                ) { Text(stringResource(R.string.scan_script_grant_permission_button_label)) }
                 TextButton(
                     onClick = onEnterManually,
                     modifier = Modifier.padding(top = 8.dp),
-                ) { Text("Enter manually instead", color = Color.White) }
+                ) {
+                    Text(
+                        stringResource(R.string.scan_script_enter_manually_instead_button_label),
+                        color = Color.White,
+                    )
+                }
             }
         }
 
@@ -287,7 +295,11 @@ fun ScanScriptScreen(
             onClick = onBack,
             modifier = Modifier.align(Alignment.TopStart).statusBarsPadding().padding(8.dp),
         ) {
-            Icon(imageVector = Icons.Filled.Close, contentDescription = "Cancel", tint = Color.White)
+            Icon(
+                imageVector = Icons.Filled.Close,
+                contentDescription = stringResource(R.string.scan_script_cancel_button_cd),
+                tint = Color.White,
+            )
         }
 
         if (state.busy) {
@@ -300,10 +312,25 @@ fun ScanScriptScreen(
         state.error?.let { error ->
             AlertDialog(
                 onDismissRequest = onDismissError,
-                title = { Text("Scan failed") },
-                text = { Text("$error You can try again or enter the script manually.") },
-                confirmButton = { TextButton(onClick = onDismissError) { Text("Try again") } },
-                dismissButton = { TextButton(onClick = onEnterManually) { Text("Enter manually") } },
+                title = { Text(stringResource(R.string.scan_script_error_title)) },
+                text = {
+                    Text(
+                        stringResource(
+                            R.string.scan_script_error_message,
+                            error,
+                        ),
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = onDismissError) {
+                        Text(stringResource(R.string.scan_script_try_again_button_label))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = onEnterManually) {
+                        Text(stringResource(R.string.scan_script_enter_manually_button_label))
+                    }
+                },
             )
         }
     }

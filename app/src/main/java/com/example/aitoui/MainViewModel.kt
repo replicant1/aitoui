@@ -144,8 +144,18 @@ class MainViewModel(private val app: AitouiApp) : ViewModel() {
             }
             _state.update {
                 result.fold(
-                    onSuccess = { _ -> it.copy(busy = false, message = "Saved to Downloads/$fileName") },
-                    onFailure = { e -> it.copy(busy = false, error = "Couldn't save backup: ${e.message}") },
+                    onSuccess = { _ ->
+                        it.copy(
+                            busy = false,
+                            message = app.getString(R.string.main_backup_saved_to_downloads, fileName),
+                        )
+                    },
+                    onFailure = { e ->
+                        it.copy(
+                            busy = false,
+                            error = app.getString(R.string.main_backup_save_error, e.message ?: ""),
+                        )
+                    },
                 )
             }
         }
@@ -162,16 +172,17 @@ class MainViewModel(private val app: AitouiApp) : ViewModel() {
                     val uri = Uri.parse(uriString)
                     // Read the backup's schema version from its own stream (the zip isn't seekable).
                     val version = (app.contentResolver.openInputStream(uri)
-                        ?: throw BackupException("Couldn't open the selected file."))
+                        ?: throw BackupException(app.getString(R.string.main_backup_selected_file_open_error)))
                         .use { BackupManager.peekSchemaVersion(it) }
-                        ?: throw BackupException("The selected file is not a valid PxTx backup.")
+                        ?: throw BackupException(app.getString(R.string.main_backup_invalid_file_error))
 
                     if (version > DATABASE_SCHEMA_VERSION) {
                         throw BackupException(
-                            "This backup was created by a newer version of PxTx and stores schema " +
-                                "version $version. This app can only read up to schema version " +
-                                "$DATABASE_SCHEMA_VERSION. Update PxTx to a version that supports schema " +
-                                "version $version to load this backup.",
+                            app.getString(
+                                R.string.main_backup_newer_schema_error,
+                                version,
+                                DATABASE_SCHEMA_VERSION,
+                            ),
                         )
                     }
 
@@ -179,14 +190,15 @@ class MainViewModel(private val app: AitouiApp) : ViewModel() {
                     // Close the DB, then overwrite its files from a fresh stream. The app restarts next.
                     app.closeDatabase()
                     (app.contentResolver.openInputStream(uri)
-                        ?: throw BackupException("The selected file could not be reopened for restore."))
+                        ?: throw BackupException(app.getString(R.string.main_backup_reopen_error)))
                         .use { BackupManager.restoreFrom(app, it, app.databaseName) }
                 }
             }
             result.fold(
                 onSuccess = { _state.update { it.copy(busy = false, restoreComplete = true) } },
                 onFailure = { e ->
-                    val msg = (e as? BackupException)?.message ?: "Couldn't load backup: ${e.message}"
+                    val msg = (e as? BackupException)?.message
+                        ?: app.getString(R.string.main_backup_load_error, e.message ?: "")
                     _state.update { it.copy(busy = false, error = msg) }
                 },
             )

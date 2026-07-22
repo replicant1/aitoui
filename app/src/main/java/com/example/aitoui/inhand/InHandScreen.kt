@@ -1,5 +1,7 @@
 package com.example.aitoui.inhand
 
+import com.example.aitoui.R
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -44,6 +46,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -57,9 +60,9 @@ import coil.compose.AsyncImage
 import com.example.aitoui.data.DispensableUnitDetails
 import com.example.aitoui.image.ImageStore
 import com.example.aitoui.ui.AppTextField
-import com.example.aitoui.ui.REQUIRED_FIELDS_NOTE
 import com.example.aitoui.ui.UnsavedChangesDialog
 import com.example.aitoui.ui.heading
+import com.example.aitoui.ui.requiredFieldsNote
 import com.example.aitoui.ui.selectableRow
 import com.example.aitoui.ui.theme.AitouiTheme
 import com.example.aitoui.ui.theme.ThumbnailShape
@@ -79,6 +82,7 @@ fun InHandRoot(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val view = LocalView.current
+    val ctx = LocalContext.current
 
     // After the in-hand figures are saved, return to the Main screen.
     val saved by viewModel.saved.collectAsStateWithLifecycle()
@@ -96,7 +100,8 @@ fun InHandRoot(
             // The field is populated without the user typing, so a screen reader would otherwise get no
             // cue. A one-shot announcement suits this discrete event better than a liveRegion on the field,
             // which would also fire on every manual keystroke and when the field resets after Add.
-            view.announceForAccessibility("Counted $it ${if (it == 1) "tablet" else "tablets"}")
+            val announcement = ctx.resources.getQuantityString(R.plurals.in_hand_announced_count, it, it)
+            view.announceForAccessibility(announcement)
             onCountedConsumed()
         }
     }
@@ -140,18 +145,18 @@ fun InHandScreen(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("In Hand", modifier = Modifier.heading()) },
+                title = { Text(stringResource(R.string.in_hand_appbar_title), modifier = Modifier.heading()) },
                 navigationIcon = {
                     IconButton(onClick = attemptBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+                            contentDescription = stringResource(R.string.in_hand_back_button_cd),
                         )
                     }
                 },
                 actions = {
                     TextButton(onClick = { onAction(InHandAction.Save) }) {
-                        Text("SAVE")
+                        Text(stringResource(R.string.in_hand_save_button_label))
                     }
                 },
             )
@@ -165,8 +170,7 @@ fun InHandScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                text = "These are the tablets currently in your hand — dispensed, but not yet taken. " +
-                    REQUIRED_FIELDS_NOTE,
+                text = stringResource(R.string.in_hand_description_text, requiredFieldsNote()),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -179,12 +183,12 @@ fun InHandScreen(
                 AppTextField(
                     value = state.selectedUnitLabel,
                     onValueChange = {},
-                    label = "Dispensable Unit",
+                    label = stringResource(R.string.in_hand_unit_label),
                     readOnly = true,
-                    placeholder = "Select a dispensable unit",
+                    placeholder = stringResource(R.string.in_hand_unit_placeholder),
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = medicationExpanded) },
                     supportingText = if (state.units.isEmpty()) {
-                        "No dispensable units yet — add one first"
+                        stringResource(R.string.in_hand_no_units_supporting_text)
                     } else null,
                     modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable),
                 )
@@ -220,7 +224,7 @@ fun InHandScreen(
             AppTextField(
                 value = state.numberOfTablets,
                 onValueChange = { onAction(InHandAction.NumberOfTabletsChanged(it)) },
-                label = "Number of tablets",
+                label = stringResource(R.string.in_hand_number_of_tablets_label),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 trailingIcon = {
                     var countMenuExpanded by remember { mutableStateOf(false) }
@@ -230,7 +234,7 @@ fun InHandScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Filled.PhotoCamera,
-                                contentDescription = "Count with camera",
+                                contentDescription = stringResource(R.string.in_hand_count_with_camera_cd),
                             )
                         }
                         DropdownMenu(
@@ -238,11 +242,11 @@ fun InHandScreen(
                             onDismissRequest = { countMenuExpanded = false },
                         ) {
                             DropdownMenuItem(
-                                text = { Text("Loose tablets") },
+                                text = { Text(stringResource(R.string.in_hand_count_loose_option)) },
                                 onClick = { countMenuExpanded = false; onCountTablets() },
                             )
                             DropdownMenuItem(
-                                text = { Text("Blister packs") },
+                                text = { Text(stringResource(R.string.in_hand_count_blister_option)) },
                                 onClick = { countMenuExpanded = false; onCountBlisters() },
                             )
                         }
@@ -254,14 +258,14 @@ fun InHandScreen(
                 enabled = state.canAdd,
                 modifier = Modifier.width(actionButtonWidth),
             ) {
-                Text("ADD")
+                Text(stringResource(R.string.in_hand_add_button_label))
             }
 
             // Once saved, the title records the date the figures were gathered. It's a polite live
             // region so a screen reader hears the updated title after Save records the date.
             Text(
-                text = state.gatheredDate?.let { "Tablets in hand as of ${formatInHandDate(it)}:" }
-                    ?: "Tablets in hand:",
+                text = state.gatheredDate?.let { stringResource(R.string.in_hand_tablets_as_of_prefix, formatInHandDate(it)) }
+                    ?: stringResource(R.string.in_hand_tablets_in_hand),
                 modifier = Modifier
                     .heading()
                     .semantics { liveRegion = LiveRegionMode.Polite },
@@ -317,14 +321,14 @@ fun InHandScreen(
                     enabled = state.canDelete,
                     modifier = Modifier.width(actionButtonWidth),
                 ) {
-                    Text("DELETE")
+                    Text(stringResource(R.string.in_hand_delete_button_label))
                 }
                 Button(
                     onClick = { onAction(InHandAction.Merge) },
                     enabled = state.canMerge,
                     modifier = Modifier.width(actionButtonWidth),
                 ) {
-                    Text("MERGE")
+                    Text(stringResource(R.string.in_hand_merge_button_label))
                 }
             }
         }

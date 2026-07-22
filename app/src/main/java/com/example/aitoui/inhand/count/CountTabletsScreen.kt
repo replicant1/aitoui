@@ -68,6 +68,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
@@ -80,6 +82,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.aitoui.BuildConfig
+import com.example.aitoui.R
 import com.example.aitoui.counting.CountImage
 import com.example.aitoui.counting.PixelRect
 import com.example.aitoui.image.ImageStore
@@ -193,17 +196,17 @@ private fun PermissionGate(onGrant: () -> Unit, onBack: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "Camera permission is needed to count tablets.",
+            text = stringResource(R.string.count_tablets_permission_message),
             color = Color.White,
             textAlign = TextAlign.Center,
         )
-        Button(onClick = onGrant, modifier = Modifier.padding(top = 16.dp)) { Text("Grant permission") }
+        Button(onClick = onGrant, modifier = Modifier.padding(top = 16.dp)) { Text(stringResource(R.string.count_tablets_grant_permission_button_label)) }
         OutlinedButton(
             onClick = onBack,
             modifier = Modifier.padding(top = 8.dp),
             colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
             border = BorderStroke(1.dp, Color.White),
-        ) { Text("Cancel") }
+        ) { Text(stringResource(R.string.count_tablets_cancel_button_label)) }
     }
 }
 
@@ -268,16 +271,16 @@ private fun CameraPreview(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(onClick = onBack, modifier = Modifier.padding(8.dp)) {
-                Icon(Icons.Filled.Close, contentDescription = "Cancel", tint = Color.White)
+                Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.count_tablets_cancel_cd), tint = Color.White)
             }
             if (BuildConfig.DEBUG) {
                 TextButton(onClick = { loadTestImage() }, modifier = Modifier.padding(end = 8.dp)) {
-                    Text("Use test image", color = Color.White)
+                    Text(stringResource(R.string.count_tablets_use_test_image_label), color = Color.White)
                 }
             }
         }
         Text(
-            text = "Spread the tablets in a single layer on a plain, contrasting surface, then take a photo.",
+            text = stringResource(R.string.count_tablets_capture_instruction_text),
             color = Color.White,
             textAlign = TextAlign.Center,
             style = MaterialTheme.typography.bodyMedium,
@@ -289,6 +292,7 @@ private fun CameraPreview(
                 .background(Color.Black.copy(alpha = 0.5f))
                 .padding(horizontal = 12.dp, vertical = 8.dp),
         )
+        val takePhotoCd = stringResource(R.string.count_tablets_take_photo_cd)
         Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
             IconButton(
                 onClick = {
@@ -318,7 +322,7 @@ private fun CameraPreview(
                     )
                 },
                 modifier = Modifier
-                    .semantics { contentDescription = "Take photo" }
+                    .semantics { contentDescription = takePhotoCd }
                     .padding(bottom = 32.dp)
                     .size(80.dp)
                     .clip(CircleShape)
@@ -352,7 +356,8 @@ private fun ReviewCapture(
     }
     Column(modifier = Modifier.fillMaxSize().safeDrawingPadding().padding(16.dp)) {
         Text(
-            text = if (state.analysing) "Counting…" else "${state.count} tablets",
+            text = if (state.analysing) stringResource(R.string.count_tablets_counting_label)
+                   else pluralStringResource(R.plurals.count_tablets_count, state.count, state.count),
             color = Color.White,
             style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier
@@ -367,8 +372,9 @@ private fun ReviewCapture(
 
         when (state.phase) {
             CountPhase.DETECT -> {
+                val detectionSensitivityCd = stringResource(R.string.count_tablets_sensitivity_cd)
                 Text(
-                    text = "Slide to drop stray marks from glare or clutter, then move on.",
+                    text = stringResource(R.string.count_tablets_detect_instruction_text),
                     color = Color.White,
                     style = MaterialTheme.typography.bodySmall,
                     textAlign = TextAlign.Center,
@@ -378,13 +384,17 @@ private fun ReviewCapture(
                     modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("Sensitivity", color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        stringResource(R.string.count_tablets_sensitivity_label),
+                        color = Color.White.copy(alpha = 0.8f),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
                     Slider(
                         value = state.sensitivity,
                         onValueChange = onSensitivity,
                         enabled = !state.analysing,
                         modifier = Modifier.weight(1f).padding(start = 12.dp)
-                            .semantics { contentDescription = "Detection sensitivity" },
+                            .semantics { contentDescription = detectionSensitivityCd },
                     )
                 }
                 Row(
@@ -396,25 +406,33 @@ private fun ReviewCapture(
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
                         border = BorderStroke(1.dp, Color.White),
-                    ) { Text("Retake") }
+                    ) { Text(stringResource(R.string.count_tablets_retake_button_label)) }
                     OutlinedButton(
                         onClick = onBeginCrop,
                         enabled = !state.analysing,
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
                         border = BorderStroke(1.dp, Color.White),
-                    ) { Text(if (state.cropRect == null) "Crop" else "Re-crop") }
+                    ) {
+                        Text(
+                            if (state.cropRect == null) {
+                                stringResource(R.string.count_tablets_crop_button_label)
+                            } else {
+                                stringResource(R.string.count_tablets_recrop_button_label)
+                            },
+                        )
+                    }
                     Button(
                         onClick = onConfirmDetect,
                         enabled = !state.analysing,
                         modifier = Modifier.weight(1f),
-                    ) { Text("Next ›") }
+                    ) { Text(stringResource(R.string.count_tablets_next_button_label)) }
                 }
             }
 
             CountPhase.EDIT -> {
                 Text(
-                    text = "Pinch to zoom. Tap a missed tablet to add it, or tap a marker to remove it.",
+                    text = stringResource(R.string.count_tablets_edit_instruction_text),
                     color = Color.White,
                     style = MaterialTheme.typography.bodySmall,
                     textAlign = TextAlign.Center,
@@ -429,12 +447,12 @@ private fun ReviewCapture(
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
                         border = BorderStroke(1.dp, Color.White),
-                    ) { Text("Retake") }
+                    ) { Text(stringResource(R.string.count_tablets_retake_button_label)) }
                     Button(
                         onClick = onUseCount,
                         enabled = !state.analysing,
                         modifier = Modifier.weight(1f),
-                    ) { Text("Use ${state.count}") }
+                    ) { Text(stringResource(R.string.count_tablets_use_count_button_label, state.count)) }
                 }
             }
         }
@@ -464,7 +482,7 @@ private fun CropView(
 
     Column(modifier = Modifier.fillMaxSize().safeDrawingPadding().padding(16.dp)) {
         Text(
-            text = "Crop to the tablets",
+            text = stringResource(R.string.count_tablets_crop_header_title),
             color = Color.White, style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.fillMaxWidth().heading(), textAlign = TextAlign.Center,
         )
@@ -481,7 +499,8 @@ private fun CropView(
                         .onSizeChanged { boxPx = Offset(it.width.toFloat(), it.height.toFloat()) },
                 ) {
                     androidx.compose.foundation.Image(
-                        bitmap = bitmap.asImageBitmap(), contentDescription = "Captured tablets",
+                        bitmap = bitmap.asImageBitmap(),
+                        contentDescription = stringResource(R.string.count_tablets_crop_image_cd),
                         contentScale = ContentScale.FillBounds, modifier = Modifier.fillMaxSize(),
                     )
                     Canvas(modifier = Modifier.fillMaxSize()) {
@@ -519,7 +538,7 @@ private fun CropView(
             }
         }
         Text(
-            text = "Drag the box over just the tablets, then Apply — detection re-runs inside it.",
+            text = stringResource(R.string.count_tablets_crop_drag_instruction_text),
             color = Color.White, style = MaterialTheme.typography.bodySmall,
             textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
         )
@@ -532,9 +551,9 @@ private fun CropView(
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
                 border = BorderStroke(1.dp, Color.White),
-            ) { Text("Cancel") }
+            ) { Text(stringResource(R.string.count_tablets_cancel_button_label)) }
             Button(onClick = { onApply(fracToRect(l, t, r, b, imageWidth, imageHeight)) }, modifier = Modifier.weight(1f)) {
-                Text("Apply crop")
+                Text(stringResource(R.string.count_tablets_apply_crop_button_label))
             }
         }
     }
@@ -632,9 +651,15 @@ private fun ColumnScope.MarkerImage(
                             translationY = offset.y
                         },
                 ) {
+                    val capturedTabletsCd = stringResource(R.string.count_tablets_crop_image_cd)
+                    val markerCountCd = pluralStringResource(
+                        R.plurals.count_tablets_marker_count,
+                        state.markers.size,
+                        state.markers.size,
+                    )
                     androidx.compose.foundation.Image(
                         bitmap = bitmap.asImageBitmap(),
-                        contentDescription = "Captured tablets",
+                        contentDescription = capturedTabletsCd,
                         contentScale = ContentScale.FillBounds,
                         modifier = Modifier.fillMaxSize(),
                     )
@@ -643,7 +668,7 @@ private fun ColumnScope.MarkerImage(
                         // can perceive the counted total (individual positions stay a visual aid).
                         modifier = Modifier
                             .fillMaxSize()
-                            .semantics { contentDescription = "${state.markers.size} tablet markers" },
+                            .semantics { contentDescription = markerCountCd },
                     ) {
                         // If a crop is active, dim the excluded surround so it's clear where detection ran.
                         state.cropRect?.let { cr ->

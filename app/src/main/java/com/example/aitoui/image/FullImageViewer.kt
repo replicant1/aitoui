@@ -13,10 +13,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
+import com.example.aitoui.R
 
 /**
  * A popup viewer for a unit's tablet photo by [fileName], shown centred over the standard dialog scrim.
@@ -45,7 +47,7 @@ fun FullImageDialog(fileName: String, onDismiss: () -> Unit) {
         ) {
             AsyncImage(
                 model = file,
-                contentDescription = "Full-size tablet photo",
+                contentDescription = stringResource(R.string.full_image_viewer_photo_cd),
                 contentScale = ContentScale.Fit,
                 modifier = Modifier
                     .fillMaxWidth(0.82f)
