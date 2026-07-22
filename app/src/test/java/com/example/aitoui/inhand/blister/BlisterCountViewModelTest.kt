@@ -85,6 +85,66 @@ class BlisterCountViewModelTest {
     }
 
     @Test
+    fun `stepBack returns false from capture so caller can leave the screen`() {
+        val vm = BlisterCountViewModel()
+        assertEquals(false, vm.stepBack())
+        assertEquals(BlisterPhase.CAPTURE, vm.state.value.phase)
+    }
+
+    @Test
+    fun `stepBack retraces the whole flow one step at a time`() {
+        // Three packs, so stepping back through POP has somewhere to go other than straight out.
+        val vm = vmPopping(region(100f), region(400f), region(700f))
+
+        // Walk forward to the summary: POP(0) -> POP(1) -> POP(2) -> SUMMARY.
+        repeat(3) { vm.nextPack() }
+        assertEquals(BlisterPhase.SUMMARY, vm.state.value.phase)
+
+        // SUMMARY -> POP, resuming at the pack the user was last on.
+        assertEquals(true, vm.stepBack())
+        assertEquals(BlisterPhase.POP, vm.state.value.phase)
+        assertEquals(2, vm.state.value.currentPackIndex)
+
+        // POP retreats a pack at a time rather than leaving the step.
+        assertEquals(true, vm.stepBack())
+        assertEquals(BlisterPhase.POP, vm.state.value.phase)
+        assertEquals(1, vm.state.value.currentPackIndex)
+
+        assertEquals(true, vm.stepBack())
+        assertEquals(BlisterPhase.POP, vm.state.value.phase)
+        assertEquals(0, vm.state.value.currentPackIndex)
+
+        // Only from the first pack does it fall through to the format step.
+        assertEquals(true, vm.stepBack())
+        assertEquals(BlisterPhase.FORMAT, vm.state.value.phase)
+
+        // FORMAT -> FRAME, then FRAME -> a fresh capture.
+        assertEquals(true, vm.stepBack())
+        assertEquals(BlisterPhase.FRAME, vm.state.value.phase)
+
+        assertEquals(true, vm.stepBack())
+        assertEquals(BlisterPhase.CAPTURE, vm.state.value.phase)
+
+        // And from the capture there is nothing left to step back to.
+        assertEquals(false, vm.stepBack())
+    }
+
+    @Test
+    fun `stepping back to an earlier pack keeps the pops already made on it`() {
+        val vm = vmPopping(region(100f), region(400f))
+        val (x, y) = popPoint(vm, 0, 0)
+        vm.popAt(x, y)
+        assertEquals(setOf(CellRef(0, 0)), vm.state.value.packs[0].popped)
+
+        vm.nextPack()
+        assertEquals(1, vm.state.value.currentPackIndex)
+
+        vm.stepBack()
+        assertEquals(0, vm.state.value.currentPackIndex)
+        assertEquals(setOf(CellRef(0, 0)), vm.state.value.currentPack!!.popped)
+    }
+
+    @Test
     fun `popping a blister empties it and un-popping refills it`() {
         val vm = vmPopping(region())
         val (x, y) = popPoint(vm, 0, 0)
