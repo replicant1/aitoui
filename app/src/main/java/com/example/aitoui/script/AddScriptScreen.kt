@@ -345,21 +345,10 @@ private fun MedicationResolutionDialog(
     var selection by remember { mutableStateOf<MedSelection?>(null) }
 
     val hasKnown = knownMedications.isNotEmpty()
-    val single = knownMedications.size == 1
     val showNew = !blocked
 
-    val knownPrompt = if (single) {
-        stringResource(R.string.add_script_med_resolution_known_prompt_single)
-    } else {
-        stringResource(R.string.add_script_med_resolution_known_prompt_multiple)
-    }
-    val actionPrompt = when {
-        !hasKnown -> stringResource(R.string.add_script_med_resolution_action_no_known)
-        blocked && single -> stringResource(R.string.add_script_med_resolution_action_blocked_single)
-        blocked -> stringResource(R.string.add_script_med_resolution_action_blocked_multiple)
-        single -> stringResource(R.string.add_script_med_resolution_action_choose_known_or_new_single)
-        else -> stringResource(R.string.add_script_med_resolution_action_choose_known_or_new_multiple)
-    }
+    val knownPrompt = stringResource(medResolutionKnownPrompt(knownMedications.size))
+    val actionPrompt = stringResource(medResolutionActionPrompt(knownMedications.size, blocked))
 
     AlertDialog(
         onDismissRequest = onCancel,
@@ -490,21 +479,10 @@ private fun DispensableUnitResolutionDialog(
     var selection by remember { mutableStateOf<DuSelection?>(null) }
 
     val hasExisting = existingUnits.isNotEmpty()
-    val single = existingUnits.size == 1
     val showNew = !blocked
 
-    val existingPrompt = if (single) {
-        stringResource(R.string.add_script_du_resolution_existing_prompt_single)
-    } else {
-        stringResource(R.string.add_script_du_resolution_existing_prompt_multiple)
-    }
-    val actionPrompt = when {
-        !hasExisting -> stringResource(R.string.add_script_du_resolution_action_no_existing)
-        blocked && single -> stringResource(R.string.add_script_du_resolution_action_blocked_single)
-        blocked -> stringResource(R.string.add_script_du_resolution_action_blocked_multiple)
-        single -> stringResource(R.string.add_script_du_resolution_action_choose_existing_or_new_single)
-        else -> stringResource(R.string.add_script_du_resolution_action_choose_existing_or_new_multiple)
-    }
+    val existingPrompt = stringResource(duResolutionExistingPrompt(existingUnits.size))
+    val actionPrompt = stringResource(duResolutionActionPrompt(existingUnits.size, blocked))
 
     AlertDialog(
         onDismissRequest = onCancel,
