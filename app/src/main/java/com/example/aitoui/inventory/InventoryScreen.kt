@@ -250,7 +250,7 @@ private fun MedicationRow(
                     Text(
                         text = runOutDateLabel(item.supply.totalDays, nowMillis),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = MaterialTheme.colorScheme.primary,
                     )
                 }
             } else {
