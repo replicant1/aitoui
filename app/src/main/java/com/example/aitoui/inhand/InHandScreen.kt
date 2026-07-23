@@ -278,7 +278,9 @@ fun InHandScreen(
                         val selected = entry.id == state.selectedId
                         // Dose and photo come from the row's dispensable unit, looked up live.
                         val unit = state.units.firstOrNull { it.formatId == entry.dispensableUnitId }
-                        val dose = unit?.dosePerTablet?.let { " ($it" + "mg)" } ?: ""
+                        val dose = unit?.dosePerTablet?.let {
+                            stringResource(R.string.in_hand_dose_suffix, it, unit.doseUnit)
+                        } ?: ""
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()

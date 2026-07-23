@@ -22,6 +22,7 @@ data class DispensableUnitEntity(
     val medicationId: Long,
     val dosePerTablet: String,
     val tabletsPerUnit: String,
+    val doseUnit: String = "mg",  // Abbreviation: "mg", "g", "IU", "mL", "μg"
     val imagePath: String? = null,
 )
 
@@ -30,6 +31,7 @@ fun DispensableUnitEntity.toDomain(): DispensableUnit = DispensableUnit(
     medicationId = medicationId,
     dosePerTablet = dosePerTablet,
     tabletsPerUnit = tabletsPerUnit,
+    doseUnit = doseUnit,
     imagePath = imagePath,
 )
 
@@ -38,5 +40,6 @@ fun DispensableUnit.toEntity(): DispensableUnitEntity = DispensableUnitEntity(
     medicationId = medicationId,
     dosePerTablet = dosePerTablet,
     tabletsPerUnit = tabletsPerUnit,
+    doseUnit = doseUnit,
     imagePath = imagePath,
 )

@@ -19,6 +19,7 @@ interface DispensableUnitDao {
         SELECT f.id AS formatId, f.medicationId AS medicationId,
                m.brandName AS brandName, m.activeIngredient AS activeIngredient,
                f.dosePerTablet AS dosePerTablet, f.tabletsPerUnit AS tabletsPerUnit,
+               f.doseUnit AS doseUnit,
                f.imagePath AS imagePath, m.requiresPrescription AS requiresPrescription
         FROM dispensable_units f
         JOIN medications m ON m.id = f.medicationId

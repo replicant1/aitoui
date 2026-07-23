@@ -284,6 +284,7 @@ private fun ScriptCard(
                         text = stringResource(
                             R.string.dispensable_units_dose_format,
                             script.dosePerTablet,
+                            script.doseUnit,
                             script.tabletsPerUnit,
                         ),
                         style = MaterialTheme.typography.bodyLarge,

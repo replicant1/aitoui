@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Add Dispensable Unit - Dose Unit Dropdown Delta</title>
+  <style>
+    :root {
+      --bg: #fffbfe;
+      --surface: #fffbfe;
+      --text: #1c1b1f;
+      --text-variant: #49454e;
+      --outline: #cac4d0;
+      --brand: #6750a4;
+      --brand-bright: #7c3aed;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      background: #f5f5f5;
+      color: var(--text);
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+    }
+    .phone {
+      width: min(412px, 100%);
+      background: var(--surface);
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+      overflow: hidden;
+      border: 1px solid #e0e0e0;
+      max-height: 915px;
+    }
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 8px;
+      border-bottom: 1px solid var(--outline);
+      background: var(--surface);
+      height: 56px;
+    }
+    .icon-btn {
+      width: 48px;
+      height: 48px;
+      border: none;
+      border-radius: 24px;
+      background: transparent;
+      display: grid;
+      place-items: center;
+      color: var(--text);
+      font-size: 24px;
+      cursor: default;
+      flex-shrink: 0;
+    }
+    .title {
+      flex: 1;
+      font-size: 22px;
+      font-weight: 500;
+      margin: 0;
+    }
+    .save-btn {
+      color: var(--brand);
+      background: transparent;
+      border: none;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 8px 16px;
+      border-radius: 24px;
+      cursor: default;
+    }
+    .content {
+      padding: 16px;
+      display: grid;
+      gap: 16px;
+      background: var(--surface);
+      overflow-y: auto;
+      max-height: calc(915px - 56px);
+    }
+    .description {
+      margin: 0;
+      color: var(--text-variant);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .text-field {
+      display: grid;
+      gap: 4px;
+    }
+    .text-field label {
+      font-size: 12px;
+      color: var(--text-variant);
+      font-weight: 500;
+    }
+    .input, .select {
+      width: 100%;
+      height: 56px;
+      border: 1px solid var(--outline);
+      border-radius: 4px;
+      padding: 0 16px;
+      font-size: 16px;
+      color: var(--text);
+      background: #fff;
+      font-family: inherit;
+    }
+    .input::placeholder, .select::placeholder {
+      color: var(--text-variant);
+    }
+    .dose-row {
+      display: grid;
+      grid-template-columns: 1fr 110px;
+      gap: 8px;
+    }
+    .dose-row .text-field {
+      grid-column: 1;
+    }
+    .dose-unit-field {
+      display: grid;
+      gap: 4px;
+    }
+    .dose-unit-field label {
+      font-size: 12px;
+      color: var(--text-variant);
+      font-weight: 500;
+    }
+    .dropdown-icon {
+      position: relative;
+      width: 110px;
+    }
+  </style>
+</head>
+<body>
+  <main class="phone" aria-label="Add Dispensable Unit screen">
+    <header class="topbar">
+      <button class="icon-btn" aria-label="Back">←</button>
+      <h1 class="title">Add Dispensable Unit</h1>
+      <button class="save-btn" aria-label="Save">Save</button>
+    </header>
+
+    <section class="content">
+      <p class="description">A Dispensable Unit is a particular packaging and presentation of a medication. Typically a box or bottle of a capsule or tablet. Fields are required unless marked "optional".</p>
+
+      <div class="text-field">
+        <label for="medication">Medication</label>
+        <select id="medication" class="input">
+          <option disabled selected>Select medication</option>
+          <option>Panadol (Paracetamol)</option>
+          <option>Tensig (Atenolol)</option>
+          <option>Lithicarb (Lithium Carbide)</option>
+        </select>
+      </div>
+
+      <div class="dose-row">
+        <div class="text-field">
+          <label for="doseValue">Dose per tablet</label>
+          <input id="doseValue" class="input" type="text" value="500" />
+        </div>
+        <div class="dose-unit-field">
+          <label for="doseUnit">Unit</label>
+          <select id="doseUnit" class="input">
+            <option selected>mg</option>
+            <option>g</option>
+            <option>IU</option>
+            <option>mL</option>
+            <option>mcg</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="text-field">
+        <label for="tabletsPerUnit">Tablets per unit</label>
+        <input id="tabletsPerUnit" class="input" type="text" value="30" />
+      </div>
+    </section>
+  </main>
+</body>
+</html>
+

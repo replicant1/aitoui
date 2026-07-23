@@ -1,5 +1,6 @@
 package com.example.aitoui.script
 
+import com.example.aitoui.data.DoseUnit
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -19,6 +20,12 @@ class AddScriptStateTest {
         val prefilled = seeded(AddScriptState(brandName = "Dytrex", dosePerTablet = "60", repeats = "5"))
         assertFalse(prefilled.hasUnsavedChanges)
         assertTrue(prefilled.copy(dosePerTablet = "90").hasUnsavedChanges)
+    }
+
+    @Test
+    fun `changing the selected dose unit counts as an edit`() {
+        val prefilled = seeded(AddScriptState(dosePerTablet = "1", tabletsPerUnit = "30"))
+        assertTrue(prefilled.copy(selectedDoseUnit = DoseUnit.GRAMS).hasUnsavedChanges)
     }
 
     @Test

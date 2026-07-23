@@ -13,6 +13,7 @@ import com.example.aitoui.data.DispensableUnit
 import com.example.aitoui.data.DispensableUnitDetails
 import com.example.aitoui.data.DispensableUnitRepository
 import com.example.aitoui.data.DispensationRepository
+import com.example.aitoui.data.DoseUnit
 import com.example.aitoui.data.FuzzyMatcher
 import com.example.aitoui.data.Medication
 import com.example.aitoui.data.MedicationRepository
@@ -20,6 +21,8 @@ import com.example.aitoui.data.Script
 import com.example.aitoui.data.ScriptRepository
 import com.example.aitoui.data.cleanMedicationName
 import com.example.aitoui.navigation.ScriptRoute
+import com.example.aitoui.ui.decimalInput
+import com.example.aitoui.ui.digitsOnly
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -36,6 +39,7 @@ data class AddScriptState(
     val brandName: String = "",
     val activeIngredient: String = "",
     val dosePerTablet: String = "",
+    val selectedDoseUnit: DoseUnit = DoseUnit.MILLIGRAMS,
     val tabletsPerUnit: String = "",
     val serialNo: String = "",
     val serialNo2: String = "",
@@ -50,6 +54,7 @@ data class AddScriptState(
     val medicationStep: MedicationResolution? = null,
     /** Non-null while the dispensable-unit-resolution dialog is shown. */
     val dispensableUnitStep: DispensableUnitResolution? = null,
+    val doseUnitMenuExpanded: Boolean = false,
     /** True while the "serial number already used" error dialog is shown; blocks the save. */
     val duplicateSerial: Boolean = false,
     /** The form fields as first shown (blank, or seeded from a scan); the baseline for [hasUnsavedChanges]. */
@@ -58,7 +63,7 @@ data class AddScriptState(
     /** Just the editable script fields (excludes the transient resolution-dialog state). */
     val fields: ScriptFormFields
         get() = ScriptFormFields(
-            brandName, activeIngredient, dosePerTablet, tabletsPerUnit, serialNo, serialNo2,
+            brandName, activeIngredient, dosePerTablet, selectedDoseUnit, tabletsPerUnit, serialNo, serialNo2,
             dateOfIssue, repeats, validToMillis, instructions, priorDispensed,
         )
 
@@ -84,6 +89,7 @@ data class ScriptFormFields(
     val brandName: String = "",
     val activeIngredient: String = "",
     val dosePerTablet: String = "",
+    val selectedDoseUnit: DoseUnit = DoseUnit.MILLIGRAMS,
     val tabletsPerUnit: String = "",
     val serialNo: String = "",
     val serialNo2: String = "",
@@ -123,6 +129,7 @@ sealed interface AddScriptAction {
     data class BrandNameChanged(val value: String) : AddScriptAction
     data class ActiveIngredientChanged(val value: String) : AddScriptAction
     data class DosePerTabletChanged(val value: String) : AddScriptAction
+    data class DoseUnitSelected(val unit: DoseUnit) : AddScriptAction
     data class TabletsPerUnitChanged(val value: String) : AddScriptAction
     data class SerialNoChanged(val value: String) : AddScriptAction
     data class SerialNo2Changed(val value: String) : AddScriptAction
@@ -132,6 +139,8 @@ sealed interface AddScriptAction {
     data class ValidToChanged(val millis: Long?) : AddScriptAction
     data class InstructionsChanged(val value: String) : AddScriptAction
     data object Save : AddScriptAction
+    data object ToggleDoseUnitMenu : AddScriptAction
+    data object DismissDoseUnitMenu : AddScriptAction
 
     // Medication-resolution dialog.
     data class PickMedication(val id: Long) : AddScriptAction
@@ -186,7 +195,8 @@ class AddScriptViewModel(
                 _state.update { it.copy(brandName = action.value.cleanMedicationName()) }
             is AddScriptAction.ActiveIngredientChanged ->
                 _state.update { it.copy(activeIngredient = action.value.cleanMedicationName()) }
-            is AddScriptAction.DosePerTabletChanged -> _state.update { it.copy(dosePerTablet = action.value) }
+            is AddScriptAction.DosePerTabletChanged -> _state.update { it.copy(dosePerTablet = action.value.decimalInput()) }
+            is AddScriptAction.DoseUnitSelected -> _state.update { it.copy(selectedDoseUnit = action.unit) }
             is AddScriptAction.TabletsPerUnitChanged -> _state.update { it.copy(tabletsPerUnit = action.value.digitsOnly()) }
             is AddScriptAction.SerialNoChanged -> _state.update { it.copy(serialNo = action.value) }
             is AddScriptAction.SerialNo2Changed -> _state.update { it.copy(serialNo2 = action.value) }
@@ -196,6 +206,10 @@ class AddScriptViewModel(
             is AddScriptAction.RepeatsChanged -> _state.update { it.copy(repeats = action.value.digitsOnly()) }
             is AddScriptAction.ValidToChanged -> _state.update { it.copy(validToMillis = action.millis) }
             is AddScriptAction.InstructionsChanged -> _state.update { it.copy(instructions = action.value) }
+            AddScriptAction.ToggleDoseUnitMenu ->
+                _state.update { it.copy(doseUnitMenuExpanded = !it.doseUnitMenuExpanded) }
+            AddScriptAction.DismissDoseUnitMenu ->
+                _state.update { it.copy(doseUnitMenuExpanded = false) }
 
             AddScriptAction.Save -> save()
 
@@ -284,7 +298,11 @@ class AddScriptViewModel(
                     val med = medicationRepository.medications.first().find { it.id == resolved.id }
                     val units = dispensableUnitRepository.formatsWithMedication.first()
                     val du = FuzzyMatcher.classifyDispensableUnits(
-                        resolved.id, s.dosePerTablet.trim(), s.tabletsPerUnit.trim(), units,
+                        resolved.id,
+                        s.dosePerTablet.trim(),
+                        s.tabletsPerUnit.trim(),
+                        s.selectedDoseUnit.storedAbbreviation(),
+                        units,
                     )
                     DispensableUnitResolution(
                         resolved,
@@ -328,6 +346,7 @@ class AddScriptViewModel(
                     medicationId = medicationId,
                     dosePerTablet = s.dosePerTablet.trim(),
                     tabletsPerUnit = s.tabletsPerUnit.trim(),
+                    doseUnit = s.selectedDoseUnit.storedAbbreviation(),
                 ),
             )
         }
@@ -357,7 +376,6 @@ class AddScriptViewModel(
         _saved.value = true                  // signal the screen to return to Scripts
     }
 
-    private fun String.digitsOnly(): String = filter { it.isDigit() }
 
     companion object {
         val Factory = viewModelFactory {

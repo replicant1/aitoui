@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
  * The current Room schema version. Single source of truth: used both in the [Database] annotation below
  * and stamped into backup zips (see the backup package) so a restore can compare versions.
  */
-const val DATABASE_SCHEMA_VERSION = 26
+const val DATABASE_SCHEMA_VERSION = 27
 
 @Database(
     entities = [
