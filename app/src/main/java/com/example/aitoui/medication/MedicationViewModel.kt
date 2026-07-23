@@ -8,6 +8,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.aitoui.AitouiApp
 import com.example.aitoui.data.Medication
 import com.example.aitoui.data.MedicationRepository
+import com.example.aitoui.data.cleanMedicationName
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -51,10 +52,10 @@ class MedicationViewModel(
     fun onAction(action: MedicationAction) {
         when (action) {
             is MedicationAction.BrandNameChanged ->
-                _state.update { it.copy(brandName = action.value) }
+                _state.update { it.copy(brandName = action.value.cleanMedicationName()) }
 
             is MedicationAction.ActiveIngredientChanged ->
-                _state.update { it.copy(activeIngredient = action.value) }
+                _state.update { it.copy(activeIngredient = action.value.cleanMedicationName()) }
 
             is MedicationAction.RequiresPrescriptionChanged ->
                 _state.update { it.copy(requiresPrescription = action.value) }
@@ -69,8 +70,8 @@ class MedicationViewModel(
         viewModelScope.launch {
             repository.add(
                 Medication(
-                    brandName = current.brandName.trim(),
-                    activeIngredient = current.activeIngredient.trim(),
+                    brandName = current.brandName.cleanMedicationName(),
+                    activeIngredient = current.activeIngredient.cleanMedicationName(),
                     requiresPrescription = current.requiresPrescription,
                 )
             )
