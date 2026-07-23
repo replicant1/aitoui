@@ -19,7 +19,7 @@ data class ScriptDetails(
     val dateOfIssue: Long,
     /** Directions for use, e.g. "Take ONE tablet TWICE a day as directed". */
     val instructions: String = "",
-    val doseUnit: String = DoseUnit.MILLIGRAMS.storedAbbreviation(),
+    val doseUnit: String = DoseUnit.MILLIGRAMS.storedAbbreviation,
 ) {
     /** Medication name with dosage, e.g. "Panadol (500mg)". */
     val medicationLabel: String get() = "$brandName (${dosePerTablet}$doseUnit)"

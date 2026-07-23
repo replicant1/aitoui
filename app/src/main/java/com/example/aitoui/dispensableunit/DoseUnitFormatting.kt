@@ -6,11 +6,11 @@ import com.example.aitoui.data.DoseUnit
 
 /** Get abbreviation string for a DoseUnit (requires Compose context) */
 @Composable
-fun DoseUnit.abbreviation(): String = stringResource(abbreviationResId())
+fun DoseUnit.abbreviation(): String = stringResource(abbreviationResId)
 
 /** Get display name for a DoseUnit (requires Compose context) */
 @Composable
-fun DoseUnit.displayName(): String = stringResource(displayNameResId())
+fun DoseUnit.displayName(): String = stringResource(displayNameResId)
 
 /** Format a dose value + unit as display string (e.g. "500 mg", "0.025 mg", "1000 IU") */
 @Composable

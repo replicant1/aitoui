@@ -301,7 +301,7 @@ class AddScriptViewModel(
                         resolved.id,
                         s.dosePerTablet.trim(),
                         s.tabletsPerUnit.trim(),
-                        s.selectedDoseUnit.storedAbbreviation(),
+                        s.selectedDoseUnit.storedAbbreviation,
                         units,
                     )
                     DispensableUnitResolution(
@@ -346,7 +346,7 @@ class AddScriptViewModel(
                     medicationId = medicationId,
                     dosePerTablet = s.dosePerTablet.trim(),
                     tabletsPerUnit = s.tabletsPerUnit.trim(),
-                    doseUnit = s.selectedDoseUnit.storedAbbreviation(),
+                    doseUnit = s.selectedDoseUnit.storedAbbreviation,
                 ),
             )
         }

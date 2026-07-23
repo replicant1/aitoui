@@ -116,7 +116,7 @@ class DispensableUnitViewModel(
                     medicationId = current.selectedMedicationId!!,
                     dosePerTablet = current.dosePerTablet,
                     tabletsPerUnit = current.tabletsPerUnit,
-                    doseUnit = current.selectedDoseUnit.storedAbbreviation(),
+                    doseUnit = current.selectedDoseUnit.storedAbbreviation,
                 )
             )
             // Clear the form for the next entry (keep the loaded medications).
