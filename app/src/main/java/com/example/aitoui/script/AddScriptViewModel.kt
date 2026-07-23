@@ -18,6 +18,7 @@ import com.example.aitoui.data.Medication
 import com.example.aitoui.data.MedicationRepository
 import com.example.aitoui.data.Script
 import com.example.aitoui.data.ScriptRepository
+import com.example.aitoui.data.cleanMedicationName
 import com.example.aitoui.navigation.ScriptRoute
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -157,8 +158,8 @@ class AddScriptViewModel(
     // Seed the form from a scanned PB038 (or all-null args for manual entry).
     private val _state = MutableStateFlow(
         AddScriptState(
-            brandName = prefill.brandName.orEmpty(),
-            activeIngredient = prefill.activeIngredient.orEmpty(),
+            brandName = prefill.brandName.orEmpty().cleanMedicationName(),
+            activeIngredient = prefill.activeIngredient.orEmpty().cleanMedicationName(),
             dosePerTablet = prefill.dosePerTablet.orEmpty(),
             tabletsPerUnit = prefill.tabletsPerUnit.orEmpty(),
             serialNo = prefill.serialNo.orEmpty(),
@@ -181,8 +182,10 @@ class AddScriptViewModel(
 
     fun onAction(action: AddScriptAction) {
         when (action) {
-            is AddScriptAction.BrandNameChanged -> _state.update { it.copy(brandName = action.value) }
-            is AddScriptAction.ActiveIngredientChanged -> _state.update { it.copy(activeIngredient = action.value) }
+            is AddScriptAction.BrandNameChanged ->
+                _state.update { it.copy(brandName = action.value.cleanMedicationName()) }
+            is AddScriptAction.ActiveIngredientChanged ->
+                _state.update { it.copy(activeIngredient = action.value.cleanMedicationName()) }
             is AddScriptAction.DosePerTabletChanged -> _state.update { it.copy(dosePerTablet = action.value) }
             is AddScriptAction.TabletsPerUnitChanged -> _state.update { it.copy(tabletsPerUnit = action.value.digitsOnly()) }
             is AddScriptAction.SerialNoChanged -> _state.update { it.copy(serialNo = action.value) }
@@ -203,7 +206,12 @@ class AddScriptViewModel(
                 val step = _state.value.medicationStep ?: return
                 if (step.blocked) return
                 val s = _state.value
-                onMedicationResolved(ResolvedMedication.New(s.brandName.trim(), s.activeIngredient.trim()))
+                onMedicationResolved(
+                    ResolvedMedication.New(
+                        s.brandName.cleanMedicationName(),
+                        s.activeIngredient.cleanMedicationName(),
+                    )
+                )
             }
 
             is AddScriptAction.PickDispensableUnit -> {
@@ -255,7 +263,11 @@ class AddScriptViewModel(
         if (!s.canSave) return
         viewModelScope.launch {
             val existing = medicationRepository.medications.first()
-            val m = FuzzyMatcher.classifyMedications(s.brandName.trim(), s.activeIngredient.trim(), existing)
+            val m = FuzzyMatcher.classifyMedications(
+                s.brandName.cleanMedicationName(),
+                s.activeIngredient.cleanMedicationName(),
+                existing,
+            )
             // Always confirm via the dialog — even with no similar medications, the user picks the new one.
             _state.update { it.copy(medicationStep = MedicationResolution(m.exact, m.similar, m.blocked)) }
         }

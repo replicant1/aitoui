@@ -87,6 +87,9 @@ class AitouiApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        applicationScope.launch {
+            medicationRepository.cleanseExistingMedicationNames()
+        }
         // Debug-only: auto-populate the DB with dummy data on first run so the app can be exercised
         // without manual entry. Idempotent (seeds only when empty), so it never grows unbounded.
         if (BuildConfig.DEBUG) {
