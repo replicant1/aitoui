@@ -72,33 +72,40 @@ class FuzzyMatcherTest {
         assertEquals(listOf(1L), r.similar.map { it.id })
     }
 
-    private fun unit(formatId: Long, medicationId: Long, dose: String, qty: String) =
-        DispensableUnitDetails(formatId, medicationId, "Brand", "Active", dose, qty, null)
+    private fun unit(formatId: Long, medicationId: Long, dose: String, qty: String, doseUnit: String = "mg") =
+        DispensableUnitDetails(formatId, medicationId, "Brand", "Active", dose, qty, null, doseUnit = doseUnit)
 
     private val units = listOf(
         unit(10, 2, "50", "60"),
         unit(11, 2, "25", "30"),
+        unit(12, 2, "50", "60", doseUnit = "g"),
         unit(20, 1, "40", "60"),
     )
 
     @Test
     fun `dispensable-unit duplicate (same dose and tablets per unit) is blocked`() {
-        val r = FuzzyMatcher.classifyDispensableUnits(2, "50", "60", units)
-        assertEquals(listOf(10L, 11L), r.candidates.map { it.formatId })  // the medication's dispensable units
+        val r = FuzzyMatcher.classifyDispensableUnits(2, "50", "60", "mg", units)
+        assertEquals(listOf(10L, 11L, 12L), r.candidates.map { it.formatId })  // the medication's dispensable units
         assertTrue(r.blocked)
     }
 
     @Test
     fun `a new dispensable unit for the same medication is offered candidates but not blocked`() {
-        val r = FuzzyMatcher.classifyDispensableUnits(2, "100", "30", units)
-        assertEquals(listOf(10L, 11L), r.candidates.map { it.formatId })
+        val r = FuzzyMatcher.classifyDispensableUnits(2, "100", "30", "mg", units)
+        assertEquals(listOf(10L, 11L, 12L), r.candidates.map { it.formatId })
         assertFalse(r.blocked)
     }
 
     @Test
     fun `a brand-new medication (no existing dispensable units) has no candidates`() {
-        val r = FuzzyMatcher.classifyDispensableUnits(99, "50", "60", units)
+        val r = FuzzyMatcher.classifyDispensableUnits(99, "50", "60", "mg", units)
         assertTrue(r.candidates.isEmpty())
+        assertFalse(r.blocked)
+    }
+
+    @Test
+    fun `matching dose and quantity with a different unit is not blocked`() {
+        val r = FuzzyMatcher.classifyDispensableUnits(2, "50", "60", "IU", units)
         assertFalse(r.blocked)
     }
 

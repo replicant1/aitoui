@@ -97,6 +97,13 @@ val MIGRATION_25_26 = object : Migration(25, 26) {
     }
 }
 
+/** v27 added [DispensableUnitEntity.doseUnit] to support multiple dose units (mg, g, IU, mL, mcg). */
+val MIGRATION_26_27 = object : Migration(26, 27) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE dispensable_units ADD COLUMN doseUnit TEXT NOT NULL DEFAULT 'mg'")
+    }
+}
+
 /** All migrations, in order — spread into `addMigrations(*ALL_MIGRATIONS)`. */
 val ALL_MIGRATIONS =
-    arrayOf(MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26)
+    arrayOf(MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27)

@@ -91,12 +91,14 @@ object FuzzyMatcher {
         medicationId: Long,
         dosePerTablet: String,
         tabletsPerUnit: String,
+        doseUnit: String,
         existing: List<DispensableUnitDetails>,
     ): DispensableUnitMatches {
         val forMedication = existing.filter { it.medicationId == medicationId }
         val blocked = forMedication.any {
             TextSimilarity.normalize(it.dosePerTablet) == TextSimilarity.normalize(dosePerTablet) &&
-                TextSimilarity.normalize(it.tabletsPerUnit) == TextSimilarity.normalize(tabletsPerUnit)
+                TextSimilarity.normalize(it.tabletsPerUnit) == TextSimilarity.normalize(tabletsPerUnit) &&
+                TextSimilarity.normalize(it.doseUnit) == TextSimilarity.normalize(doseUnit)
         }
         return DispensableUnitMatches(forMedication, blocked)
     }

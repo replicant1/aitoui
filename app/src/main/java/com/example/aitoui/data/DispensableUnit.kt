@@ -9,6 +9,7 @@ data class DispensableUnit(
     val medicationId: Long,
     val dosePerTablet: String,
     val tabletsPerUnit: String,
+    val doseUnit: String = "mg",  // Abbreviation: "mg", "g", "IU", "mL", "μg"
     /** Filename of the tablet photo in internal storage (see ImageStore), or null if none. */
     val imagePath: String? = null,
 )

@@ -1,5 +1,6 @@
 package com.example.aitoui.dispensableunit
 
+import com.example.aitoui.data.DoseUnit
 import com.example.aitoui.data.Medication
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -25,5 +26,6 @@ class DispensableUnitStateTest {
         assertTrue(DispensableUnitState(selectedMedicationId = 1).hasUnsavedChanges)
         assertTrue(DispensableUnitState(dosePerTablet = "500").hasUnsavedChanges)
         assertTrue(DispensableUnitState(tabletsPerUnit = "24").hasUnsavedChanges)
+        assertTrue(DispensableUnitState(selectedDoseUnit = DoseUnit.GRAMS).hasUnsavedChanges)
     }
 }

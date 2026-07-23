@@ -3,8 +3,11 @@ package com.example.aitoui.dispensableunit
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -36,6 +39,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.aitoui.R
 import com.example.aitoui.data.Medication
+import com.example.aitoui.data.DoseUnit
 import com.example.aitoui.ui.AppTextField
 import com.example.aitoui.ui.UnsavedChangesDialog
 import com.example.aitoui.ui.heading
@@ -156,12 +160,51 @@ fun DispensableUnitScreen(
                 }
             }
 
-            AppTextField(
-                value = state.dosePerTablet,
-                onValueChange = { onAction(DispensableUnitAction.DosePerTabletChanged(it)) },
-                label = stringResource(R.string.dispensable_unit_dose_per_tablet_label),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            )
+            // Dose per tablet with unit selector
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                AppTextField(
+                    modifier = Modifier.weight(1f),
+                    value = state.dosePerTablet,
+                    onValueChange = { onAction(DispensableUnitAction.DosePerTabletChanged(it)) },
+                    label = stringResource(R.string.dispensable_unit_dose_per_tablet_label),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                )
+
+                ExposedDropdownMenuBox(
+                    modifier = Modifier.width(110.dp),
+                    expanded = state.doseUnitMenuExpanded,
+                    onExpandedChange = {
+                        onAction(DispensableUnitAction.ToggleDoseUnitMenu)
+                    },
+                ) {
+                    AppTextField(
+                        value = state.selectedDoseUnit.abbreviation(),
+                        onValueChange = {},
+                        label = stringResource(R.string.app_dose_unit_label),
+                        readOnly = true,
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = state.doseUnitMenuExpanded) },
+                        modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                    )
+                    ExposedDropdownMenu(
+                        expanded = state.doseUnitMenuExpanded,
+                        onDismissRequest = { onAction(DispensableUnitAction.DismissDoseUnitMenu) },
+                    ) {
+                        DoseUnit.values().forEach { unit ->
+                            DropdownMenuItem(
+                                text = { Text(unit.abbreviation()) },
+                                onClick = {
+                                    onAction(DispensableUnitAction.DoseUnitSelected(unit))
+                                    onAction(DispensableUnitAction.DismissDoseUnitMenu)
+                                },
+                            )
+                        }
+                    }
+                }
+            }
+
             AppTextField(
                 value = state.tabletsPerUnit,
                 onValueChange = { onAction(DispensableUnitAction.TabletsPerUnitChanged(it)) },

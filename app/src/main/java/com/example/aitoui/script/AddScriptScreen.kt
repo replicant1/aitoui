@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -19,6 +20,9 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -26,6 +30,7 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -47,10 +52,12 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.aitoui.data.DispensableUnitDetails
+import com.example.aitoui.data.DoseUnit
 import com.example.aitoui.data.Medication
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.aitoui.R
+import com.example.aitoui.dispensableunit.abbreviation
 import com.example.aitoui.ui.AppTextField
 import com.example.aitoui.ui.FieldRequirement
 import com.example.aitoui.ui.UnsavedChangesDialog
@@ -154,12 +161,46 @@ fun AddScriptScreen(
                 onValueChange = { onAction(AddScriptAction.ActiveIngredientChanged(it)) },
                 label = stringResource(R.string.add_script_active_ingredient_label),
             )
-            AppTextField(
-                value = state.dosePerTablet,
-                onValueChange = { onAction(AddScriptAction.DosePerTabletChanged(it)) },
-                label = stringResource(R.string.add_script_dose_per_tablet_label),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                AppTextField(
+                    modifier = Modifier.weight(1f),
+                    value = state.dosePerTablet,
+                    onValueChange = { onAction(AddScriptAction.DosePerTabletChanged(it)) },
+                    label = stringResource(R.string.add_script_dose_per_tablet_label),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                )
+                ExposedDropdownMenuBox(
+                    modifier = Modifier.width(110.dp),
+                    expanded = state.doseUnitMenuExpanded,
+                    onExpandedChange = { onAction(AddScriptAction.ToggleDoseUnitMenu) },
+                ) {
+                    AppTextField(
+                        value = state.selectedDoseUnit.abbreviation(),
+                        onValueChange = {},
+                        label = stringResource(R.string.app_dose_unit_label),
+                        readOnly = true,
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = state.doseUnitMenuExpanded) },
+                        modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                    )
+                    ExposedDropdownMenu(
+                        expanded = state.doseUnitMenuExpanded,
+                        onDismissRequest = { onAction(AddScriptAction.DismissDoseUnitMenu) },
+                    ) {
+                        DoseUnit.values().forEach { unit ->
+                            DropdownMenuItem(
+                                text = { Text(unit.abbreviation()) },
+                                onClick = {
+                                    onAction(AddScriptAction.DoseUnitSelected(unit))
+                                    onAction(AddScriptAction.DismissDoseUnitMenu)
+                                },
+                            )
+                        }
+                    }
+                }
+            }
             AppTextField(
                 value = state.tabletsPerUnit,
                 onValueChange = { onAction(AddScriptAction.TabletsPerUnitChanged(it)) },
@@ -272,6 +313,7 @@ fun AddScriptScreen(
             medicationActiveIngredient = step.medicationActiveIngredient,
             existingUnits = step.candidates,
             newDosePerTablet = state.dosePerTablet.trim(),
+            newDoseUnit = state.selectedDoseUnit.abbreviation(),
             newTabletsPerUnit = state.tabletsPerUnit.trim(),
             blocked = step.blocked,
             onPickExisting = { onAction(AddScriptAction.PickDispensableUnit(it)) },
@@ -470,6 +512,7 @@ private fun DispensableUnitResolutionDialog(
     medicationActiveIngredient: String,
     existingUnits: List<DispensableUnitDetails>,
     newDosePerTablet: String,
+    newDoseUnit: String,
     newTabletsPerUnit: String,
     blocked: Boolean,
     onPickExisting: (Long) -> Unit,
@@ -499,6 +542,7 @@ private fun DispensableUnitResolutionDialog(
                             brandName = medicationBrandName,
                             activeIngredient = medicationActiveIngredient,
                             dosePerTablet = unit.dosePerTablet,
+                            doseUnit = unit.doseUnit,
                             tabletsPerUnit = unit.tabletsPerUnit,
                             isNew = false,
                             selected = selection == DuSelection.Existing(unit.formatId),
@@ -512,6 +556,7 @@ private fun DispensableUnitResolutionDialog(
                         brandName = medicationBrandName,
                         activeIngredient = medicationActiveIngredient,
                         dosePerTablet = newDosePerTablet,
+                        doseUnit = newDoseUnit,
                         tabletsPerUnit = newTabletsPerUnit,
                         isNew = true,
                         selected = selection == DuSelection.New,
@@ -549,6 +594,7 @@ private fun DispensableUnitChoiceCard(
     brandName: String,
     activeIngredient: String,
     dosePerTablet: String,
+    doseUnit: String,
     tabletsPerUnit: String,
     isNew: Boolean,
     selected: Boolean,
@@ -579,6 +625,7 @@ private fun DispensableUnitChoiceCard(
                         text = stringResource(
                             R.string.add_script_du_format_text,
                             dosePerTablet,
+                            doseUnit,
                             tabletsPerUnit,
                         ),
                         style = MaterialTheme.typography.bodyMedium,
@@ -706,6 +753,7 @@ private fun DispensableUnitResolutionDialogManyPreview() {
             medicationActiveIngredient = "Atenolol",
             existingUnits = previewExistingUnits,
             newDosePerTablet = "25",
+            newDoseUnit = DoseUnit.MILLIGRAMS.abbreviation(),
             newTabletsPerUnit = "90",
             blocked = false,
             onPickExisting = {},
@@ -724,6 +772,7 @@ private fun DispensableUnitResolutionDialogNonePreview() {
             medicationActiveIngredient = "Salbutamol",
             existingUnits = emptyList(),
             newDosePerTablet = "50",
+            newDoseUnit = DoseUnit.MICROGRAMS.abbreviation(),
             newTabletsPerUnit = "60",
             blocked = false,
             onPickExisting = {},
@@ -742,6 +791,7 @@ private fun DispensableUnitResolutionDialogBlockedPreview() {
             medicationActiveIngredient = "Atenolol",
             existingUnits = previewExistingUnits.take(1),
             newDosePerTablet = "50",
+            newDoseUnit = DoseUnit.MILLIGRAMS.abbreviation(),
             newTabletsPerUnit = "60",
             blocked = true,
             onPickExisting = {},

@@ -181,6 +181,7 @@ fun DispensableUnitsScreen(
                             R.string.dispensable_units_delete_dialog_message,
                             unit.brandName,
                             unit.dosePerTablet,
+                            unit.doseUnit,
                         ),
                     )
                 },
@@ -303,6 +304,7 @@ private fun DispensableUnitRow(
                     text = stringResource(
                         R.string.dispensable_units_dose_format,
                         unit.dosePerTablet,
+                        unit.doseUnit,
                         unit.tabletsPerUnit,
                     ),
                     style = MaterialTheme.typography.bodyMedium,

@@ -229,7 +229,7 @@ fun DailyScheduleScreen(
                         // Dose and photo come from the medication's dispensable unit, looked up live.
                         val unit = state.units.firstOrNull { it.formatId == entry.dispensableUnitId }
                         val dose = unit?.dosePerTablet?.let {
-                            stringResource(R.string.daily_schedule_dose_suffix, it)
+                            stringResource(R.string.daily_schedule_dose_suffix, it, unit.doseUnit)
                         } ?: ""
                         Row(
                             modifier = Modifier

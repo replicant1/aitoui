@@ -15,7 +15,8 @@ data class DispensableUnitDetails(
     val imagePath: String?,
     /** Whether the medication needs a prescription (from the joined medication). */
     val requiresPrescription: Boolean = true,
+    val doseUnit: String = DoseUnit.MILLIGRAMS.storedAbbreviation,
 ) {
     /** Short label for dropdowns, e.g. "Panadol (500mg)". */
-    val label: String get() = "$brandName (${dosePerTablet}mg)"
+    val label: String get() = "$brandName (${dosePerTablet}$doseUnit)"
 }

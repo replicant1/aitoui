@@ -106,6 +106,8 @@
     <string name="in_hand_add_button_label">ADD</string>
     <string name="in_hand_tablets_as_of_prefix">Tablets in hand as of %1$s:</string>
     <string name="in_hand_tablets_in_hand">Tablets in hand:</string>
+    <!-- Quoted so AAPT2 keeps the leading space; it separates the dose from the brand name. -->
+    <string name="in_hand_dose_suffix">" (%1$s%2$s)"</string>
     <string name="in_hand_delete_button_label">DELETE</string>
     <string name="in_hand_merge_button_label">MERGE</string>
     <plurals name="in_hand_announced_count">
@@ -134,7 +136,7 @@
     <string name="daily_schedule_tablets_with_total_label">Tablets taken daily (%1$s):</string>
     <string name="daily_schedule_tablets_label">Tablets taken daily:</string>
     <!-- Quoted so AAPT2 keeps the leading space; it separates the dose from the brand name. -->
-    <string name="daily_schedule_dose_suffix">" (%1$smg)"</string>
+    <string name="daily_schedule_dose_suffix">" (%1$s%2$s)"</string>
     <string name="daily_schedule_tablet_entry_format">%1$s%2$s × %3$s</string>
     <string name="daily_schedule_delete_button_label">DELETE</string>
 
@@ -144,7 +146,7 @@
     <string name="dispensable_units_add_button_cd">Add dispensable unit</string>
     <string name="dispensable_units_description_text">These are all the dispensable units — the specific formats (dose and pack size) in which your medications come. Long-press a photo to view it full-size.</string>
     <string name="dispensable_units_delete_dialog_title">Delete dispensable unit?</string>
-    <string name="dispensable_units_delete_dialog_message">Delete %1$s (%2$smg)? This also removes its scripts and dispensation history, and cannot be undone.</string>
+    <string name="dispensable_units_delete_dialog_message">Delete %1$s (%2$s%3$s)? This also removes its scripts and dispensation history, and cannot be undone.</string>
     <string name="dispensable_units_delete_button_label">Delete</string>
     <string name="dispensable_units_cancel_button_label">Cancel</string>
     <string name="dispensable_units_photo_dialog_title">%1$s photo</string>
@@ -152,7 +154,7 @@
     <string name="dispensable_units_retake_button_label">Retake</string>
     <string name="dispensable_units_remove_button_label">Remove</string>
     <string name="dispensable_units_photo_content_description">Tablet photo for %1$s</string>
-    <string name="dispensable_units_dose_format">%1$smg × Qty %2$s</string>
+    <string name="dispensable_units_dose_format">%1$s%2$s × Qty %3$s</string>
     <string name="dispensable_units_delete_icon_cd">Delete dispensable unit</string>
     <string name="dispensable_units_manage_photo_action">Manage photo</string>
     <string name="dispensable_units_view_full_size_action">View full-size photo</string>
@@ -181,7 +183,7 @@
     <string name="add_script_description_text">A Script is an authorization from your doctor for the chemist to dispense to you a particular medication in a particular format. On Save, the app matches the medication and dispensable unit to your existing records. %1$s</string>
     <string name="add_script_brand_name_label">Brand name</string>
     <string name="add_script_active_ingredient_label">Active ingredient</string>
-    <string name="add_script_dose_per_tablet_label">Milligrams per tablet</string>
+    <string name="add_script_dose_per_tablet_label">Dose per tablet</string>
     <string name="add_script_tablets_per_unit_label">Tablets per unit</string>
     <string name="add_script_prescription_number_label">Prescription number</string>
     <string name="add_script_erx_token_label">eRx token</string>
@@ -214,7 +216,7 @@
     <string name="add_script_du_resolution_action_choose_existing_or_new_single">Select the existing dispensable unit above or select the new dispensable unit below:</string>
     <string name="add_script_du_resolution_action_choose_existing_or_new_multiple">Select an existing dispensable unit above or select the new dispensable unit below:</string>
     <string name="add_script_du_resolution_title">Resolve dispensable unit</string>
-    <string name="add_script_du_format_text">%1$smg × Qty %2$s</string>
+    <string name="add_script_du_format_text">%1$s%2$s × Qty %3$s</string>
     <string name="add_script_new_dispensable_unit_badge_cd">New dispensable unit</string>
 
     <!-- Blister Count Screen -->
@@ -343,7 +345,20 @@
     <string name="unsaved_changes_cancel_button_label">Cancel</string>
 
     <!-- Shared UI strings -->
-    <string name="app_required_fields_note">Fields are required unless marked “optional”.</string>
+    <string name="app_dose_unit_label">Unit</string>
+    <string name="app_required_fields_note">Fields are required unless marked "optional".</string>
     <string name="app_text_field_optional_label">%1$s (optional)</string>
+
+    <!-- Dose Units -->
+    <string name="dose_unit_grams_abbreviation">g</string>
+    <string name="dose_unit_grams_display_name">Grams</string>
+    <string name="dose_unit_international_units_abbreviation">IU</string>
+    <string name="dose_unit_international_units_display_name">International Units</string>
+    <string name="dose_unit_milligrams_abbreviation">mg</string>
+    <string name="dose_unit_milligrams_display_name">Milligrams</string>
+    <string name="dose_unit_millilitres_abbreviation">mL</string>
+    <string name="dose_unit_millilitres_display_name">Millilitres</string>
+    <string name="dose_unit_micrograms_abbreviation">μg</string>
+    <string name="dose_unit_micrograms_display_name">Micrograms</string>
 
 </resources>

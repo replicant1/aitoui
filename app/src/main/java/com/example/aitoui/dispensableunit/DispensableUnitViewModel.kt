@@ -10,6 +10,9 @@ import com.example.aitoui.data.Medication
 import com.example.aitoui.data.DispensableUnit
 import com.example.aitoui.data.DispensableUnitRepository
 import com.example.aitoui.data.MedicationRepository
+import com.example.aitoui.data.DoseUnit
+import com.example.aitoui.ui.decimalInput
+import com.example.aitoui.ui.digitsOnly
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,6 +27,8 @@ data class DispensableUnitState(
     val selectedMedicationId: Long? = null,
     val dosePerTablet: String = "",
     val tabletsPerUnit: String = "",
+    val selectedDoseUnit: DoseUnit = DoseUnit.MILLIGRAMS,  // NEW
+    val doseUnitMenuExpanded: Boolean = false,  // NEW
 ) {
     val selectedMedicationName: String
         get() = medications.firstOrNull { it.id == selectedMedicationId }?.brandName ?: ""
@@ -33,13 +38,19 @@ data class DispensableUnitState(
 
     /** True once the user has picked a medication or typed into this blank entry form. */
     val hasUnsavedChanges: Boolean
-        get() = selectedMedicationId != null || dosePerTablet.isNotBlank() || tabletsPerUnit.isNotBlank()
+        get() = selectedMedicationId != null ||
+            dosePerTablet.isNotBlank() ||
+            tabletsPerUnit.isNotBlank() ||
+            selectedDoseUnit != DoseUnit.MILLIGRAMS
 }
 
 sealed interface DispensableUnitAction {
     data class MedicationSelected(val id: Long) : DispensableUnitAction
     data class DosePerTabletChanged(val value: String) : DispensableUnitAction
+    data class DoseUnitSelected(val unit: DoseUnit) : DispensableUnitAction  // NEW
     data class TabletsPerUnitChanged(val value: String) : DispensableUnitAction
+    data object ToggleDoseUnitMenu : DispensableUnitAction  // NEW
+    data object DismissDoseUnitMenu : DispensableUnitAction  // NEW
     data object Save : DispensableUnitAction
 }
 
@@ -78,10 +89,19 @@ class DispensableUnitViewModel(
                 _state.update { it.copy(selectedMedicationId = action.id) }
 
             is DispensableUnitAction.DosePerTabletChanged ->
-                _state.update { it.copy(dosePerTablet = action.value.digitsOnly()) }
+                _state.update { it.copy(dosePerTablet = action.value.decimalInput()) }
+
+            is DispensableUnitAction.DoseUnitSelected ->
+                _state.update { it.copy(selectedDoseUnit = action.unit) }
 
             is DispensableUnitAction.TabletsPerUnitChanged ->
                 _state.update { it.copy(tabletsPerUnit = action.value.digitsOnly()) }
+
+            DispensableUnitAction.ToggleDoseUnitMenu ->
+                _state.update { it.copy(doseUnitMenuExpanded = !it.doseUnitMenuExpanded) }
+
+            DispensableUnitAction.DismissDoseUnitMenu ->
+                _state.update { it.copy(doseUnitMenuExpanded = false) }
 
             DispensableUnitAction.Save -> save()
         }
@@ -96,6 +116,7 @@ class DispensableUnitViewModel(
                     medicationId = current.selectedMedicationId!!,
                     dosePerTablet = current.dosePerTablet,
                     tabletsPerUnit = current.tabletsPerUnit,
+                    doseUnit = current.selectedDoseUnit.storedAbbreviation,
                 )
             )
             // Clear the form for the next entry (keep the loaded medications).
@@ -104,7 +125,6 @@ class DispensableUnitViewModel(
         }
     }
 
-    private fun String.digitsOnly(): String = filter { it.isDigit() }
 
     companion object {
         val Factory = viewModelFactory {

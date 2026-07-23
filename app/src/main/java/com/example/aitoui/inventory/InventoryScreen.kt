@@ -231,6 +231,7 @@ private fun MedicationRow(
                     text = stringResource(
                         R.string.dispensable_units_dose_format,
                         item.unit.dosePerTablet,
+                        item.unit.doseUnit,
                         item.unit.tabletsPerUnit,
                     ),
                     style = MaterialTheme.typography.bodySmall,
