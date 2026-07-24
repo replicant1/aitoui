@@ -65,7 +65,11 @@ import com.example.aitoui.image.CameraCaptureScreen
 import com.example.aitoui.image.FullImageDialog
 import com.example.aitoui.image.ImageStore
 import com.example.aitoui.ui.theme.AitouiTheme
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import kotlin.math.roundToInt
+
+internal const val DISPENSABLE_UNITS_DELETE_DIALOG_TAG = "dispensable_units_delete_dialog"
 
 @Composable
 fun DispensableUnitsRoot(
@@ -173,6 +177,7 @@ fun DispensableUnitsScreen(
         // Confirm before deleting a dispensable unit.
         state.pendingDeleteUnit?.let { unit ->
             AlertDialog(
+                modifier = Modifier.testTag(DISPENSABLE_UNITS_DELETE_DIALOG_TAG),
                 onDismissRequest = { onAction(DispensableUnitsAction.CancelDelete) },
                 title = { Text(stringResource(R.string.dispensable_units_delete_dialog_title)) },
                 text = {
