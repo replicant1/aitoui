@@ -38,6 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -61,6 +62,8 @@ import com.example.aitoui.ui.requiredFieldsNote
 import com.example.aitoui.ui.selectableRow
 import com.example.aitoui.ui.theme.AitouiTheme
 import com.example.aitoui.ui.theme.ThumbnailShape
+
+internal const val DS_TABLETS_FIELD_TAG = "ds_number_of_tablets"
 
 @Composable
 fun DailyScheduleRoot(
@@ -191,6 +194,7 @@ fun DailyScheduleScreen(
             }
 
             AppTextField(
+                modifier = Modifier.testTag(DS_TABLETS_FIELD_TAG),
                 value = state.numberOfTablets,
                 onValueChange = { onAction(DailyScheduleAction.NumberOfTabletsChanged(it)) },
                 label = stringResource(R.string.daily_schedule_number_of_tablets_label),
