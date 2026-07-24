@@ -46,6 +46,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.stringResource
@@ -67,6 +68,10 @@ import com.example.aitoui.ui.theme.ScriptCardIcon
 import com.example.aitoui.ui.theme.ScriptCardInk
 import com.example.aitoui.ui.theme.ScriptCardSurface
 
+
+internal const val SCRIPTS_DISPENSE_DIALOG_TAG = "scripts_dispense_dialog"
+internal const val SCRIPTS_MAXED_OUT_DIALOG_TAG = "scripts_maxed_out_dialog"
+internal const val SCRIPTS_DELETE_DIALOG_TAG = "scripts_delete_dialog"
 
 @Composable
 fun ScriptsRoot(
@@ -190,6 +195,7 @@ fun ScriptsScreen(
     state.pendingDispenseScript?.let { script ->
         AlertDialog(
             onDismissRequest = { onAction(ScriptsAction.CancelDispense) },
+            modifier = Modifier.testTag(SCRIPTS_DISPENSE_DIALOG_TAG),
             title = { Text(stringResource(R.string.scripts_dispense_dialog_title)) },
             text = {
                 Text(
@@ -209,6 +215,7 @@ fun ScriptsScreen(
     state.maxedOutScript?.let { script ->
         AlertDialog(
             onDismissRequest = { onAction(ScriptsAction.DismissMaxedOut) },
+            modifier = Modifier.testTag(SCRIPTS_MAXED_OUT_DIALOG_TAG),
             title = { Text(stringResource(R.string.scripts_cannot_dispense_title)) },
             text = {
                 Text(
@@ -225,6 +232,7 @@ fun ScriptsScreen(
     state.pendingDeleteScript?.let { script ->
         AlertDialog(
             onDismissRequest = { onAction(ScriptsAction.CancelDelete) },
+            modifier = Modifier.testTag(SCRIPTS_DELETE_DIALOG_TAG),
             title = { Text(stringResource(R.string.scripts_delete_dialog_title)) },
             text = {
                 Text(
