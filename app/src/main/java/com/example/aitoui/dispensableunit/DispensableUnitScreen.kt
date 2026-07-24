@@ -45,7 +45,11 @@ import com.example.aitoui.ui.UnsavedChangesDialog
 import com.example.aitoui.ui.heading
 import com.example.aitoui.ui.requiredFieldsNote
 import com.example.aitoui.ui.theme.AitouiTheme
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+
+internal const val DU_DOSE_FIELD_TAG = "du_dose_per_tablet"
+internal const val DU_TABLETS_FIELD_TAG = "du_tablets_per_unit"
 
 @Composable
 fun DispensableUnitRoot(
@@ -166,7 +170,7 @@ fun DispensableUnitScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 AppTextField(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).testTag(DU_DOSE_FIELD_TAG),
                     value = state.dosePerTablet,
                     onValueChange = { onAction(DispensableUnitAction.DosePerTabletChanged(it)) },
                     label = stringResource(R.string.dispensable_unit_dose_per_tablet_label),
@@ -206,6 +210,7 @@ fun DispensableUnitScreen(
             }
 
             AppTextField(
+                modifier = Modifier.testTag(DU_TABLETS_FIELD_TAG),
                 value = state.tabletsPerUnit,
                 onValueChange = { onAction(DispensableUnitAction.TabletsPerUnitChanged(it)) },
                 label = stringResource(R.string.dispensable_unit_tablets_per_unit_label),
