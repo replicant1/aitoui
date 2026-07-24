@@ -23,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -35,6 +36,9 @@ import com.example.aitoui.R
 import com.example.aitoui.data.DATABASE_SCHEMA_VERSION
 import com.example.aitoui.ui.heading
 import com.example.aitoui.ui.theme.AitouiTheme
+
+/** Test tag for the warning-window [OutlinedTextField] on the Settings screen. */
+const val SETTINGS_WARNING_WINDOW_FIELD_TAG = "settings_warning_window_field"
 
 @Composable
 fun SettingsRoot(
@@ -98,7 +102,7 @@ fun SettingsScreen(
                     onValueChange = { onAction(SettingsAction.WarningWindowChanged(it)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.width(120.dp),
+                    modifier = Modifier.width(120.dp).testTag(SETTINGS_WARNING_WINDOW_FIELD_TAG),
                 )
                 Text(text = stringResource(R.string.settings_days_label), style = MaterialTheme.typography.bodyLarge)
             }

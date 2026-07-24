@@ -56,6 +56,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -72,6 +73,12 @@ import com.example.aitoui.backup.BackupFileName
 import com.example.aitoui.backup.DownloadsBackupStore
 import com.example.aitoui.ui.heading
 import com.example.aitoui.ui.theme.AitouiTheme
+
+/** Test tag for the filename [OutlinedTextField] inside the Save backup dialog. */
+const val MAIN_SAVE_FILENAME_FIELD_TAG = "main_save_filename_field"
+
+/** Test tag for the confirm [TextButton] inside the Save backup dialog. */
+const val MAIN_SAVE_CONFIRM_BUTTON_TAG = "main_save_confirm_button"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -233,7 +240,8 @@ fun MainScreen(
                         value = fileName,
                         onValueChange = { onAction(MainAction.SaveFileNameChanged(it)) },
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
+                            .testTag(MAIN_SAVE_FILENAME_FIELD_TAG),
                     )
                 }
             },
@@ -241,6 +249,7 @@ fun MainScreen(
                 TextButton(
                     onClick = { onAction(MainAction.ConfirmSave) },
                     enabled = BackupFileName.isValid(fileName),
+                    modifier = Modifier.testTag(MAIN_SAVE_CONFIRM_BUTTON_TAG),
                 ) { Text(stringResource(R.string.main_save_button_label)) }
             },
             dismissButton = {
