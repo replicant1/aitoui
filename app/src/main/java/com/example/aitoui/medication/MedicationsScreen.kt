@@ -37,6 +37,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -49,6 +50,8 @@ import com.example.aitoui.data.Medication
 import com.example.aitoui.ui.heading
 import com.example.aitoui.ui.theme.AitouiTheme
 import kotlin.math.roundToInt
+
+internal const val MEDICATIONS_DELETE_DIALOG_TAG = "medications_delete_dialog"
 
 @Composable
 fun MedicationsRoot(
@@ -142,6 +145,7 @@ fun MedicationsScreen(
     // Confirm before deleting a medication.
     state.pendingDeleteMedication?.let { medication ->
         AlertDialog(
+            modifier = Modifier.testTag(MEDICATIONS_DELETE_DIALOG_TAG),
             onDismissRequest = { onAction(MedicationsAction.CancelDelete) },
             title = { Text(stringResource(R.string.medications_delete_dialog_title)) },
             text = {
