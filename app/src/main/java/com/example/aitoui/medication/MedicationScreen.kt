@@ -28,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -38,6 +39,10 @@ import com.example.aitoui.ui.UnsavedChangesDialog
 import com.example.aitoui.ui.heading
 import com.example.aitoui.ui.requiredFieldsNote
 import com.example.aitoui.ui.theme.AitouiTheme
+
+internal const val MED_BRAND_NAME_FIELD_TAG = "med_brand_name"
+internal const val MED_ACTIVE_INGREDIENT_FIELD_TAG = "med_active_ingredient"
+internal const val MED_PRESCRIPTION_SWITCH_TAG = "med_prescription_switch"
 
 @Composable
 fun MedicationRoot(
@@ -118,11 +123,13 @@ fun MedicationScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             AppTextField(
+                modifier = Modifier.testTag(MED_BRAND_NAME_FIELD_TAG),
                 value = state.brandName,
                 onValueChange = { onAction(MedicationAction.BrandNameChanged(it)) },
                 label = stringResource(R.string.medication_brand_name_label),
             )
             AppTextField(
+                modifier = Modifier.testTag(MED_ACTIVE_INGREDIENT_FIELD_TAG),
                 value = state.activeIngredient,
                 onValueChange = { onAction(MedicationAction.ActiveIngredientChanged(it)) },
                 label = stringResource(R.string.medication_active_ingredient_label),
@@ -140,6 +147,7 @@ fun MedicationScreen(
                     )
                 }
                 Switch(
+                    modifier = Modifier.testTag(MED_PRESCRIPTION_SWITCH_TAG),
                     checked = state.requiresPrescription,
                     onCheckedChange = { onAction(MedicationAction.RequiresPrescriptionChanged(it)) },
                 )
