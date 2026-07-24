@@ -100,7 +100,7 @@ class AddScriptViewModelTest {
 
             val resolved = awaitItem()
             assertThat(resolved.medicationStep?.candidates?.map { it.id }).isEqualTo(listOf(1L))
-            assertThat(resolved.medicationStep?.blocked).isTrue()
+            assertThat(resolved.medicationStep?.blocked).isEqualTo(true)
         }
     }
 
@@ -138,7 +138,7 @@ class AddScriptViewModelTest {
             assertThat(duStepState.dispensableUnitStep?.resolvedMedication)
                 .isEqualTo(ResolvedMedication.Existing(1))
             assertThat(duStepState.dispensableUnitStep?.candidates?.map { it.formatId }).isEqualTo(listOf(10L))
-            assertThat(duStepState.dispensableUnitStep?.blocked).isTrue()
+            assertThat(duStepState.dispensableUnitStep?.blocked).isEqualTo(true)
         }
     }
 
@@ -163,7 +163,7 @@ class AddScriptViewModelTest {
                 fixture.viewModel.onAction(AddScriptAction.Save)
                 val medStepState = awaitItem()
                 assertThat(medStepState.medicationStep?.candidates).isEqualTo(emptyList<Medication>())
-                assertThat(medStepState.medicationStep?.blocked).isFalse()
+                assertThat(medStepState.medicationStep?.blocked).isEqualTo(false)
 
                 fixture.viewModel.onAction(AddScriptAction.CreateMedication)
                 val clearedMedStep = awaitItem()
@@ -172,7 +172,7 @@ class AddScriptViewModelTest {
                 val duStepState = awaitItem()
                 assertThat(duStepState.dispensableUnitStep?.candidates)
                     .isEqualTo(emptyList<DispensableUnitDetails>())
-                assertThat(duStepState.dispensableUnitStep?.blocked).isFalse()
+                assertThat(duStepState.dispensableUnitStep?.blocked).isEqualTo(false)
                 assertThat(duStepState.dispensableUnitStep?.resolvedMedication)
                     .isEqualTo(ResolvedMedication.New("Ventolin", "Salbutamol"))
 
