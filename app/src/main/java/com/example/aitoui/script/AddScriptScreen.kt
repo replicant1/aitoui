@@ -45,6 +45,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -67,6 +68,13 @@ import com.example.aitoui.ui.theme.AitouiTheme
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.TimeZone
+
+internal const val ADD_SCRIPT_SAVE_TAG = "add_script_save"
+internal const val ADD_SCRIPT_BRAND_NAME_TAG = "add_script_brand_name"
+internal const val ADD_SCRIPT_ACTIVE_INGREDIENT_TAG = "add_script_active_ingredient"
+internal const val ADD_SCRIPT_DOSAGE_TAG = "add_script_dose_per_tablet"
+internal const val ADD_SCRIPT_TABLETS_PER_UNIT_TAG = "add_script_tablets_per_unit"
+internal const val ADD_SCRIPT_DUPLICATE_SERIAL_DIALOG_TAG = "add_script_duplicate_serial_dialog"
 
 @Composable
 fun AddScriptRoot(
@@ -127,6 +135,7 @@ fun AddScriptScreen(
                 },
                 actions = {
                     TextButton(
+                        modifier = Modifier.testTag(ADD_SCRIPT_SAVE_TAG),
                         onClick = { onAction(AddScriptAction.Save) },
                         enabled = state.canSave,
                     ) {
@@ -152,11 +161,13 @@ fun AddScriptScreen(
 
             // The medication + dispensable unit, as raw fields — resolved to records on Save.
             AppTextField(
+                modifier = Modifier.testTag(ADD_SCRIPT_BRAND_NAME_TAG),
                 value = state.brandName,
                 onValueChange = { onAction(AddScriptAction.BrandNameChanged(it)) },
                 label = stringResource(R.string.add_script_brand_name_label),
             )
             AppTextField(
+                modifier = Modifier.testTag(ADD_SCRIPT_ACTIVE_INGREDIENT_TAG),
                 value = state.activeIngredient,
                 onValueChange = { onAction(AddScriptAction.ActiveIngredientChanged(it)) },
                 label = stringResource(R.string.add_script_active_ingredient_label),
@@ -166,7 +177,9 @@ fun AddScriptScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 AppTextField(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag(ADD_SCRIPT_DOSAGE_TAG),
                     value = state.dosePerTablet,
                     onValueChange = { onAction(AddScriptAction.DosePerTabletChanged(it)) },
                     label = stringResource(R.string.add_script_dose_per_tablet_label),
@@ -202,6 +215,7 @@ fun AddScriptScreen(
                 }
             }
             AppTextField(
+                modifier = Modifier.testTag(ADD_SCRIPT_TABLETS_PER_UNIT_TAG),
                 value = state.tabletsPerUnit,
                 onValueChange = { onAction(AddScriptAction.TabletsPerUnitChanged(it)) },
                 label = stringResource(R.string.add_script_tablets_per_unit_label),
@@ -283,7 +297,12 @@ fun AddScriptScreen(
     if (state.duplicateSerial) {
         AlertDialog(
             onDismissRequest = { onAction(AddScriptAction.DismissDuplicateSerial) },
-            title = { Text(stringResource(R.string.add_script_duplicate_serial_title)) },
+            title = {
+                Text(
+                    text = stringResource(R.string.add_script_duplicate_serial_title),
+                    modifier = Modifier.testTag(ADD_SCRIPT_DUPLICATE_SERIAL_DIALOG_TAG),
+                )
+            },
             text = {
                 Text(stringResource(R.string.add_script_duplicate_serial_message))
             },
