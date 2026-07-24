@@ -221,9 +221,9 @@ com.example.aitoui/
 
 ### Dependency injection
 
-There is **no DI framework**. `AitouiApp` constructs and holds the singleton `AppDatabase` and all
-repositories as `lazy` properties. ViewModels obtain their dependencies via the `APPLICATION_KEY`
-factory pattern:
+There is **no DI framework** (no Koin, no Hilt). `AitouiApp` constructs and holds the singleton
+`AppDatabase` and all repositories as `lazy` properties — effectively acting as the DI container
+itself. ViewModels obtain their dependencies via the `APPLICATION_KEY` factory pattern:
 
 ```kotlin
 companion object {
@@ -235,6 +235,25 @@ companion object {
     }
 }
 ```
+
+This gives the three things a DI framework is actually solving:
+
+| DI concern | How this app handles it |
+|---|---|
+| Single instance of expensive objects (DB, repos) | `lazy` properties on `AitouiApp` |
+| Inject only what each consumer needs | Constructor parameters declared on each ViewModel |
+| Testability — swap real for fake | Pass fakes directly in the ViewModel constructor |
+
+**Why no framework at this size?** The dependency graph is shallow (ViewModel → Repository → DAO,
+three levels), there is only one Gradle module so `AitouiApp` is always in scope, there are no
+feature-scoped singletons, and the total factory boilerplate (~50–60 lines across ~15 ViewModels)
+is no more than the equivalent Koin module definitions would be.
+
+**When this would change:** Adding a second Gradle module, introducing a "user session" scope, or
+accumulating enough transitive dependencies that factory constructors become hard to maintain would
+all be natural triggers for introducing Koin (or Hilt). Migrating at that point is
+straightforward — each `viewModelFactory { initializer { … } }` block maps directly to a Koin
+`viewModel { … }` definition.
 
 ### Navigation
 
