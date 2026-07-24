@@ -43,6 +43,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -70,6 +71,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
+
+internal const val IH_TABLETS_FIELD_TAG = "ih_number_of_tablets"
 
 @Composable
 fun InHandRoot(
@@ -222,6 +225,7 @@ fun InHandScreen(
             }
 
             AppTextField(
+                modifier = Modifier.testTag(IH_TABLETS_FIELD_TAG),
                 value = state.numberOfTablets,
                 onValueChange = { onAction(InHandAction.NumberOfTabletsChanged(it)) },
                 label = stringResource(R.string.in_hand_number_of_tablets_label),
