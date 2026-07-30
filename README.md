@@ -14,16 +14,17 @@ dispensations, monitoring tablets in hand, and projecting when supplies will run
 ## Table of Contents
 
 1. [What the App Does](#what-the-app-does)
-2. [Tech Stack](#tech-stack)
-3. [Project Structure](#project-structure)
-4. [Architecture Overview](#architecture-overview)
-5. [Screen Inventory](#screen-inventory)
-6. [Database Schema](#database-schema)
-7. [Recurring Patterns & Idioms](#recurring-patterns--idioms)
-8. [Interaction Diagrams](#interaction-diagrams)
-9. [Testing](#testing)
-10. [Building & Running](#building--running)
-11. [Related Docs](#related-docs)
+2. [Walkthrough](#walkthrough)
+3. [Tech Stack](#tech-stack)
+4. [Project Structure](#project-structure)
+5. [Architecture Overview](#architecture-overview)
+6. [Screen Inventory](#screen-inventory)
+7. [Database Schema](#database-schema)
+8. [Recurring Patterns & Idioms](#recurring-patterns--idioms)
+9. [Interaction Diagrams](#interaction-diagrams)
+10. [Testing](#testing)
+11. [Building & Running](#building--running)
+12. [Related Docs](#related-docs)
 
 ---
 
@@ -57,6 +58,194 @@ Doctor issues script
 | **Run-out graph** | Visual projection of supply over time |
 | **Attention messages** | Main-screen panel — "no scripts left", "running low (scripts still available)", "running low, need a new script", "restock from the chemist" (OTC) |
 | **Backup / Restore** | Save/Load a `pxtx-<ddMMyyyy>-db<schema>.zip` (database + tablet photos) to/from Downloads |
+
+---
+
+## Walkthrough
+
+These are real screenshots from a Pixel 3 running a real medication list — nine medications, ten
+scripts, and real tablet photos. Brand names and active ingredients are pixelated throughout, as are
+the personal details on the PB038 form below. Everything that makes the screens worth showing is
+untouched: doses, dose units, pack sizes, quantities, frequencies, counts, durations and dates are
+all exactly as the app produced them.
+
+### The main screen
+
+Everything starts here: a 2 × 4 grid of destinations, with the attention panel underneath. The panel
+is the app's whole reason for existing — it is derived on every launch from the daily schedule, the
+tablets in hand and the repeats left on each script, and it says the one thing worth knowing: what is
+about to run out, and whether a chemist visit or a doctor visit is needed to fix it. When nothing is
+low the panel disappears entirely.
+
+<table align="center">
+<tr>
+<td align="center" valign="top"><img src="docs/screenshots/01-home.png" width="230" alt="Main screen with the 2x4 menu grid and three attention messages"><br><sub><b>Fig 1.</b> The main menu, with the attention panel listing what is about to run out.</sub></td>
+</tr>
+</table>
+
+### Flow 1 — Building the catalogue
+
+Before anything can be tracked it has to be described, and the app splits that into two levels. A
+**medication** is the brand name plus its active ingredient, with a switch for whether it needs a
+prescription at all — over-the-counter items still get tracked, they just never generate "go to the
+doctor" warnings. A **dispensable unit** is one particular format of that medication: the dose, the
+unit that dose is measured in, and how many tablets come in a pack. The split matters because a
+prescription is written against a *format*, not a drug — 40mg × 60 and 80mg × 30 of the same statin
+are two different things to count and re-order. Each unit can carry a photo of the actual tablet,
+which is what makes the lists scannable at a glance and is worth the ten seconds it takes to snap.
+
+<table align="center">
+<tr>
+<td align="center" width="33%" valign="top"><img src="docs/screenshots/02-medications.png" width="215" alt="Medications list showing nine medications with active ingredients"><br><sub><b>Fig 2.</b> Every medication on record, each shown with its active ingredient.</sub></td>
+<td align="center" width="33%" valign="top"><img src="docs/screenshots/04-medication-add-filled.png" width="215" alt="Medication form with brand name, active ingredient and a requires-prescription switch"><br><sub><b>Fig 3.</b> Adding a medication: brand, ingredient, and whether it needs a prescription.</sub></td>
+<td align="center" width="33%" valign="top"><img src="docs/screenshots/05-unsaved-changes.png" width="215" alt="Unsaved changes dialog offering Cancel, Discard and Save"><br><sub><b>Fig 4.</b> Leaving a form with unsaved edits offers Save, Discard or Cancel.</sub></td>
+</tr>
+</table>
+
+<table align="center">
+<tr>
+<td align="center" width="33%" valign="top"><img src="docs/screenshots/06-dispensable-units.png" width="215" alt="Dispensable units list with tablet photos, doses and pack sizes"><br><sub><b>Fig 5.</b> One row per dose and pack size, each carrying a photo of the tablet.</sub></td>
+<td align="center" width="33%" valign="top"><img src="docs/screenshots/07-full-photo.jpg" width="215" alt="A tablet photo opened full-size"><br><sub><b>Fig 6.</b> Long-pressing a thumbnail opens that tablet photo full-size.</sub></td>
+<td align="center" width="33%" valign="top"><img src="docs/screenshots/10-dose-unit-menu.png" width="215" alt="Dispensable unit form with the dose unit dropdown open showing mg, g, IU, mL and micrograms"><br><sub><b>Fig 7.</b> The dose unit is an explicit choice, from milligrams to micrograms.</sub></td>
+</tr>
+</table>
+
+Two details visible above: leaving a half-finished form always asks before discarding your typing,
+and the dose unit is a real choice rather than an assumption — one of the medications above is dosed
+in micrograms, and a unit measured in μg is deliberately *not* treated as a duplicate of the same
+number in mg.
+
+### Flow 2 — Recording a prescription
+
+An Australian PBS repeat authorisation (form PB038) is the yellow slip the pharmacist staples to the
+bag. It carries everything the app needs — serial number, eRx token, issue date, valid-to date, and
+how many repeats you have left — so rather than retyping it, the **+** on the Scripts screen opens a
+camera that reads the form with ML Kit and pre-fills the Add Script form from it. The parser is
+label-anchored and deliberately best-effort: it finds printed labels like "valid to" and "eRx:" and
+reads the value beside them, and if OCR misses the eRx token it falls back to decoding the form's
+barcode. Whatever it produces lands in an ordinary editable form, which is the safety net — you check
+it, fix anything that came out wrong, and save. Scripts are then listed with their fill progress, and
+tapping the **+** on a card records a pharmacy fill: the dispensation is written, the pack's tablets
+are added to your in-hand tally, and when the last repeat is used the script retires itself.
+
+<table align="center">
+<tr>
+<td align="center" width="33%" valign="top"><img src="docs/screenshots/pb038-form.jpg" width="290" alt="A PBS PB038 repeat authorisation form with personal, prescriber, pharmacy and medication details pixelated out"><br><sub><b>Fig 8.</b> A PBS repeat authorisation form — the input the scanner reads.</sub></td>
+<td align="center" width="33%" valign="top"><img src="docs/screenshots/13-scan-script.jpg" width="215" alt="The scan screen asking you to fit the whole PB038 form in the frame"><br><sub><b>Fig 9.</b> The scanner, waiting for the whole form to be framed.</sub></td>
+<td align="center" width="33%" valign="top"><img src="docs/screenshots/14-add-script-blank.png" width="215" alt="The Add Script review form with fields for brand, dose, serial number and eRx token"><br><sub><b>Fig 10.</b> The review form, where scanned values land to be checked before saving.</sub></td>
+</tr>
+</table>
+
+<table align="center">
+<tr>
+<td align="center" width="50%" valign="top"><img src="docs/screenshots/11-scripts.png" width="215" alt="Scripts list showing dispensed and repeats counts per script"><br><sub><b>Fig 11.</b> Scripts listed with their fill progress and remaining repeats.</sub></td>
+<td align="center" width="50%" valign="top"><img src="docs/screenshots/12-dispense-dialog.png" width="215" alt="Dialog confirming one dispensation, adding 60 tablets to the in-hand tally"><br><sub><b>Fig 12.</b> Recording a pharmacy fill, which also tops up the in-hand tally.</sub></td>
+</tr>
+</table>
+
+The form above is the one that produced one of the scripts in this database — serial `PW2048021`,
+five repeats, valid to 17/06/2027. The scanner screenshot shows the framing guidance as it appears in
+use; the review form beside it is where the scanned values land.
+
+### Flow 3 — Counting loose tablets
+
+Knowing how long a supply lasts means knowing how much is actually in the bottle, and counting
+sixty tablets by hand is the chore most likely to stop someone using the app at all. So the camera
+icon on the In Hand field opens a counter: photograph the tablets spread on a contrasting surface and
+the app counts them. The engine is plain Kotlin — a distance transform over the thresholded image,
+whose local maxima are tablet centres, which separates tablets that touch instead of merging them
+into one blob. Because no photo is perfect, two corrections sit on top of the result: a sensitivity
+slider that re-selects from the already-computed peaks in real time (glare and fabric texture drop
+out as you drag it), and an optional crop for when the surround is cluttered. The last word is
+always yours — tap any missed tablet to add a marker, tap a marker to remove it — and the confirmed
+number is handed back to the In Hand field.
+
+<table align="center">
+<tr>
+<td align="center" width="33%" valign="top"><img src="docs/screenshots/16-in-hand.png" width="215" alt="In Hand screen listing tablets currently in hand as of a gathered date"><br><sub><b>Fig 13.</b> In Hand — what is currently in the cupboard, and when it was last counted.</sub></td>
+<td align="center" width="33%" valign="top"><img src="docs/screenshots/17-count-menu.png" width="215" alt="Menu offering loose tablets or blister packs"><br><sub><b>Fig 14.</b> The camera icon offers either counter: loose tablets or blister packs.</sub></td>
+<td align="center" width="33%" valign="top"><img src="docs/screenshots/18-count-camera.jpg" width="215" alt="Camera screen telling you to spread the tablets in a single layer"><br><sub><b>Fig 15.</b> The loose-tablet camera, with its capture guidance.</sub></td>
+</tr>
+</table>
+
+<table align="center">
+<tr>
+<td align="center" width="33%" valign="top"><img src="docs/screenshots/19-count-detect.jpg" width="215" alt="127 tablets detected, each with a marker"><br><sub><b>Fig 16.</b> The first pass over the photo, one marker per detected tablet.</sub></td>
+<td align="center" width="33%" valign="top"><img src="docs/screenshots/20-count-sensitivity.jpg" width="215" alt="The same photo at a lower sensitivity, now 125 tablets"><br><sub><b>Fig 17.</b> The sensitivity slider dropping stray marks from glare and fabric texture.</sub></td>
+<td align="center" width="33%" valign="top"><img src="docs/screenshots/21-count-crop.jpg" width="215" alt="Crop step with a draggable box over the tablets"><br><sub><b>Fig 18.</b> The optional crop, restricting detection to just the tablets.</sub></td>
+</tr>
+</table>
+
+<table align="center">
+<tr>
+<td align="center" width="50%" valign="top"><img src="docs/screenshots/22-count-edit.jpg" width="215" alt="Edit step inviting you to tap a missed tablet or a wrong marker"><br><sub><b>Fig 19.</b> The correction step: tap a missed tablet to add it, or a marker to remove it.</sub></td>
+<td align="center" width="50%" valign="top"><img src="docs/screenshots/23-in-hand-counted.png" width="215" alt="The count of 125 returned into the Number of tablets field"><br><sub><b>Fig 20.</b> The confirmed count handed back to the In Hand field.</sub></td>
+</tr>
+</table>
+
+### Flow 4 — Counting blister packs
+
+Blister packs need the opposite approach. Counting *tablets* through foil is unreliable, so the app
+never tries: it does geometry only and lets you supply the one fact a camera cannot see. Photograph
+the packs, and PCA segmentation finds each one and drops a numbered frame over it, which you can
+drag, resize, rotate, add to or delete until the frames match reality. You then state the pocket
+layout — 2 × 5 here — and the app lays a grid of circles over each pack. Every pocket starts **full**,
+and you tap the empty ones to pop them, with a click and a haptic tick for each. Nothing is ever
+classified automatically, so the count cannot be confidently wrong; the summary totals the packs and
+hands the number back to In Hand exactly as the loose counter does.
+
+<table align="center">
+<tr>
+<td align="center" width="25%" valign="top"><img src="docs/screenshots/24-blister-frame.jpg" width="215" alt="Frame the packs step with three detected packs, each under a numbered frame"><br><sub><b>Fig 21.</b> Packs found and framed automatically, ready to be adjusted by hand.</sub></td>
+<td align="center" width="25%" valign="top"><img src="docs/screenshots/25-blister-format.jpg" width="215" alt="Pack format step setting 2 columns by 5 rows"><br><sub><b>Fig 22.</b> The pocket layout, stated once and applied to every pack in the shot.</sub></td>
+<td align="center" width="25%" valign="top"><img src="docs/screenshots/26-blister-pop.jpg" width="215" alt="Pop blisters step with two pockets popped, showing Full 8 and Empty 2"><br><sub><b>Fig 23.</b> Pockets start full; tapping an empty one pops it and updates the tally.</sub></td>
+<td align="center" width="25%" valign="top"><img src="docs/screenshots/27-blister-summary.png" width="215" alt="Summary totalling 28 tablets remaining across three packs"><br><sub><b>Fig 24.</b> The totals, added up across all three packs.</sub></td>
+</tr>
+</table>
+
+The pocket layout is set once and applies to every pack in the shot, and the grid is seeded from each
+pack's own principal axes — which is why the circles land on the pockets above without being touched.
+When a pack sits at an awkward angle they can still be dragged into line and pinched to match the
+pocket spacing, so the instruction stays on screen throughout.
+
+### Flow 5 — Planning ahead
+
+This is where the pieces pay off. The **daily schedule** records how many tablets of each dispensable
+unit you take per day, fractions included, since a half tablet daily is a real prescription and a
+supply that lasts twice as long. **Inventory** then does the arithmetic the app exists to do: for each
+unit it decays your last in-hand count by the days elapsed since you took it, adds the tablets still
+locked up in unfilled repeats, divides by the daily rate, and reports both a duration and a calendar
+date. The **run-out graph** plots the same projection as a straight decline per unit, with a draggable
+cursor that reads off what will be left at any future date — useful for the real question, which is
+whether a single trip to the doctor can cover everything before a holiday.
+
+<table align="center">
+<tr>
+<td align="center" width="25%" valign="top"><img src="docs/screenshots/28-daily-schedule.png" width="215" alt="Daily schedule listing tablets taken per day per unit"><br><sub><b>Fig 25.</b> The daily schedule — how many tablets of each unit are taken per day.</sub></td>
+<td align="center" width="25%" valign="top"><img src="docs/screenshots/29-inventory.png" width="215" alt="Inventory showing weeks or months remaining and a run-out date per unit"><br><sub><b>Fig 26.</b> How long each supply lasts, and the date it is projected to run out.</sub></td>
+<td align="center" width="25%" valign="top"><img src="docs/screenshots/30-runout-graph.png" width="215" alt="Run-out graph with one declining line per dispensable unit"><br><sub><b>Fig 27.</b> The run-out graph, one declining line per dispensable unit.</sub></td>
+<td align="center" width="25%" valign="top"><img src="docs/screenshots/31-runout-cursor.png" width="215" alt="The graph cursor dragged to February, with remaining amounts listed"><br><sub><b>Fig 28.</b> Dragging the cursor reads off what will be left at a chosen date.</sub></td>
+</tr>
+</table>
+
+The inventory entries above and the attention messages on the main screen agree, as they should: the
+medication at the top of the inventory has 1.3 weeks left and no repeats, so it needs a doctor rather
+than a chemist.
+
+### Flow 6 — Settings and backup
+
+Two knobs and a safety net. The warning window decides how far ahead the attention panel looks —
+fourteen days by default, which is roughly the gap between noticing and being able to act. **Save**
+writes the whole database plus every tablet photo to a zip in your Downloads folder, named for the
+date and schema version so several backups can sit side by side, and **Load** reads one back, running
+any outstanding database migrations on the way in. That is also the migration path between phones.
+
+<table align="center">
+<tr>
+<td align="center" width="50%" valign="top"><img src="docs/screenshots/32-settings.png" width="215" alt="Settings screen with the warning window in days and the app and database versions"><br><sub><b>Fig 29.</b> Settings — how many days ahead the attention panel looks.</sub></td>
+<td align="center" width="50%" valign="top"><img src="docs/screenshots/33-save-dialog.png" width="215" alt="Save backup dialog with the default file name pxtx-30072026-db27.zip"><br><sub><b>Fig 30.</b> Saving a backup of the database and every tablet photo.</sub></td>
+</tr>
+</table>
 
 ---
 
@@ -734,7 +923,7 @@ HTML results land in `app/build/reports/tests/testDebugUnitTest/index.html` (uni
 ### Clone and open
 
 ```zsh
-git clone git@github-rodney:replicant1/aitoui.git
+git clone git@github.com:replicant1/aitoui.git
 cd aitoui
 # Open in Android Studio: File → Open → select the aitoui folder
 ```
@@ -777,4 +966,5 @@ tablet photos.
 | [`docs/blister-counting-mvp.md`](docs/blister-counting-mvp.md) | Original design record for the blister-pack camera counter: geometry-only approach, PCA segmentation, pop-the-empties UX. Its status banner notes the shipped phase machine, which adds the hand-adjustable framing step |
 | [`docs/ACCESSIBILITY_AUDIT.md`](docs/ACCESSIBILITY_AUDIT.md) | Accessibility review findings and remediation status |
 | [`docs/mockups/`](docs/mockups/) | Static HTML mockups used to agree a screen change before implementing it |
+| [`docs/screenshots/`](docs/screenshots/) | Device screenshots used by the [Walkthrough](#walkthrough), plus the redacted PB038 form |
 
