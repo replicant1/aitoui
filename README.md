@@ -6,7 +6,8 @@ dispensations, monitoring tablets in hand, and projecting when supplies will run
 **Package:** `com.example.aitoui`  
 **Version:** 1.2.2 (versionCode 5)  
 **Min SDK:** 24 (Android 7.0) · **Target SDK:** 36 · **Compile SDK:** 37  
-**Database schema version:** 27
+**Database schema version:** 27  
+**Toolchain:** Gradle 9.4.1 · AGP 9.2.1 · Kotlin 2.4.0 · Compose BOM 2026.06.00
 
 ---
 
@@ -20,8 +21,9 @@ dispensations, monitoring tablets in hand, and projecting when supplies will run
 6. [Database Schema](#database-schema)
 7. [Recurring Patterns & Idioms](#recurring-patterns--idioms)
 8. [Interaction Diagrams](#interaction-diagrams)
-9. [Building & Running](#building--running)
-10. [Related Docs](#related-docs)
+9. [Testing](#testing)
+10. [Building & Running](#building--running)
+11. [Related Docs](#related-docs)
 
 ---
 
@@ -43,18 +45,18 @@ Doctor issues script
 | Feature | Description |
 |---|---|
 | **Medication catalogue** | Brand name + active ingredient records; flags for over-the-counter vs. prescription |
-| **Dispensable units** | Per-format records (dose / tablets-per-pack / tablet photo) under each medication |
+| **Dispensable units** | Per-format records (dose / dose unit / tablets-per-pack / tablet photo) under each medication |
 | **Scripts** | Prescription records with serial numbers, repeats, valid-to date, and dispensation history |
 | **Script scanning** | Camera + ML Kit OCR reads a PBS PB038 (yellow repeat-authorisation) form to pre-fill the Add Script screen |
 | **Dispensations** | Each pharmacy fill is recorded against a script; the remaining fill count is derived |
 | **Daily schedule** | How many tablets of each dispensable unit to take per day (supports fractional quantities) |
-| **In Hand** | Tablet counts per dispensable unit; updated manually or via the camera counter |
-| **Camera tablet counter** | CameraX still + classical CV (blob/peak segmentation) → auto-count with tap-to-correct |
-| **Blister pack counter** | Camera + PCA geometry: segment packs, confirm grid layout, tap empty pockets to pop them |
+| **In Hand** | Tablet counts per dispensable unit; updated manually, or via either camera counter (a menu on the field's camera icon) |
+| **Camera tablet counter** | CameraX still + classical CV (distance-transform peaks) → auto-count, live sensitivity slider, optional crop, tap-to-correct |
+| **Blister pack counter** | Camera + PCA geometry: auto-frame the packs, adjust the frames by hand, set the pocket grid, tap empty pockets to pop them |
 | **Inventory** | Derived supply view per dispensable unit: in-hand days, script days, projected run-out date |
 | **Run-out graph** | Visual projection of supply over time |
-| **Attention messages** | Main-screen panel — "no scripts left", "running low", "get more from chemist" |
-| **Backup / Restore** | Save/Load a `pxtx.zip` (database + tablet photos) to/from Downloads |
+| **Attention messages** | Main-screen panel — "no scripts left", "running low (scripts still available)", "running low, need a new script", "restock from the chemist" (OTC) |
+| **Backup / Restore** | Save/Load a `pxtx-<ddMMyyyy>-db<schema>.zip` (database + tablet photos) to/from Downloads |
 
 ---
 
@@ -72,14 +74,18 @@ Doctor issues script
 | Image loading | Coil (`coil-compose`) |
 | Serialization | `kotlinx.serialization.json` (navigation args + backup manifest) |
 | DI | No framework — manual wiring via `Application` class + `APPLICATION_KEY` factory pattern |
-| Build | Gradle (Kotlin DSL), version catalog (`libs.versions.toml`), KSP |
+| Build | Gradle (Kotlin DSL), version catalog (`gradle/libs.versions.toml`), KSP |
+| Unit tests | JUnit 5 (Jupiter) + Vintage engine, Turbine, AssertK, Mockito, `kotlinx-coroutines-test` |
+| UI tests | Compose `ui-test-junit4` + Espresso, driven through per-screen Robot classes |
+| Coverage | JaCoCo (`./gradlew jacocoTestReport`) |
 
 ---
 
 ## Project Structure
 
-The project is a **single `:app` module**. All source lives under
-`app/src/main/java/com/example/aitoui/`.
+The project is a **single `:app` module**. Production source lives under
+`app/src/main/java/com/example/aitoui/`; `app/src/test/…` (JVM unit tests) and
+`app/src/androidTest/…` (Compose UI tests) mirror the same package layout — see [Testing](#testing).
 
 ```
 com.example.aitoui/
@@ -91,22 +97,27 @@ com.example.aitoui/
 ├── alerts/                   Supply-warning rule engine
 │   └── AttentionMessages.kt  attentionMessages() + medicationSupplies()
 │
-├── backup/                   Save / Restore to Downloads as pxtx.zip
+├── backup/                   Save / Restore to Downloads as pxtx-<date>-db<schema>.zip
 │   ├── BackupManager.kt      Zip write / peek / restore (WAL-checkpoint aware)
 │   ├── BackupFileName.kt     Default name generation + validation
 │   ├── BackupManifest.kt     @Serializable { schemaVersion, createdAtMillis }
 │   └── DownloadsBackupStore.kt  MediaStore / legacy-permission abstraction
 │
-├── counting/                 On-device CV counting engine (pure Kotlin, JVM-testable)
-│   ├── TabletCounter.kt      Interface: count(bitmap, reference?) → List<PointF>
-│   ├── BlobTabletCounter.kt  Otsu threshold → connected-component blobs → centroids
-│   ├── PeakTabletCounter.kt  Alternate approach: local-maximum peaks
+├── counting/                 On-device CV counting engine (pure Kotlin, no Android types, JVM-testable)
+│   ├── TabletCounter.kt      CountImage / CountPoint / ReferenceImage + the
+│   │                         TabletCounter interface: count(image, reference?) → List<CountPoint>
+│   ├── PeakTabletCounter.kt  The counter in use: distance-transform peaks (a light watershed, so
+│   │                         touching tablets separate). Split into analyse() → PeakField and
+│   │                         PeakField.select(sensitivity) so the slider re-counts cheaply
+│   ├── BlobTabletCounter.kt  Simpler reference implementation: Otsu → connected components →
+│   │                         centroids. Superseded by PeakTabletCounter; kept for comparison
 │   ├── Segmentation.kt       toGrayscale, otsuThreshold, foregroundMask
 │   ├── PackSegmentation.kt   PCA-based blister-pack segmentation → PackRegion list
-│   ├── PackGrid.kt           Grid math over PackRegion (cellCenter, tapToCell)
-│   ├── MarkerEditing.kt      Tap-to-add / tap-to-remove marker hit-testing
-│   ├── FrameBox.kt           Screen ↔ image coordinate mapping
-│   └── TabletCrop.kt         Reference-image crop helper
+│   ├── PackGrid.kt           Grid math over PackRegion (cellCenter, tapToCell, GridAdjust nudging)
+│   ├── MarkerEditing.kt      editMarkers() — tap-to-add / tap-to-remove marker hit-testing
+│   ├── FrameBox.kt           Hand-editable oriented rectangle framing one pack (drag / resize /
+│   │                         rotate hit-testing); converts to and from PackRegion
+│   └── TabletCrop.kt         PixelRect + CountImage.cropped() — restrict detection to a framed region
 │
 ├── dailyschedule/
 │   ├── DailyScheduleScreen.kt
@@ -190,7 +201,8 @@ com.example.aitoui/
 │   └── SettingsViewModel.kt
 │
 └── ui/                         Shared UI components
-    ├── AppTextField.kt         Themed OutlinedTextField wrapper
+    ├── AppTextField.kt         App-wide OutlinedTextField wrapper: FieldRequirement
+    │                           (Required by default), "(optional)" labelling, error semantics
     ├── Heading.kt              heading() Modifier — semantic heading for accessibility
     ├── NumericInputSanitizer.kt  digitsOnly() and decimalInput() String extensions
     ├── SelectableRow.kt        Tappable list row with leading radio/checkbox
@@ -259,15 +271,35 @@ straightforward — each `viewModelFactory { initializer { … } }` block maps d
 
 All routes are `@Serializable` Kotlin objects / data classes in `Routes.kt`. `AppNavHost.kt` wires
 them together, forwarding cross-screen callbacks (e.g. `onScanned`, `onCounted`) as lambda
-parameters. The back-stack result pattern (`SavedStateHandle`) is used to return a camera count back
-to In Hand:
+parameters. The back-stack result pattern (`SavedStateHandle`) returns a camera count back to In Hand —
+and it lives entirely in `AppNavHost`, so neither ViewModel touches navigation:
 
 ```kotlin
 const val TABLET_COUNT_RESULT = "tabletCount"
-// CountTabletsViewModel writes: navController.previousBackStackEntry
-//     ?.savedStateHandle?.set(TABLET_COUNT_RESULT, count)
-// InHandViewModel reads it in init {} via savedStateHandle.getStateFlow(TABLET_COUNT_RESULT, null)
+
+// In AppNavHost, the counter screens report their result upwards:
+composable<CountTabletsRoute> {
+    CountTabletsRoot(onCounted = { count ->
+        navController.previousBackStackEntry?.savedStateHandle?.set(TABLET_COUNT_RESULT, count)
+        navController.popBackStack()
+    }, onBack = { navController.popBackStack() })
+}
+
+// …and the In Hand entry observes its own saved state, passing the value down as a parameter:
+composable<InHandRoute> { entry ->
+    val countedTablets by entry.savedStateHandle
+        .getStateFlow<Int?>(TABLET_COUNT_RESULT, null)
+        .collectAsStateWithLifecycle()
+    InHandRoot(
+        countedTablets = countedTablets,
+        onCountedConsumed = { entry.savedStateHandle[TABLET_COUNT_RESULT] = null },
+        …
+    )
+}
 ```
+
+`InHandRoot` applies it in a `LaunchedEffect(countedTablets)`, announces it for accessibility, then
+calls `onCountedConsumed()` so the value can't be re-applied on the next recomposition.
 
 ### Reactive data flow
 
@@ -284,15 +316,15 @@ Compose screen observes it with `collectAsStateWithLifecycle()`.
 | Main menu | `MainRoute` | 2 × 4 grid; attention messages; backup Save/Load |
 | Medications list | `MedicationsRoute` | All medications with active ingredient |
 | Add/Edit medication | `MedicationRoute` | Brand name, active ingredient, Rx flag |
-| Dispensable units list | `DispensableUnitsRoute` | All units; formatted as `dose unit × qty` |
-| Add/Edit dispensable unit | `DispensableUnitRoute` | Dose, unit, qty, tablet photo; fuzzy-dedup on save |
-| Scripts list | `ScriptsRoute` | All scripts with fill progress; record-dispensation button |
+| Dispensable units list | `DispensableUnitsRoute` | All units, formatted `<dose><unit> × Qty <n>` (e.g. `50mg × Qty 60`) |
+| Add/Edit dispensable unit | `DispensableUnitRoute` | Dose, dose unit, qty, tablet photo; fuzzy-dedup on save |
+| Scripts list | `ScriptsRoute` | All scripts with fill progress; tap the "dispensed" area to record a fill (confirmed by dialog), delete a script, sort by issue date / brand name |
 | Add/Edit script | `ScriptRoute(…args)` | Full script form; fuzzy medication/unit resolution on save |
 | Scan script (OCR) | `ScanScriptRoute` | Live CameraX preview → freeze → OCR → pre-fill ScriptRoute |
 | Daily schedule | `DailyScheduleRoute` | Per-dispensable-unit daily quantities; replace-all on save |
-| In Hand | `InHandRoute` | Per-dispensable-unit counts; camera icon launches counter |
-| Count tablets | `CountTabletsRoute` | CameraX capture → auto-count → tap-to-correct → return int |
-| Blister count | `BlisterCountRoute` | Segment packs → confirm grid → pop empties → return int |
+| In Hand | `InHandRoute` | Per-dispensable-unit counts; the camera icon opens a menu offering either counter |
+| Count tablets | `CountTabletsRoute` | CameraX capture → detect (sensitivity slider, optional crop) → edit (tap to correct) → return int |
+| Blister count | `BlisterCountRoute` | Capture → frame packs → set pocket grid → pop empties per pack → summary → return int |
 | Inventory | `InventoryRoute` | Supply card per dispensable unit; sortable by name / time left |
 | Run-out graph | `RunOutGraphRoute` | Visual supply projection over time |
 | Settings | `SettingsRoute` | Warning-window days, app/DB version info |
@@ -302,20 +334,26 @@ Compose screen observes it with `collectAsStateWithLifecycle()`.
 ## Database Schema
 
 > Full schema detail: [`docs/DATABASE_SCHEMA.md`](docs/DATABASE_SCHEMA.md)  
-> Entity-relationship diagram: [`docs/database-schema.png`](docs/database-schema.png)
+> UML class diagram (all columns): [`docs/database-schema.png`](docs/database-schema.png)
 
 The domain model forms a chain:
 
-```
-medications ──< dispensable_units ──< scripts ──< dispensations
-                       │
-                       ├──< daily_schedule
-                       └──< in_hand
-                                        in_hand_date  (single-row)
+```mermaid
+erDiagram
+    medications ||--o{ dispensable_units : medicationId
+    dispensable_units ||--o{ scripts : dispensableUnitId
+    scripts ||--o{ dispensations : scriptId
+    dispensable_units ||--o{ dispensations : dispensableUnitId
+    dispensable_units ||--o{ daily_schedule : dispensableUnitId
+    dispensable_units ||--o{ in_hand : dispensableUnitId
+    in_hand_date {
+        Int id "single row, PK fixed at 0"
+        Long gatheredAtMillis "when In Hand was last saved"
+    }
 ```
 
-All foreign keys use `ON DELETE CASCADE`. A dispensation's "times filled" count is **derived** by
-summing `dispensations.number` — it is never stored on the script itself.
+All foreign keys use `ON DELETE CASCADE`; `in_hand_date` stands alone. A script's "times filled" count
+is **derived** by summing `dispensations.number` — it is never stored on the script itself.
 
 ### Schema version history (hand-written migrations)
 
@@ -435,30 +473,68 @@ fun doseUnitFromAbbreviation(abbr: String): DoseUnit? =
 classifies entered values against existing records when the user saves a new script:
 
 - **Exact** match → offer the existing record for selection (skip creation).
-- **Similar** (score ≥ 0.45 on either field) → offer as a candidate.
-- **Blocked** (score ≥ 0.90 on both fields) → refuse creation of a near-duplicate.
+- **Similar** (`SIMILAR = 0.45` on any one of the four field comparisons) → offer as a candidate. The
+  threshold is deliberately low: the resolve dialog always confirms the pick, so a spare candidate
+  costs a glance whereas a missed one costs a duplicate record.
+- **Blocked** (`BLOCK = 0.90` on brand *and* active ingredient) → refuse creation of a near-duplicate.
 
-For dispensable units the block requires matching dose, tablets-per-unit **and** dose unit, so
-`50 mg × 60` and `50 IU × 60` are correctly treated as different formats.
+Both the match and the block are computed in *either* orientation — entered brand vs. brand and active
+vs. active, or brand vs. active and active vs. brand — so a medication entered with the two fields
+transposed still resolves to (and is blocked by) the existing record.
+
+For dispensable units there is no fuzzy scoring: all of the resolved medication's units are offered as
+candidates, and creation is blocked only when dose, tablets-per-unit **and** dose unit all match
+(after normalisation), so `50 mg × 60` and `50 IU × 60` are correctly treated as different formats.
 
 ### 8. Camera counter phase machine
 
-Both `CountTabletsViewModel` and `BlisterCountViewModel` use an explicit phase enum to drive the UI:
+Both `CountTabletsViewModel` and `BlisterCountViewModel` drive their UI from an explicit phase enum
+(`CountPhase` / `BlisterPhase`). Camera permission is *not* a phase — each camera screen gates itself
+on `Manifest.permission.CAMERA` in the composable (`PermissionGate` / `CameraCaptureScreen`) before any
+phase is entered.
 
+Loose tablets — `CountPhase`:
+
+```mermaid
+stateDiagram-v2
+    direction LR
+    [*] --> DETECT: analyse(capture)
+    DETECT --> DETECT: sensitivity slider re-selects peaks
+    DETECT --> CROP: "Crop"
+    CROP --> DETECT: apply / cancel crop (re-analyses)
+    DETECT --> EDIT: "Next"
+    EDIT --> EDIT: tap to add / remove a marker
+    EDIT --> [*]: "Use N" → count returned
+    DETECT --> [*]: "Retake" → back to capture
 ```
-RequestingPermission → Previewing → Captured(path) → Analyzing
-    → Review(markers) → (returns count)          (loose tablets)
 
-RequestingPermission → Previewing → Captured(path) → Segmenting
-    → ConfirmLayout(packIndex) → Popping(packIndex) → Summary  (blister packs)
+Blister packs — `BlisterPhase`:
+
+```mermaid
+stateDiagram-v2
+    direction LR
+    [*] --> CAPTURE
+    CAPTURE --> FRAME: segmentPacks() seeds one FrameBox per pack
+    FRAME --> FRAME: drag / resize / rotate / add / delete frames
+    FRAME --> FORMAT: confirmFrames()
+    FORMAT --> FORMAT: set rows × columns
+    FORMAT --> POP: confirmFormat()
+    POP --> POP: tap empty pockets; nudge / stretch the grid; nextPack()
+    POP --> SUMMARY: after the last pack
+    SUMMARY --> [*]: total returned
 ```
 
-The captured image path is stored in the ViewModel (not the composable) so the frozen frame
-survives rotation.
+Both ViewModels hold the captured image path (not the composable), so the frozen frame survives
+rotation, and both delete that temp capture in `onCleared()`. Note these two deviate from the
+`onAction(Action)` MVI convention used elsewhere: they expose named methods (`analyse`,
+`setSensitivity`, `applyCrop`, `confirmFrames`, `popAt`, `stepBack`, …) because the camera screens
+call them from gesture and lifecycle callbacks rather than from a single event sink.
 
 ### 9. Backup / Restore
 
-A backup is a ZIP file (`pxtx.zip`) containing:
+A backup is a ZIP file — named `pxtx-<ddMMyyyy>-db<schema>.zip` by default (e.g.
+`pxtx-30072026-db27.zip`, see `BackupFileName.default()`), editable by the user in the Save dialog —
+containing:
 
 ```
 manifest.json              { "schemaVersion": 27, "createdAtMillis": … }
@@ -476,7 +552,32 @@ then restarted via `Intent.FLAG_ACTIVITY_NEW_TASK or FLAG_ACTIVITY_CLEAR_TASK` +
 The parser is label-anchored: it finds known printed labels on a PB038 form (e.g. "valid to",
 "repeats", "eRx:") and reads the adjacent value. It is pure Kotlin, JVM-testable (takes a
 `List<OcrLine>`), and deliberately best-effort — the Add Script review screen is the safety net.
-O/0 confusion (common with digit OCR) is repaired with `normaliseDigits()`.
+O/0 confusion (common with digit OCR) is repaired with `normaliseDigits()`. If OCR misses the second
+serial number, `PbsScriptParser.erxFromBarcodes()` recovers the eRx token from the form's Code 128 /
+QR barcodes via ML Kit barcode scanning.
+
+### 11. Required-by-default form fields (`AppTextField`)
+
+Every form field goes through `AppTextField`, which carries the app's requirement convention: fields
+are **required by default** and only the minority are marked, by appending "(optional)" to the visible
+label text (not an asterisk or a colour, so TalkBack reads it for free and WCAG 1.4.1 / 3.3.2 hold).
+Each form states the convention once via `requiredFieldsNote()` in its intro text.
+
+```kotlin
+enum class FieldRequirement { Required, Optional }
+
+AppTextField(
+    value = state.serialNo2,
+    onValueChange = { onAction(AddScriptAction.SerialNo2Changed(it)) },
+    label = stringResource(R.string.add_script_erx_token_label),
+    requirement = FieldRequirement.Optional,   // one of the few exceptions, so it is marked
+)
+```
+
+Requirement is only *communicated* here. It is *enforced* by each screen's `state.canSave`, which
+disables Save until the required fields are filled; `AppTextField` also accepts an `errorText` that
+flips the field to its error style and sets the error semantics for TalkBack when a screen wants to
+call out an invalid field inline.
 
 ---
 
@@ -484,85 +585,140 @@ O/0 confusion (common with digit OCR) is repaired with `normaliseDigits()`.
 
 ### Use case 1 — Recording a dispensation from the Scripts screen
 
-The user selects a script and records a pharmacy fill. The dispensation is persisted, and the
-in-hand count for that dispensable unit is incremented atomically.
+The user taps the "dispensed" area of a script card and confirms a pharmacy fill. The dispensation is
+persisted and the in-hand quantity for that dispensable unit is incremented in one transaction. A
+script allows `repeats + 1` fills, so on the final fill the script's lifecycle is over and the script
+row is deleted (its dispensations cascade). The list then refreshes reactively from Room.
 
 ```mermaid
 sequenceDiagram
     actor User
     participant ScriptsScreen
     participant ScriptsViewModel
-    participant ScriptRepository
     participant DispensationRepository
     participant InHandRepository
+    participant ScriptRepository
     participant Room
 
-    User->>ScriptsScreen: Taps "Record fill" on a script row
-    ScriptsScreen->>ScriptsViewModel: onAction(RecordDispensation(scriptId, dispensableUnitId, tabletsPerUnit))
-    ScriptsViewModel->>ScriptRepository: getScript(scriptId)
-    ScriptRepository->>Room: SELECT … FROM scripts WHERE id = ?
-    Room-->>ScriptRepository: ScriptEntity
-    ScriptsViewModel->>DispensationRepository: insert(DispensationEntity(scriptId, dispensableUnitId, number=1, now))
-    DispensationRepository->>Room: INSERT INTO dispensations …
-    Room-->>DispensationRepository: new dispensation id
-    ScriptsViewModel->>InHandRepository: addTablets(dispensableUnitId, tabletsPerUnit)
-    InHandRepository->>Room: UPDATE in_hand SET quantity = quantity + ? WHERE dispensableUnitId = ?
-    Room-->>InHandRepository: rows updated
-    ScriptsViewModel->>ScriptsViewModel: _state.update { it.copy(confirmation = "Fill recorded") }
-    ScriptsViewModel-->>ScriptsScreen: emits updated ScriptsState (via StateFlow)
-    ScriptsScreen-->>User: Shows confirmation snackbar; script fill count increments
+    User->>ScriptsScreen: Taps the "dispensed" area of a script card
+    ScriptsScreen->>ScriptsViewModel: onAction(DispensedTapped(scriptId))
+    alt dispensed > repeats (nothing left to fill)
+        ScriptsViewModel-->>ScriptsScreen: state.maxedOutScriptId = scriptId
+        ScriptsScreen-->>User: "Already at maximum" dialog (DismissMaxedOut)
+    else fills remain
+        ScriptsViewModel-->>ScriptsScreen: state.pendingDispenseScriptId = scriptId
+        ScriptsScreen-->>User: Confirmation dialog
+        User->>ScriptsScreen: Confirms
+        ScriptsScreen->>ScriptsViewModel: onAction(ConfirmDispense)
+        ScriptsViewModel->>DispensationRepository: add(Dispensation(scriptId, dispensableUnitId, number = 1, now))
+        DispensationRepository->>Room: INSERT INTO dispensations …
+        ScriptsViewModel->>InHandRepository: addTablets(dispensableUnitId, 1 × tabletsPerUnit)
+        InHandRepository->>Room: @Transaction UPDATE in_hand SET quantity = quantity + ? …<br/>(INSERT if no row yet)
+        opt this was the final fill (dispensed == repeats)
+            ScriptsViewModel->>ScriptRepository: deleteById(scriptId)
+            ScriptRepository->>Room: DELETE FROM scripts … (dispensations cascade)
+        end
+        Room-->>ScriptsViewModel: scriptsWithDetails Flow re-emits
+        ScriptsViewModel-->>ScriptsScreen: emits updated ScriptsState (dialog cleared)
+        ScriptsScreen-->>User: Dispensed count increments (or the finished script disappears)
+    end
 ```
 
 ---
 
 ### Use case 2 — Camera tablet count feeding the In Hand screen
 
-The user photographs loose tablets; the app auto-counts them, lets the user correct the result,
-then returns the integer to the In Hand screen.
+The user photographs loose tablets; the app auto-counts them, lets the user tune the sensitivity and
+correct individual markers, then returns the integer to the In Hand screen via the back-stack result.
 
 ```mermaid
 sequenceDiagram
     actor User
     participant InHandScreen
-    participant InHandViewModel
-    participant NavController
+    participant AppNavHost
     participant CountTabletsScreen
     participant CountTabletsViewModel
-    participant BlobTabletCounter
+    participant PeakTabletCounter
 
-    User->>InHandScreen: Selects a medication, taps camera icon on "Number of tablets"
-    InHandScreen->>NavController: navigate(CountTabletsRoute)
-    NavController->>CountTabletsScreen: opens screen
+    User->>InHandScreen: Picks a dispensable unit, taps the camera icon → "Count tablets"
+    InHandScreen->>AppNavHost: onCountTablets()
+    AppNavHost->>CountTabletsScreen: navigate(CountTabletsRoute)
 
-    CountTabletsScreen->>CountTabletsViewModel: (init) phase = RequestingPermission
-    CountTabletsViewModel-->>CountTabletsScreen: state.phase = Previewing (after permission granted)
-    CountTabletsScreen-->>User: Shows live camera preview
+    CountTabletsScreen-->>User: Camera permission gate, then live preview
+    User->>CountTabletsScreen: Taps Capture
+    CountTabletsScreen->>CountTabletsScreen: ImageStore saves the JPEG, then decodes a downscaled CountImage
+    CountTabletsScreen->>CountTabletsViewModel: analyse(path, image)
+    CountTabletsViewModel->>PeakTabletCounter: analyse(image) on Dispatchers.Default
+    PeakTabletCounter->>PeakTabletCounter: foregroundMask → distance transform → local maxima
+    PeakTabletCounter-->>CountTabletsViewModel: PeakField (peaks + median height)
+    CountTabletsViewModel->>CountTabletsViewModel: PeakField.select(sensitivity) → List<CountPoint>
+    CountTabletsViewModel-->>CountTabletsScreen: phase = DETECT, markers, count = 24
 
-    User->>CountTabletsScreen: Taps Capture button
-    CountTabletsScreen->>CountTabletsViewModel: onAction(Capture)
-    CountTabletsViewModel->>CountTabletsViewModel: saves image to internal storage (ImageStore)
-    CountTabletsViewModel->>BlobTabletCounter: count(bitmap)
-    BlobTabletCounter->>BlobTabletCounter: toGrayscale → otsuThreshold → connectedComponents → centroids
-    BlobTabletCounter-->>CountTabletsViewModel: List<PointF> (one point per detected tablet)
-    CountTabletsViewModel-->>CountTabletsScreen: state.phase = Review(markers)
+    User->>CountTabletsScreen: Drags the sensitivity slider
+    CountTabletsScreen->>CountTabletsViewModel: setSensitivity(value)
+    CountTabletsViewModel->>CountTabletsViewModel: re-select() only — no re-analyse
+    CountTabletsViewModel-->>CountTabletsScreen: updated markers / count
 
-    CountTabletsScreen-->>User: Shows frozen image with marker overlay and count (e.g. "24 tablets")
+    opt Cluttered surround
+        User->>CountTabletsScreen: "Crop" → drags a box → "Apply"
+        CountTabletsScreen->>CountTabletsViewModel: beginCrop() / applyCrop(rect)
+        CountTabletsViewModel->>PeakTabletCounter: analyse(image.cropped(rect))
+    end
 
-    User->>CountTabletsScreen: Taps on missed tablet (empty space)
-    CountTabletsScreen->>CountTabletsViewModel: onAction(AddMarker(offset))
-    CountTabletsViewModel->>CountTabletsViewModel: markers += offset; count = markers.size
-    CountTabletsViewModel-->>CountTabletsScreen: updated state (count = 25)
+    User->>CountTabletsScreen: Taps "Next"
+    CountTabletsScreen->>CountTabletsViewModel: confirmDetection() → phase = EDIT
+    User->>CountTabletsScreen: Taps a missed tablet
+    CountTabletsScreen->>CountTabletsViewModel: onTapAt(x, y)
+    CountTabletsViewModel->>CountTabletsViewModel: editMarkers(...) adds/removes one marker
+    CountTabletsViewModel-->>CountTabletsScreen: count = 25
 
     User->>CountTabletsScreen: Taps "Use 25"
-    CountTabletsScreen->>CountTabletsViewModel: onAction(UseCount)
-    CountTabletsViewModel->>NavController: previousBackStackEntry?.savedStateHandle[TABLET_COUNT_RESULT] = 25
-    CountTabletsViewModel->>NavController: popBackStack()
-
-    NavController->>InHandScreen: back-stack restored
-    InHandViewModel->>InHandViewModel: savedStateHandle.getStateFlow(TABLET_COUNT_RESULT) emits 25
-    InHandViewModel-->>InHandScreen: state.numberOfTablets = "25"
+    CountTabletsScreen->>AppNavHost: onCounted(25)
+    AppNavHost->>AppNavHost: previousBackStackEntry.savedStateHandle[TABLET_COUNT_RESULT] = 25<br/>popBackStack()
+    AppNavHost->>InHandScreen: countedTablets = 25 (collected from the In Hand entry's saved state)
+    InHandScreen->>InHandScreen: onAction(TabletsCounted(25)) → announceForAccessibility → onCountedConsumed()
     InHandScreen-->>User: "Number of tablets" field populated with 25
 ```
+
+---
+
+## Testing
+
+Test sources mirror the production package layout, so a class's tests sit in the same package as the
+class itself.
+
+| Source set | What lives there | Stack |
+|---|---|---|
+| `app/src/test/…` | JVM unit tests: every ViewModel, the pure counting/CV engine, `PbsScriptParser`, `FuzzyMatcher`, `InventorySupply`, `AttentionMessages`, `RunOutGraph`, `BackupFileName`, the numeric sanitizers, state-derivation (`*StateTest`) | JUnit 5 (Jupiter), Turbine, AssertK, Mockito, `UnconfinedTestDispatcher` |
+| `app/src/androidTest/…` | Compose UI tests, one `*ScreenTest` + `*Robot` pair per screen | `createAndroidComposeRule<ComponentActivity>`, `ui-test-junit4`, Espresso |
+
+### Running
+
+```zsh
+# JVM unit tests (Gradle is configured with useJUnitPlatform())
+./gradlew testDebugUnitTest
+
+# …plus a JaCoCo coverage report → app/build/reports/jacoco/jacocoTestReport/html/index.html
+./gradlew jacocoTestReport
+
+# Compose UI tests — needs a connected device or running emulator
+./gradlew connectedDebugAndroidTest
+```
+
+HTML results land in `app/build/reports/tests/testDebugUnitTest/index.html` (unit) and
+`app/build/reports/androidTests/connected/debug/index.html` (instrumented).
+
+### Conventions
+
+- **ViewModel tests** set `Dispatchers.setMain(UnconfinedTestDispatcher())` in `@BeforeEach`, reset it
+  in `@AfterEach`, and assert on state with Turbine (`vm.state.test { awaitItem() … }`). Dependencies
+  are hand-rolled fakes implementing the DAO/repository interface, or Mockito mocks where a single
+  interaction is being verified — no DI framework is involved, since ViewModels take constructor
+  parameters.
+- **UI tests** use the Robot pattern: the robot calls `setContent { … }` on the *stateless* `FooScreen`
+  composable with a hand-built `FooState`, exposes `assert*` / `perform*` methods, and looks nodes up
+  by string resource or `testTag` — so the tests never depend on a real database or ViewModel.
+- JUnit 4 tests still run alongside JUnit 5 via the Vintage engine (`junit-vintage-engine`).
 
 ---
 
@@ -570,8 +726,9 @@ sequenceDiagram
 
 ### Prerequisites
 
-- Android Studio (Meerkat or later recommended)
-- JDK 11+
+- Android Studio recent enough for AGP 9.2 (the project targets Gradle 9.4.1 / AGP 9.2.1 / Kotlin 2.4.0)
+- JDK 17+ to run Gradle (AGP 9 requires it); the modules themselves compile at Java/Kotlin language
+  level 11 (`sourceCompatibility`/`targetCompatibility = VERSION_11`)
 - Android SDK — compile SDK 37, build-tools matching
 
 ### Clone and open
@@ -588,7 +745,7 @@ cd aitoui
 # Debug build
 ./gradlew installDebug
 
-# Release build (unsigned)
+# Release build (unsigned; minification is off)
 ./gradlew assembleRelease
 ```
 
@@ -600,9 +757,13 @@ quantities — so the app can be exercised immediately without manual data entry
 
 ### Backup file format
 
-Backups are written to the device's Downloads folder as `pxtx_v<schema>_<date>.zip`. They can be
-transferred between devices; the app validates the schema version on load and runs any outstanding
-Room migrations automatically.
+Backups are written to the device's Downloads folder, named `pxtx-<ddMMyyyy>-db<schema>.zip` by
+default (e.g. `pxtx-30072026-db27.zip`) — the Save dialog lets the user edit the name, and a missing
+`.zip` extension is added for them. They can be transferred between devices: on load the app reads the
+manifest's schema version first, **rejects** a backup newer than the running app, and otherwise lets
+Room migrate an older database on the next open (see `MainViewModel`). Note that
+`SharedPreferences` settings (the warning window) are **not** in the backup — only `aitoui.db` and the
+tablet photos.
 
 ---
 
@@ -610,9 +771,10 @@ Room migrations automatically.
 
 | Document | Description |
 |---|---|
-| [`docs/DATABASE_SCHEMA.md`](docs/DATABASE_SCHEMA.md) | Full table definitions, column types, constraints, relationships, migration history |
-| [`docs/database-schema.png`](docs/database-schema.png) | UML class diagram (rendered from the Mermaid source in the schema doc) |
-| [`docs/tablet-counting-mvp.md`](docs/tablet-counting-mvp.md) | MVP design for the loose-tablet camera counter: user flow, counting engine interface, wiring into In Hand |
-| [`docs/blister-counting-mvp.md`](docs/blister-counting-mvp.md) | MVP design for the blister-pack camera counter: geometry-only approach, phase machine, PCA segmentation, pop-the-empties UX |
+| [`docs/DATABASE_SCHEMA.md`](docs/DATABASE_SCHEMA.md) | Full table definitions, column types, constraints, relationships, migration history (current: v27) |
+| [`docs/database-schema.png`](docs/database-schema.png) | UML class diagram of the current schema — regenerate with `mmdc` from the Mermaid source in the schema doc after any schema change |
+| [`docs/tablet-counting-mvp.md`](docs/tablet-counting-mvp.md) | Original design record for the loose-tablet camera counter: user flow, counting engine interface, wiring into In Hand. Its status banner lists where the shipped code diverged (`CountImage`/`CountPoint`, `PeakTabletCounter`, sensitivity slider, crop phase) |
+| [`docs/blister-counting-mvp.md`](docs/blister-counting-mvp.md) | Original design record for the blister-pack camera counter: geometry-only approach, PCA segmentation, pop-the-empties UX. Its status banner notes the shipped phase machine, which adds the hand-adjustable framing step |
 | [`docs/ACCESSIBILITY_AUDIT.md`](docs/ACCESSIBILITY_AUDIT.md) | Accessibility review findings and remediation status |
+| [`docs/mockups/`](docs/mockups/) | Static HTML mockups used to agree a screen change before implementing it |
 
