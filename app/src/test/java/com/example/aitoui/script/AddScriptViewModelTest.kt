@@ -224,18 +224,25 @@ class AddScriptViewModelTest {
         )
         val scriptDao = FakeScriptDao(scripts.map { it.toEntity() })
         val dispensationDao = FakeDispensationDao()
+        val viewModel = AddScriptViewModel(
+            scriptRepository = ScriptRepository(scriptDao),
+            medicationRepository = MedicationRepository(medicationDao),
+            dispensableUnitRepository = DispensableUnitRepository(dispensableUnitDao),
+            dispensationRepository = DispensationRepository(dispensationDao),
+            prefill = prefill,
+        )
+        // "No. of times already dispensed" is a required field, and a prefilled 0 is deliberately shown
+        // blank so the user confirms it (see AddScriptViewModel's prefill mapping). Type the 0 in as the
+        // user would, otherwise canSave stays false and Save is a no-op.
+        if (prefill.priorDispensed == 0) {
+            viewModel.onAction(AddScriptAction.PriorDispensedChanged("0"))
+        }
         return Fixture(
             medicationDao = medicationDao,
             dispensableUnitDao = dispensableUnitDao,
             scriptDao = scriptDao,
             dispensationDao = dispensationDao,
-            viewModel = AddScriptViewModel(
-                scriptRepository = ScriptRepository(scriptDao),
-                medicationRepository = MedicationRepository(medicationDao),
-                dispensableUnitRepository = DispensableUnitRepository(dispensableUnitDao),
-                dispensationRepository = DispensationRepository(dispensationDao),
-                prefill = prefill,
-            ),
+            viewModel = viewModel,
         )
     }
 
