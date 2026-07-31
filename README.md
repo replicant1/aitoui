@@ -923,9 +923,9 @@ HTML results land in `app/build/reports/tests/testDebugUnitTest/index.html` (uni
 ### Clone and open
 
 ```zsh
-git clone git@github.com:replicant1/aitoui.git
-cd aitoui
-# Open in Android Studio: File → Open → select the aitoui folder
+git clone git@github.com:replicant1/PxTx.git
+cd PxTx
+# Open in Android Studio: File → Open → select the PxTx folder
 ```
 
 ### Build and install (command line)
