@@ -1,5 +1,13 @@
 # Tablet Counting (MVP) — Hook #1 Implementation Plan
 
+> **Status: shipped; kept as the original design record.** What was built differs from this plan in
+> three ways: the counting engine takes a platform-free `CountImage` and returns `List<CountPoint>`
+> (not `Bitmap` / `List<PointF>`); the shipped counter is `PeakTabletCounter` (distance-transform
+> peaks, split into `analyse()` + `PeakField.select()`) rather than the blob detector, with
+> `BlobTabletCounter` kept only as a simpler reference implementation; and the review step gained a
+> live **sensitivity slider** and an optional **crop** phase (`CountPhase.DETECT → CROP → EDIT`).
+> See the README's *Camera counter phase machine* for the shipped flow.
+
 ## Goal & scope
 
 Add a camera-based tablet count that feeds the existing **"Number of tablets"**

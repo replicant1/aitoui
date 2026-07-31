@@ -1,5 +1,13 @@
 # Blister-Pack Counting (MVP) — Implementation Plan
 
+> **Status: shipped; kept as the original design record.** The geometry-only decision held, but the
+> phase machine below was superseded. Shipped:
+> `BlisterPhase.CAPTURE → FRAME → FORMAT → POP → SUMMARY`, where **FRAME** is a step this plan didn't
+> have — `segmentPacks()` seeds one `FrameBox` per pack and the user drags, resizes, rotates, adds or
+> deletes those frames before confirming, then sets the pocket grid's rows × columns in **FORMAT**.
+> Camera permission is handled by the composable, not as a phase. See the README's *Camera counter
+> phase machine* for the shipped flow.
+
 ## Goal & scope
 
 Add a camera-based way to count the tablets still held in **blister packs** and

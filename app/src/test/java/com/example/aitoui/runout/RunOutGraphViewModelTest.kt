@@ -30,6 +30,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.jupiter.api.AfterEach
@@ -53,13 +54,20 @@ class RunOutGraphViewModelTest {
 
     // ── Loading ──────────────────────────────────────────────────────────────
 
+    // `RunOutGraphViewModel.state` is a `stateIn(…, WhileSubscribed)`, so its `combine` upstream starts
+    // when the first collector subscribes — synchronously, on this UnconfinedTestDispatcher. The seed
+    // `RunOutGraphData()` is therefore usually replaced before Turbine is handed its first item, and
+    // StateFlow conflates equal values, so the number of emissions is not something to assert on. Each
+    // test drains what has arrived (`runCurrent()` + `expectMostRecentItem()`) and asserts on the
+    // settled value instead.
+
     @Test
     fun `empty repositories produce empty graph data`() = runTest {
         val vm = createViewModel()
 
         vm.state.test {
-            awaitItem() // initial RunOutGraphData() before upstream starts
-            val computed = awaitItem() // computed from combine
+            runCurrent()
+            val computed = expectMostRecentItem()
             assertThat(computed.isEmpty).isTrue()
             assertThat(computed.series).isEmpty()
         }
@@ -75,8 +83,8 @@ class RunOutGraphViewModelTest {
         )
 
         vm.state.test {
-            awaitItem() // initial
-            val computed = awaitItem()
+            runCurrent()
+            val computed = expectMostRecentItem()
             assertThat(computed.isEmpty).isFalse()
             assertThat(computed.series.map { it.label })
                 .containsExactly("Panadol (500mg)")
@@ -101,8 +109,8 @@ class RunOutGraphViewModelTest {
         )
 
         vm.state.test {
-            awaitItem() // initial
-            val computed = awaitItem()
+            runCurrent()
+            val computed = expectMostRecentItem()
             assertThat(computed.series.map { it.label })
                 .containsExactly("Aardvark (500mg)", "Zebra (500mg)")
         }
@@ -118,8 +126,8 @@ class RunOutGraphViewModelTest {
         )
 
         vm.state.test {
-            awaitItem() // initial
-            val computed = awaitItem()
+            runCurrent()
+            val computed = expectMostRecentItem()
             assertThat(computed.isEmpty).isTrue()
         }
     }

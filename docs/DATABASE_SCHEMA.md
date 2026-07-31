@@ -1,6 +1,6 @@
 # Database Schema
 
-**Database:** `aitoui.db` (Room) · **version:** 26 · **package:** `com.example.aitoui.data`
+**Database:** `aitoui.db` (Room) · **version:** 27 · **package:** `com.example.aitoui.data`
 
 The schema models prescriptions and pharmacy dispensing as a chain:
 
@@ -36,6 +36,7 @@ A specific format (dosage/packaging) of a medication — a dispensable unit.
 | `medicationId` | INTEGER | **FK → `medications.id`** (ON DELETE CASCADE), indexed | |
 | `dosePerTablet` | TEXT | not null | raw text (e.g. `"500"`) |
 | `tabletsPerUnit` | TEXT | not null | raw text |
+| `doseUnit` | TEXT | not null, default `'mg'` | the dose's unit of measure as a short stored token — `"mg"`, `"g"`, `"IU"`, `"mL"`, `"μg"` (see `DoseUnit.storedAbbreviation`). Added in `MIGRATION_26_27`. |
 | `imagePath` | TEXT | nullable | filename of the unit's tablet photo in internal storage (`unit_images/`), or null |
 
 ### `scripts`
@@ -126,6 +127,13 @@ the association label is the foreign-key column.
 <details>
 <summary>Mermaid source (edit this, then re-render the PNG)</summary>
 
+Re-render after editing (Mermaid CLI — `npm i -g @mermaid-js/mermaid-cli`, or `brew install mermaid-cli`):
+
+```zsh
+# Save the block below as schema.mmd, then:
+mmdc -i schema.mmd -o docs/database-schema.png -b white -s 3
+```
+
 ```mermaid
 classDiagram
     direction TB
@@ -140,6 +148,7 @@ classDiagram
         +Long medicationId «FK»
         +String dosePerTablet
         +String tabletsPerUnit
+        +String doseUnit
         +String? imagePath
     }
     class scripts {
@@ -191,7 +200,8 @@ classDiagram
   `addMigrations(*ALL_MIGRATIONS)` in `AitouiApp`), so bumping the `@Database` version preserves existing
   data across the versions they cover. Current history: `21→22` (adds `scripts.instructions`), `22→23`,
   `23→24` (adds `medications.requiresPrescription`), `24→25` (re-keys `in_hand` to `dispensableUnitId`),
-  `25→26` (re-keys `daily_schedule` to `dispensableUnitId`). `fallbackToDestructiveMigration(dropAllTables
+  `25→26` (re-keys `daily_schedule` to `dispensableUnitId`), `26→27` (adds `dispensable_units.doseUnit`,
+  defaulting existing rows to `'mg'`). `fallbackToDestructiveMigration(dropAllTables
   = true)` remains only as a safety net for any version jump **not** covered by a migration (it recreates
   and re-seeds instead of crashing).
 - In debug builds the database is auto-seeded on first launch with a moderate amount of sample data
